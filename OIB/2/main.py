@@ -1,4 +1,3 @@
-import tkinter
 import re
 
 alphabet = 'абвгдеёжзийклмнопрстуфхцчшщъыьэюя'.upper()
@@ -10,6 +9,8 @@ alph_freq = {k: v for k, v in zip(alphabet, frequens)}
 alph_freq = dict(sorted(alph_freq.items(), key= lambda item: item[1], reverse=True))
 
 chars_to_remove = [",", "?", "!", ":", ";", "'", '"', '\n', ".", "—"]
+
+history = []
 
 def frequence_anal(str):
     symbols = [symbol for symbol in str]
@@ -28,25 +29,75 @@ def frequence_anal(str):
 
 def read_file(name):
     f = open(name, 'r')
-    str = f.read().upper()
+    cry = first = f.read().upper()
 
     for char in chars_to_remove:
-        str = str.replace(char, "")
+        cry = cry.replace(char, "")
     
-    word = re.split(" |\n", str)
+    word = list(set(re.split(" |\n", cry)))
 
-    return str, word
+    if '' in word:
+        word.remove('')
 
-cryptogramm_str, cryptogramm_words = read_file('in.txt')
-cryptogramm_freq = frequence_anal(cryptogramm_str)
+    cry = cry.replace(' ', '').replace('\n', '')
 
-keys_list_1 = list(alph_freq.keys())
-keys_list_2 = list(cryptogramm_freq.keys())
+    return first, cry, word
 
-# for i in range(0, len(cryptogramm_freq)):
-#     print(keys_list_2[i], "->", keys_list_1[i])
+cryptogramm, cryptogramm_str, cryptogramm_words = read_file('in.txt')
 
-cryptogramm_words = sorted(set(cryptogramm_words), key=lambda item: len(item), reverse=True)
+def replace_letter(what, to):
+    global cryptogramm, cryptogramm_words
 
-for word in cryptogramm_words:
-    print(word)
+    cryptogramm = cryptogramm.replace(what, to)
+
+    for i in range(0, len(cryptogramm_words)):
+        cryptogramm_words[i] = cryptogramm_words[i].replace(what, to)
+
+
+while(True):
+    command = input()
+    command = command.split(' ')
+    
+    match command[0]:
+        case 'q':
+            break
+        case 'freq':
+            cryptogramm_freq = frequence_anal(cryptogramm_str)
+
+            keys_list_1 = list(alph_freq.keys())
+            keys_list_2 = list(cryptogramm_freq.keys())
+
+            for i in range(0, len(cryptogramm_freq)):
+                print(keys_list_2[i], "->", keys_list_1[i])
+        case 'mlen':
+            temp = sorted(cryptogramm_words, key=lambda item: len(item), reverse=True)
+
+            for word in temp:
+                print(word)
+        case 'r':
+            replace_letter(command[1].upper(), command[2])
+
+            history.append(command)
+
+        case 'unenc':
+            len_unencode = []
+            for word in cryptogramm_words:
+                len_unencode.append(sum(1 for ch in word if not ch.isupper()))
+            
+            temp = {k: v for k, v in zip(cryptogramm_words, len_unencode)}
+            temp = dict(sorted(temp.items(), key= lambda item: item[1], reverse=True))
+
+            for item in temp:
+                print(item)
+        
+        case 'h':
+            for command in history:
+                print(command[1], '->', command[2])
+
+        case 'undo':
+            if history:
+                last = history.pop()
+                replace_letter(last[2], last[1].upper())
+
+        case 'print':
+            print(cryptogramm)
