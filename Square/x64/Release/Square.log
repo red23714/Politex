@@ -1,0 +1,8 @@
+﻿  Square.c
+C:\Users\Cooal\Documents\C\Polytech\Square\Square.c(7,31): warning C4244: 'initializing': conversion from 'double' to 'unsigned __int64', possible loss of data
+  Generating code
+  4 of 9 functions (44.4%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  Square.vcxproj -> C:\Users\Cooal\Documents\C\Polytech\FirstProj1\x64\Release\Square.exe
