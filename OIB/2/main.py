@@ -101,3 +101,13 @@ while(True):
 
         case 'print':
             print(cryptogramm)
+        case 'auto':
+            crypt_freq = frequence_anal(cryptogramm_str)
+
+            keys_list_1 = list(alph_freq.keys())
+            keys_list_2 = list(crypt_freq.keys())
+
+            for i in range(0, len(crypt_freq)):
+                replace_letter(keys_list_2[i], keys_list_1[i])
+                history.append('r ' + keys_list_2 + keys_list_1)
+
