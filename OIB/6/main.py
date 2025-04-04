@@ -17,11 +17,7 @@ def load_config(config_file):
     }
 
 def remove_comments(code):
-    pattern = r'''
-        ("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')  # строки в кавычках
-        |(//.*?$)                              # однострочные комментарии //
-        |(/\*.*?\*/)                           # многострочные комментарии /* */
-    '''
+    pattern = r'/\*.*?\*/|//.*?$'
     
     def replacer(match):
         if match.group(1): 
@@ -32,61 +28,39 @@ def remove_comments(code):
     # re.VERBOSE — для читаемости, re.DOTALL — чтобы . включал \n, re.MULTILINE — для ^ и $ построчно
     return re.sub(pattern, replacer, code, flags=re.VERBOSE | re.DOTALL | re.MULTILINE)
 
-def remove_spaces(text):
-    exceptions = ["int", "struct", "include", "define", "float",
-                  "double", "long", "char"]
+def remove_spaces(code):
+    code = re.sub(r'^[ \t]+|[ \t]+$', '', code, flags=re.MULTILINE)
     
-    words_pattern = r'\b(?:' + '|'.join(map(re.escape, exceptions)) + r')\b'
+    # Заменяем множественные пробелы и табы между токенами на один пробел
+    code = re.sub(r'([^\w\s])\s+([^\w\s])', r'\1\2', code)  # между спецсимволами
+    code = re.sub(r'(\w)\s+([^\w\s])', r'\1\2', code)       # между словом и спецсимволом
+    code = re.sub(r'([^\w\s])\s+(\w)', r'\1\2', code)       # между спецсимволом и словом
+    code = re.sub(r'(\w)\s+(\w)', r'\1 \2', code)           # между словами (оставляем 1 пробел)
     
-    # Основное регулярное выражение:
-    # 1. Строки в кавычках (полностью сохраняем)
-    # 2. Директивы препроцессора (сохраняем полностью)
-    # 3. Слова из списка (сохраняем с одним пробелом после)
-    # 4. Все остальные пробелы (удаляем)
-    pattern = rf'''
-        (                          # Группа 1: строки в кавычках
-            "(?:\\.|[^"\\])*"      # Двойные кавычки
-            |'(?:\\.|[^'\\])*'     # Или одинарные
-        )
-        |(^\s*#.*$)                # Группа 2: директивы препроцессора
-        |({words_pattern})(\s+)    # Группа 3: слово из списка, Группа 4: пробелы после
-        |(\s+)                     # Группа 5: все остальные пробелы
-    '''
+    # Удаляем пробелы вокруг операторов, но оставляем после ключевых слов
+    code = re.sub(r'\s*([=+\-*/%&|^<>!]=?|&&|\|\|)\s*', r'\1', code)
     
-    def replacer(match):
-        if match.group(1):          # Строка в кавычках
-            return match.group(1)
-        elif match.group(2):        # Директива препроцессора
-            return match.group(2)
-        elif match.group(3):        # Слово из списка
-            return match.group(3) + ' '  # Сохраняем слово + один пробел
-        else:                       # Все остальные пробелы
-            return ''
+    # Удаляем пробелы после открывающих и перед закрывающими скобками
+    code = re.sub(r'\(\s+', '(', code)
+    code = re.sub(r'\s+\)', ')', code)
     
-    # Обрабатываем каждую строку отдельно
-    lines = text.split('\n')
-    cleaned_lines = []
+    # Удаляем пробелы после открывающих и перед закрывающими фигурными скобками
+    code = re.sub(r'\{\s+', '{', code)
+    code = re.sub(r'\s+\}', '}', code)
     
-    for line in lines:
-        if line.lstrip().startswith('#'):
-            # Для директив препроцессора сохраняем строку как есть
-            cleaned_lines.append(line)
-        else:
-            # Обрабатываем остальные строки
-            cleaned_line = re.sub(
-                pattern,
-                replacer,
-                line,
-                flags=re.VERBOSE | re.DOTALL
-            )
-            cleaned_lines.append(cleaned_line)
+    # Удаляем пробелы перед точкой с запятой
+    code = re.sub(r'\s+;', ';', code)
     
-    return '\n'.join(cleaned_lines)
+    # Удаляем пустые строки
+    code = re.sub(r'\n\s*\n', '\n', code)
+    
+    return code
 
 
 def main():
     file = open("test.c", "r").read()
     file = remove_comments(file)
+    print(file)
     print(remove_spaces(file))
 
 main()

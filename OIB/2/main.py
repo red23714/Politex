@@ -45,6 +45,8 @@ def read_file(name):
 
 cryptogramm, cryptogramm_str, cryptogramm_words = read_file('in.txt')
 
+original = cryptogramm
+
 def replace_letter(what, to):
     global cryptogramm, cryptogramm_words
 
@@ -75,7 +77,7 @@ while(True):
             for word in temp:
                 print(word)
         case 'r':
-            replace_letter(command[1].upper(), command[2])
+            replace_letter(command[1], command[2])
 
             history.append(command)
 
@@ -91,23 +93,27 @@ while(True):
                 print(item)
         
         case 'h':
+            i = 1
             for command in history:
-                print(command[1], '->', command[2])
+                print(i, command[1], '->', command[2])
+                i += 1
 
         case 'undo':
             if history:
-                last = history.pop()
-                replace_letter(last[2], last[1].upper())
+                last = history.pop(int(command[1]) - 1)
+                replace_letter(last[2].lower(), last[1])
 
         case 'print':
             print(cryptogramm)
+        case 'orig':
+            print(original)
         case 'auto':
             crypt_freq = frequence_anal(cryptogramm_str)
 
             keys_list_1 = list(alph_freq.keys())
             keys_list_2 = list(crypt_freq.keys())
 
-            for i in range(0, len(crypt_freq)):
-                replace_letter(keys_list_2[i], keys_list_1[i])
-                history.append('r ' + keys_list_2 + keys_list_1)
+            for i in range(0, len(crypt_freq)): 
+                replace_letter(keys_list_2[i], keys_list_1[i].lower())
+                history.append(['r', keys_list_2[i], keys_list_1[i]])
 

