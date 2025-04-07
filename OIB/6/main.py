@@ -2,8 +2,6 @@ import configparser
 import re
 import random
 
-
-
 def load_config(config_file):
     config = configparser.ConfigParser()
     config.read(config_file)
@@ -17,7 +15,11 @@ def load_config(config_file):
     }
 
 def remove_comments(code):
-    pattern = r'/\*.*?\*/|//.*?$'
+    pattern = r'''
+        ("(?:\\.|[^"\\])*")|          # строки в двойных кавычках
+        ('(?:\\.|[^'\\])*')|          # строки в одинарных кавычках
+        (//[^\n]*|/\*.*?\*/)          # комментарии
+    '''
     
     def replacer(match):
         if match.group(1): 
@@ -25,42 +27,75 @@ def remove_comments(code):
         else:
             return ''
 
-    # re.VERBOSE — для читаемости, re.DOTALL — чтобы . включал \n, re.MULTILINE — для ^ и $ построчно
-    return re.sub(pattern, replacer, code, flags=re.VERBOSE | re.DOTALL | re.MULTILINE)
+    return re.sub(pattern, replacer, code, flags=re.VERBOSE | re.DOTALL)
 
 def remove_spaces(code):
-    code = re.sub(r'^[ \t]+|[ \t]+$', '', code, flags=re.MULTILINE)
-    
-    # Заменяем множественные пробелы и табы между токенами на один пробел
-    code = re.sub(r'([^\w\s])\s+([^\w\s])', r'\1\2', code)  # между спецсимволами
-    code = re.sub(r'(\w)\s+([^\w\s])', r'\1\2', code)       # между словом и спецсимволом
-    code = re.sub(r'([^\w\s])\s+(\w)', r'\1\2', code)       # между спецсимволом и словом
-    code = re.sub(r'(\w)\s+(\w)', r'\1 \2', code)           # между словами (оставляем 1 пробел)
-    
-    # Удаляем пробелы вокруг операторов, но оставляем после ключевых слов
-    code = re.sub(r'\s*([=+\-*/%&|^<>!]=?|&&|\|\|)\s*', r'\1', code)
-    
-    # Удаляем пробелы после открывающих и перед закрывающими скобками
-    code = re.sub(r'\(\s+', '(', code)
-    code = re.sub(r'\s+\)', ')', code)
-    
-    # Удаляем пробелы после открывающих и перед закрывающими фигурными скобками
-    code = re.sub(r'\{\s+', '{', code)
-    code = re.sub(r'\s+\}', '}', code)
-    
-    # Удаляем пробелы перед точкой с запятой
-    code = re.sub(r'\s+;', ';', code)
-    
-    # Удаляем пустые строки
-    code = re.sub(r'\n\s*\n', '\n', code)
-    
-    return code
+    c_preproc = [
+        # Директивы препроцессора
+        '#include', '#define', '#undef', '#if', '#ifdef', '#ifndef',
+        '#else', '#elif', '#endif', '#line', '#error', '#pragma',
+        '#using', '#import'
+    ]
 
+def generate_variable():
+    return "asdf"
+
+def replace_variables(code):
+    c_keywords = [
+        "auto", "break", "case", "char", "const", "continue", "default", "do", 
+        "double", "else", "enum", "extern", "float", "for", "goto", "if", 
+        "inline", "int", "long", "register", "restrict", "return", "short", 
+        "signed", "sizeof", "static", "struct", "switch", "typedef", "union", 
+        "unsigned", "void", "volatile", "while"
+    ]
+
+    pattern = re.compile(
+        r'''
+        ("(?:\\.|[^"\\])*")       # строки в кавычках
+        | (<[^>]*>)               # содержимое угловых скобок
+        | (\b[a-zA-Z_]\w*\()      # слова со скобкой (например "func(")
+        | (\b[a-zA-Z_]\w*\b)      # обычные слова
+        | (\b\d+\b)               # числа
+        ''',
+        re.VERBOSE
+    )
+    
+    tokens = []
+    for match in pattern.finditer(code):
+        # Выбираем первую непустую группу
+        token = next((group for group in match.groups() if group), None)
+        if token:
+            tokens.append(token)
+
+    data_types = ["char", "float", "int", "long", "short", "double"]
+    variables = {}
+    previous = ""
+
+    def replace_var(code, word):
+        new_name = generate_variable()
+        pattern = r'\b' + re.escape(word) + r'\b'
+        variables.update({word: new_name})
+        return re.sub(pattern, new_name, code)
+
+    for word in tokens:
+        if word not in data_types:
+            if previous == "struct":
+                data_types.append(word)
+                code = replace_var(code, word)
+            elif previous not in data_types:
+                data_types.append(word)
+            else:
+                if word not in variables.keys():
+                    code = replace_var(code, word)
+
+        previous = word
+
+    print(code)
 
 def main():
     file = open("test.c", "r").read()
     file = remove_comments(file)
-    print(file)
-    print(remove_spaces(file))
+    
+    replace_variables(file)
 
 main()
