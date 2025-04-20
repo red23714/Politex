@@ -14,19 +14,33 @@ int main()
     int count = 0;
 
     scanf("%s", train_str);
-    scanf("%d", &index);
 
     list_init(&train, train_str);
 
-    set_item(&train, index, train_on);
+    element *start = train.head;
+
+    start->data = train_on;
     count++;
 
     while (1)
     {
+        element *current;
         index += count;
-        set_item(&train, index, train_off);
+        for (int i = 0; i < index; i++)
+        {
+            current = move(1, start);
+        }
+        current->data = train_off;
+
+        for (int i = index; i > index - count; i--)
+        {
+            current = move(0, start);
+        }
+
         index -= count;
-        if(get_item(&train, index)->data == train_off) break;
+
+        if (start->data == train_off) break;
+
         count++;
     }
     

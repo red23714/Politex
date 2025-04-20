@@ -1,0 +1,13 @@
+﻿  FirstProj1.c
+C:\Users\Cooal\Documents\C\Polytech\FirstProj1\FirstProj1.c(73,9): warning C4005: '_CRT_SECURE_NO_WARNINGS': macro redefinition
+      C:\Users\Cooal\Documents\C\Polytech\FirstProj1\FirstProj1.c(73,9):
+      '_CRT_SECURE_NO_WARNINGS' previously declared on the command line
+  
+C:\Users\Cooal\Documents\C\Polytech\FirstProj1\FirstProj1.c(85,17): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Cooal\Documents\C\Polytech\FirstProj1\FirstProj1.c(86,17): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  Generating code
+  8 of 8 functions (100.0%) were compiled.
+    1 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  FirstProj1.vcxproj -> C:\Users\Cooal\Documents\C\Polytech\FirstProj1\x64\Release\FirstProj1.exe

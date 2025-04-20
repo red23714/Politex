@@ -3,7 +3,7 @@
 
 int check_password(const char * pass, const char * true_pass)
 {
-    return strncmp(pass, true_pass, strlen(pass)) == 0;
+    return strncmp(pass, true_pass, strlen(pass)) == 0 && strlen(pass) == strlen(true_pass);
 }
 
 int main(int argc, char const *argv[])
@@ -13,20 +13,16 @@ int main(int argc, char const *argv[])
     char true_pass[50];
 
     FILE *fptr;
-    // opening the file in read mode
     fptr = fopen("pass.txt", "r");
 
-    // checking if the file is opened successfully
     if (fptr == NULL)
     {
-        printf("The file is not opened. The program will "
-               "now exit.");
+        printf("The file is not opened. The program will now exit.");
         return 0;
     }
 
     while (fgets(true_pass, 50, fptr) != NULL);
 
-    // Closing the file using fclose()
     fclose(fptr);
 
     printf("Enter password: \n");

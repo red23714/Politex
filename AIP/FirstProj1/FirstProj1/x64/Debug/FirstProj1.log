@@ -1,0 +1,6 @@
+﻿  FirstProj1.c
+C:\Users\Cooal\Documents\C\Polytech\FirstProj1\FirstProj1.c(1,9): warning C4005: '_CRT_SECURE_NO_WARNINGS': macro redefinition
+      C:\Users\Cooal\Documents\C\Polytech\FirstProj1\FirstProj1.c(1,9):
+      '_CRT_SECURE_NO_WARNINGS' previously declared on the command line
+  
+  FirstProj1.vcxproj -> C:\Users\Cooal\Documents\C\Polytech\FirstProj1\x64\Debug\FirstProj1.exe

@@ -1,9 +1,0 @@
-﻿  Multiply.c
-C:\Users\Cooal\Documents\C\Polytech\Multiply\Multiply.c(8,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Cooal\Documents\C\Polytech\Multiply\Multiply.c(9,16): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-  Generating code
-  1 of 8 functions (12.5%) were compiled, the rest were copied from previous compilation.
-    0 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
-  Finished generating code
-  Multiply.vcxproj -> C:\Users\Cooal\Documents\C\Polytech\FirstProj1\x64\Release\Multiply.exe

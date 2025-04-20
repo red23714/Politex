@@ -5,6 +5,7 @@
 typedef struct element
 {
     struct element *next;
+    struct element *previous;
     char data;
 }element;
 
@@ -22,12 +23,14 @@ void add_to_begin(list *list, char data)
     if (list->head == NULL) 
     {
         new_element->next = new_element;
+        new_element->previous = new_element;
         list->head = new_element;
         list->tail = new_element;
     } 
     else 
     {
         new_element->next = list->head;
+        new_element->previous = list->tail;
         list->head = new_element;
         list->tail->next = list->head;
     }
@@ -45,6 +48,7 @@ void add_to_end(list *list, char data)
 
     new_element->data = data;
     new_element->next = list->head;
+    new_element->previous = list->tail;
 
     list->tail->next = new_element;
 
@@ -64,26 +68,9 @@ void list_init(list *list, char *str)
     }
 }
 
-element* get_item(list* list, int index)
+element *move(int dir, element *current)
 {
-    int i = 0;
-    element *current = list->head;
-
-    while (i != index)
-    {
-        current = current->next;
-
-        if(index > 0) i++;
-        else i--;
-    }
-    
-    return current;
-}
-
-void set_item(list* list, int index, char data)
-{
-    element *el = get_item(list, index);
-    el->data = data;
+    return dir == 1 ? current->next : current->previous;   
 }
 
 void print_list(list* list)

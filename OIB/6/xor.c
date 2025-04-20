@@ -9,8 +9,10 @@ int check_password(const char * pass, char * true_pass)
     {
         true_pass[i] ^= Const_XOR;
     }
+
+    int res = strncmp(pass, true_pass, strlen(pass));
     
-    return strncmp(pass, true_pass, strlen(pass)) == 0;
+    return res == 0 && strlen(pass) == strlen(true_pass);
 }
 
 int main(int argc, char const *argv[])
@@ -20,20 +22,16 @@ int main(int argc, char const *argv[])
     char true_pass[50];
 
     FILE *fptr;
-    // opening the file in read mode
     fptr = fopen("passxor.txt", "r");
 
-    // checking if the file is opened successfully
     if (fptr == NULL)
     {
-        printf("The file is not opened. The program will "
-               "now exit.");
+        printf("The file is not opened. The program will now exit.");
         return 0;
     }
 
     while (fgets(true_pass, 50, fptr) != NULL);
 
-    // Closing the file using fclose()
     fclose(fptr);
 
     printf("Enter password: \n");
@@ -46,13 +44,13 @@ int main(int argc, char const *argv[])
         if (is_login)
         {
             char test[20];
-            printf("You are log in\nType something: \n");
+            printf("\nYou are log in\nType something: \n");
             scanf("%s", test);
             printf("%s\n", test);
         }
         else
         {
-            printf("You are not log in\nTry again:\n");
+            printf("\nYou are not log in\nTry again:\n");
             scanf("%s", pass);
         }
     }

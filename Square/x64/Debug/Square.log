@@ -1,3 +1,0 @@
-﻿  Square.c
-C:\Users\Cooal\Documents\C\Polytech\Square\Square.c(7,31): warning C4244: 'initializing': conversion from 'double' to 'unsigned __int64', possible loss of data
-  Square.vcxproj -> C:\Users\Cooal\Documents\C\Polytech\FirstProj1\x64\Debug\Square.exe
