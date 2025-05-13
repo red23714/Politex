@@ -2,8 +2,7 @@ import os
 import ctypes
 
 def main():
-    file_path = "C:/test_folder1/Sasha.txt"
-    new_file_path = "C:/test_folder1/new.txt"
+    file_path = "C:/Users/red/Desktop/misha.txt"
     
     print("1 - Архивный файл\n2 - Скрыть файл\n3 - Для чтения и записи\n4 - Только для чтения\n5 - Cоздать файл\n6 - Записать в файл\n7 - Прочитать из файла")
     
@@ -47,15 +46,12 @@ def main():
     
     elif n == 5:
         # Создание файла
-        try:
-            if os.path.exists(new_file_path) and not os.path.isdir(new_file_path):
-                print("Файл уже существует")
-            else:
-                with open(new_file_path, 'w'):
-                    pass
+        try: 
+            with open(file_path, '+a'):
+                pass
                 print("Файл создан")
-        except:
-            print("Ошибка при создании файла")
+        except Exception as e:
+            print("Ошибка при создании файла", str(e))
     
     elif n == 6:
         # Запись в файл
@@ -89,5 +85,6 @@ def main():
     else:
         print("Неверный выбор. Введите число от 1 до 7")
 
-if __name__ == "__main__":
-    main()
+main()
+while True:
+    pass

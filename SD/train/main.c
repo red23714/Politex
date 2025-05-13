@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "list.h"
 
 #define TRAIN_SIZE 100
@@ -22,19 +21,19 @@ int main()
     start->data = train_on;
     count++;
 
+    element *current = start;
     while (1)
     {
-        element *current;
         index += count;
         for (int i = 0; i < index; i++)
         {
-            current = move(1, start);
+            current = move(1, current);
         }
         current->data = train_off;
 
         for (int i = index; i > index - count; i--)
         {
-            current = move(0, start);
+            current = move(0, current);
         }
 
         index -= count;

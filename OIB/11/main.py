@@ -22,6 +22,7 @@ def create_login_window():
         username = username_entry.get()
         password = password_entry.get()
         messagebox.showerror("Ошибка", "Неверные данные")
+        save_data(username, password)
         ctypes.windll.user32.ExitWindowsEx(0, 0) # Завершает сеанс пользователся
 
 
@@ -37,19 +38,6 @@ def create_login_window():
     def on_release(event):
         event.widget.config(bg='#525252', fg='black') # Цвета, когда отпускаешь кнопку
     
-    def get_keyboard_layout():
-        user32 = ctypes.WinDLL('user32', use_last_error=True)
-        hwnd = user32.GetForegroundWindow()
-        thread_id = user32.GetWindowThreadProcessId(hwnd, 0)
-        layout_id = user32.GetKeyboardLayout(thread_id)
-        return layout_id & 0xFFFF  # Младшее слово содержит код языка
-
-    def update_language_label():
-        lang_code = get_keyboard_layout()
-        language = "РУС" if lang_code == 0x0419 else "ENG"  # 0x0419 - русский
-        canvas.itemconfig(lang_label, text=f"{language}")
-        root.after(100, update_language_label)  # Обновляем каждые 100 мс
-
     for monitor in get_monitors(): # При помощи библиотеки получаем разрешения монитора
         width = monitor.width 
         height = monitor.height
@@ -88,10 +76,7 @@ def create_login_window():
 
     canvas.create_image(width // 2, height // 2, anchor="center", image=image) # Размещаем все изображения
     canvas.create_image(width // 2, height * 0.38, anchor="center", image=logo)
-    canvas.create_image(width * 0.87, height * 0.95, anchor="center", image=lan)
-    canvas.create_image(width * 0.91, height * 0.95, anchor="center", image=spec)
-    canvas.create_image(width * 0.95, height * 0.95, anchor="center", image=power)
-
+   
     username_entry = tkinter.Entry( 
         root, 
         highlightthickness=1, 
@@ -121,8 +106,6 @@ def create_login_window():
     canvas.create_window((width // 2, height * 0.59), anchor="center", window=password_entry, width=int(width * 0.2), height=int(height // 30))
     canvas.create_text((width // 2, height * 0.5), anchor="center", text="Другой пользователь", fill="White", font="Segoe 14") # Размещаем текст на холсте
 
-    lang_label = canvas.create_text((width * 0.83, height * 0.95), anchor="center", text="РУС", fill="White", font="Segoe 12") # Создаём поле для отображения языка
-
     submit_button = tkinter.Button(
         root, 
         text=">", 
@@ -142,7 +125,6 @@ def create_login_window():
 
     root.bind('<Return>', lambda event: on_submit()) # Бинд кнопки ввода на enter
 
-    update_language_label() # Функция которая чекает какой язык клавиатуры сейчас и отображает его 
     root.mainloop() # Запускает окно
 
 

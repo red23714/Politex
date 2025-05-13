@@ -1,65 +1,18 @@
 #include <stdio.h>
-#include <stdio.h>
 #include <string.h>
 
-#define HELLO 12
+#define Const_XOR 50
 
-struct test
+int check_password(const char * pass, char * true_pass)
 {
-    int hello;
-};
+    for (int i = 0; i < strlen(true_pass); i++)
+    {
+        true_pass[i] ^= Const_XOR;
+    }
 
-void br ()
-{
-    struct test hi;
-}
-
-typedef struct
-{
-    int a;
-}hero;
-
-void br2 ()
-{
-    struct test hi;
-}
-
-int main1()
-{
-    hero man;
-    int te = 'c';
-    unsigned int a = 10.f; // var
-    const int hero = a;
-    struct test new;
-    long long d = 1000;
-    char b[100] = "hello /*hello*/ br"; // char " asfsdf"
-    size_t i;
-
-    /*
-    hello
-    */
-
-    br();
-
-    // for (size_t i = 0; i < 10; i++)
-    // {
-    //     while (0)
-    //     {
-            
-    //     }
-        
-    // }
-    
-
-    printf("%d %s", a, b);
-
-    return 0;
-}
-
-int check_password(const char * pass, const char * true_pass)
-{
     int res = strncmp(pass, true_pass, strlen(pass));
-    return res == 0;
+    
+    return res == 0 && strlen(pass) == strlen(true_pass);
 }
 
 int main(int argc, char const *argv[])
@@ -69,10 +22,8 @@ int main(int argc, char const *argv[])
     char true_pass[50];
 
     FILE *fptr;
-    // opening the file in read mode
-    fptr = fopen("pass.txt", "r");
+    fptr = fopen("passxor.txt", "r");
 
-    // checking if the file is opened successfully
     if (fptr == NULL)
     {
         printf("The file is not opened. The program will now exit.");
@@ -81,7 +32,6 @@ int main(int argc, char const *argv[])
 
     while (fgets(true_pass, 50, fptr) != NULL);
 
-    // Closing the file using fclose()
     fclose(fptr);
 
     printf("Enter password: \n");
@@ -94,13 +44,13 @@ int main(int argc, char const *argv[])
         if (is_login)
         {
             char test[20];
-            printf("You are log in\nType something: \n");
+            printf("\nYou are log in\nType something: \n");
             scanf("%s", test);
-            main1();
+            printf("%s\n", test);
         }
         else
         {
-            printf("You are not log in\nTry again:\n");
+            printf("\nYou are not log in\nTry again:\n");
             scanf("%s", pass);
         }
     }

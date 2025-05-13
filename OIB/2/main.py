@@ -70,7 +70,7 @@ while(True):
             keys_list_2 = list(cryptogramm_freq.keys())
 
             for i in range(0, len(cryptogramm_freq)):
-                print(keys_list_2[i], "->", keys_list_1[i])
+                print(keys_list_2[i], " ", list(cryptogramm_freq.values())[i], " ", keys_list_1[i])
         case 'mlen':
             temp = sorted(cryptogramm_words, key=lambda item: len(item), reverse=True)
 
