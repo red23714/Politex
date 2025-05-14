@@ -132,20 +132,6 @@ void birthday_paradox(ull initial_seed) {
         current_seed = randim(current_seed);
     }
 
-    // Вычисляем теоретическую вероятность по формуле парадокса дней рождений
-    double expected_prob = 0.0;
-    ull n = num_generations_per_experiment;
-    
-    if (n > 0) {
-        double p = 1.0;
-        for (ull i = 0; i < n; ++i) {
-            p *= (365.0 - i) / 365.0;
-        }
-        expected_prob = (1.0 - p) * 100.0;  // Переводим в проценты
-    }
-
-    double observed_prob = (double)experiments_with_collision / num_experiments * 100.0;
-
     printf("\nРезультаты:\n");
     printf("Количество экспериментов: %llu\n", num_experiments);
     printf("Количество людей в каждом эксперименте (n): %llu\n", n);
