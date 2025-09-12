@@ -55,13 +55,12 @@ typedef enum
     SKIP_SPACES,
     FINISHED
 } ParserState;
-//hello
+
 bool is_valid_type_char(int c) 
 {
     return isalpha(c) || c == '_' || (c == ':') || (c == '<') || (c == '>') || (c == ',');
 }
-/* hello
-* */
+
 
 
 bool is_valid_name_char(int c) 
@@ -252,7 +251,7 @@ void find_ids(FILE *file, prefix_tree *pt, hash_table *ht)
                 }
                 else if (c == ',' && paren_depth == 1) 
                 {
-                    // Обработка параметров функции
+                    
                     if (has_name) 
                     {
                         process_identifier(name, pt, ht);

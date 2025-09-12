@@ -1,100 +1,46 @@
-#include "stdio.h"
-#include "hash.h"
-#include "sys/stat.h"
+#include "lz77.h"
+#include "lzw.h"
 
-char *read_file(const char *filename, size_t *size)
+int main(int argc, char* argv[]) 
 {
-    struct stat st;
-    stat(filename, &st);
-
-    *size = st.st_size;
-
-    FILE *file = fopen(filename, "rb");
-
-    char *buffer = malloc(*size);
-    size_t read = 0;
-
-    while (read < *size)
+    if(argc < 3)
     {
-        read += fread(buffer + read, 1, *size - read, file);
+        perror("Missing arguments");
+        return 1;
     }
 
-    fclose(file);
-    return buffer;
-}
-
-char *replace_strings(char *str, size_t size)
-{
-    HashTable *dict = create_table();
-    char *result = malloc(size * 2);
-    int result_pos = 0;
-
-    int i = 0;
-    while (i < size)
+    FILE* input = fopen(argv[3], "rb");
+    if (!input) 
     {
-        char current_seq[256];
-        int seq_len = 0;
-        int found_code = -1;
-        int last_found_code = -1;
-        int last_found_len = 0;
-
-        while (i + seq_len < size)
-        {
-            current_seq[seq_len] = str[i + seq_len];
-            seq_len++;
-            current_seq[seq_len] = '\0';
-
-            int code;
-            if (search(dict, current_seq, seq_len, &code))
-            {
-                last_found_code = code;
-                last_found_len = seq_len;
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        if (last_found_code != -1)
-        {
-            char code_str[20];
-            sprintf(code_str, "[%d]", last_found_code);
-            strcpy(result + result_pos, code_str);
-            result_pos += strlen(code_str);
-
-            i += last_found_len;
-
-            if (i < size)
-            {
-                char new_seq[256];
-                memcpy(new_seq, str + i - last_found_len, last_found_len + 1);
-                insert(dict, new_seq, last_found_len + 1, dict->count + 1);
-            }
-        }
-        else
-        {
-            char single_char[2] = {str[i], '\0'};
-            insert(dict, single_char, 1, dict->count + 1);
-
-            result[result_pos++] = str[i++];
-        }
+        perror("Error opening input file");
+        return 1;
     }
 
-    result[result_pos] = '\0';
-    free_table(dict);
-    return realloc(result, result_pos + 1);
-}
+    FILE* output = fopen(argv[4], "wb");
+    if (!output) 
+    {
+        perror("Error opening output file");
+        fclose(input);
+        return 1;
+    }
 
-int main()
-{
-    const char *filename = "file.txt";
-    size_t file_size;
-    char *file_content = read_file(filename, &file_size);
+    if(argv[2][0] == '-') 
+    {
+        switch (argv[2][1]) 
+        {
+            case 'c':
+                if(strcmp(argv[1], "77")) lz77_compress(input, output);
+                else if (strcmp(argv[1], "w")) lzw_compress(input, output);  
+            break; 
+            case 'd':
+                if(strcmp(argv[1], "77")) lz77_decompress(input, output);
+                else if (strcmp(argv[1], "w")) lzw_decompress(input, output);
+            break; 
+        }
+    } 
 
-    char *output = replace_strings(file_content, file_size);
-
-    printf("Result: %s %d \n", output, strlen(output));
+    fclose(input);
+    fclose(output);
 
     return 0;
 }

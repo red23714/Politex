@@ -30,35 +30,38 @@ void power() {
 }
 
 void hi_kvadrat(ull x) {
-
-    double v21[8] = { 8.260, 10.85, 12.45, 19.34, 28.412, 31.41, 37.57 };
-    int bed = 0;
+    double v21[6] = { 2.558, 3.94, 4.865, 15.99, 18.31, 23.31 };
+    
+    int bad = 0;
     int good = 0;
     int neg = 0;
 
     ull r = 0;
-    printf("Введите правую границу: ");
+    printf("Введите диапозон: ");
     scanf("%llu", &r);
 
     ull n = 0;
-    printf("Количество измерений: ");
+    printf("Количество чисел: ");
     scanf("%llu", &n);
 
-    ull k = 21;
-    int p = 100;
-    while (p--) {
-        ull Y_i[21] = { 0 };
+    ull k = 11;
+    for (int i = 0; i < 100; i++)  
+    {
+        ull Y_i[11] = { 0 };
 
-        double np_i = n / k;
+        double np_i = (double)n / k;
         ull t = n;
         ull chislo = 0;
 
-        while (t--) {
+        for (int i = 0; i < n; i++)     
+        {
             x = randim(x);
             chislo = x % r;
             
-            for (int i = 0; i < 21; i++) {
-                if (i * (r / 21) <= chislo && chislo < (i + 1) * (r / 21)) {
+            for (int i = 0; i < 11; i++) 
+            {
+                if (i * (r / 11) <= chislo && chislo < (i + 1) * (r / 11)) 
+                {
                     Y_i[i]++;
                     break;
                 }
@@ -66,84 +69,114 @@ void hi_kvadrat(ull x) {
         }
        
         double hi = 0;
-        for (int i = 0; i < k; i++) {
+        for (int i = 0; i < k; i++) 
+        {
             double v0 = (double)Y_i[i] - np_i;
             hi +=  ((v0 * v0) / np_i);
         }
-        if (v21[0] <= hi && hi <= v21[1]) { printf("Результат hi-квадрата(%.3f) плохой\n", hi); neg++; }
-        else if (v21[1] <= hi && hi <= v21[2]) { printf("Результат hi-квадрата(%.3f) подозрителен\n", hi); bed++; }
-        else if (v21[2] <= hi && hi <= v21[5]) {printf("Результат hi-квадрата(%.3f) отличный\n", hi); good++;}
-        else if (v21[5] <= hi && hi <= v21[6]){ printf("Результат hi-квадрата(%.3f) подозрителен\n", hi); bed++;}
-        else if (v21[6] <= hi && hi <= v21[7]){ printf("Результат hi-квадрата(%.3f) плохой\n", hi); neg++;}
+
+        printf("Тест %d: hi-квадрат = %.3f, ", i + 1, hi);
+        if (hi <= v21[0] || hi >= v21[5]) {
+            printf("Результат плохой\n");
+            neg++;
+        }
+        else if (hi <= v21[1] || hi >= v21[4]) {
+            printf("Результат подозрителен\n");
+            bad++;
+        }
+        else if (hi <= v21[2] || hi >= v21[3]) {
+            printf("Результат почти подозрительный\n");
+            bad++;
+        }
+        else {
+            printf("Результат хороший\n");
+            good++;
+        }
     }
-    printf("Отличных hi = %d, подозрительныx hi = %d , плохих hi = %d, ужасные hi = %d\n\n", good, bed, neg, 100-good-bed-neg);
+    printf("Отличных hi = %d, подозрительныx hi = %d , плохих hi = %d, ужасные hi = %d\n\n", good, bad, neg, 100 - good - bad - neg);
 }
 
 void birthday_paradox(ull initial_seed) {
-    ull num_experiments = 0;
-    ull num_generations_per_experiment = 0;
+    ull num_calculations = 0;
+    ull num_people = 0;
 
-    printf("Введите количество экспериментов: ");
-    scanf("%llu", &num_experiments);
+    ull counts_of_correct = 0;
+    int fringe_diff = 5;
 
-    printf("Введите количество людей в каждом эксперименте (n): ");
-    scanf("%llu", &num_generations_per_experiment);
+    printf("Введите количество расчетов вероятности: ");
+    scanf("%llu", &num_calculations);
 
-    if (num_experiments == 0 || num_generations_per_experiment == 0) {
-        printf("Количество экспериментов и людей должно быть больше 0.\n");
+    printf("Введите количество людей в эксперименте (n): ");
+    scanf("%llu", &num_people);
+
+    if (num_calculations == 0 || num_people == 0) {
+        printf("Количество расчетов и людей должно быть больше 0.\n");
         return;
     }
 
-    // Размер хеш-таблицы - 365, так как у нас дни года (1-365)
-    size_t hashtable_size = 365;
-    int experiments_with_collision = 0;
-
-    printf("Проведение %llu экспериментов...\n", num_experiments);
-
-    ull current_seed = initial_seed;
-
-    for (ull i = 0; i < num_experiments; ++i) {
-        HashTable* ht = create_hashtable(hashtable_size);
-        if (ht == NULL) {
-            perror("Ошибка создания хеш-таблицы в эксперименте");
-            return;
-        }
-
-        bool collision_in_experiment = false;
-        ull current_x = current_seed;
-
-        for (ull j = 0; j < num_generations_per_experiment; ++j) {
-            current_x = randim(current_x);
-            // Ограничиваем диапазон до 1-365 (дни года)
-            ull day_of_year = (current_x % 365) + 1;
-            
-            if (insert_hashtable(ht, day_of_year)) {
-                collision_in_experiment = true;
-                break;
-            }
-        }
-
-        free_hashtable(ht);
-
-        if (collision_in_experiment) {
-            experiments_with_collision++;
-        }
-
-        current_seed = randim(current_seed);
+    // Вычисляем теоретическую вероятность
+    double theoretical_prob = 1.0;
+    for (ull i = 0; i < num_people; ++i) {
+        theoretical_prob *= (365.0 - i) / 365.0;
     }
+    theoretical_prob = (1.0 - theoretical_prob) * 100.0;
 
-    printf("\nРезультаты:\n");
-    printf("Количество экспериментов: %llu\n", num_experiments);
-    printf("Количество людей в каждом эксперименте (n): %llu\n", n);
-    printf("Количество экспериментов с совпадением дней рождения: %d\n", experiments_with_collision);
-    printf("Наблюдаемая вероятность совпадения: %.2f%%\n", observed_prob);
-    printf("Теоретическая вероятность совпадения (парадокс дней рождений): %.2f%%\n", expected_prob);
+    printf("\nТеоретическая вероятность совпадения для %llu людей: %.2f%%\n\n", 
+           num_people, theoretical_prob);
 
-    // Интерпретация результатов
-    printf("\nИнтерпретация:\n");
-    printf("Если наблюдаемая вероятность близка к теоретической, генератор работает хорошо.\n");
-    printf("При n=23 теоретическая вероятность должна быть около 50.7%%\n");
-    printf("При n=50 теоретическая вероятность должна быть около 97%%\n");
+    for (ull calc = 0; calc < num_calculations; ++calc) {
+        ull collisions_in_100 = 0;
+        
+        // Генерируем уникальный seed для каждого расчета
+        ull current_calc_seed = initial_seed + calc;
+        ull experiment_seed = current_calc_seed;
+
+        printf("Расчет %llu \n", calc + 1);
+
+        // 100 экспериментов с текущим seed
+        for (ull exp = 0; exp < 10000; ++exp) {
+            HashTable* ht = create_hashtable(365);
+            if (ht == NULL) {
+                perror("Ошибка создания хеш-таблицы");
+                return;
+            }
+
+            bool has_collision = false;
+            ull current_x = experiment_seed;
+
+            for (ull person = 0; person < num_people; ++person) {
+                current_x = randim(current_x);
+                ull birthday = (current_x % 365) + 1;
+                
+                if (insert_hashtable(ht, birthday)) {
+                    has_collision = true;
+                    break;
+                }
+            }
+
+            free_hashtable(ht);
+
+            if (has_collision) {
+                collisions_in_100++;
+            }
+
+            // Обновляем seed для следующего эксперимента
+            experiment_seed = randim(experiment_seed);
+        }
+
+        double experimental_prob = (double)collisions_in_100 / 10000 * 100.0;
+        double deviation = experimental_prob - theoretical_prob;
+
+        printf("  Совпадений: %llu/10000\n", collisions_in_100);
+        printf("  Вероятность: %.2f%% (отклонение: %+.2f%%)\n", 
+               experimental_prob, deviation);
+        printf("----------------------------------------\n");
+
+        if(fabs(deviation) < fringe_diff) counts_of_correct++;
+    }
+    
+    printf("Колличество тестов не превышающих границу в %d%%: %llu \n", fringe_diff, counts_of_correct);
+    printf("Процуент правильных тестов: %.2f%% \n", (double)counts_of_correct / num_calculations * 100.0);
 }
 
 
