@@ -1,30 +1,58 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <zbar.h>
 
-#define MAX_WIDTH 1024
-#define MAX_HEIGHT 1024
+#define MIN_CHAR 32   // '!'
+#define MAX_CHAR 126  // '~'
+#define RANGE (MAX_CHAR - MIN_CHAR + 1)
 
 typedef struct {
     unsigned char r, g, b;
 } RGB;
 
-void free_image(RGB** image, int height) {
-    for (int i = 0; i < height; i++) {
-        free(image[i]);
+// Генерация псевдослучайной последовательности на основе пароля
+void generate_sequence(const char *password, int *seq, size_t len) {
+    size_t pass_len = strlen(password);
+    unsigned int seed = 0;
+    
+    // Создаем seed из пароля
+    for (size_t i = 0; i < pass_len; i++) {
+        seed = seed * 31 + password[i];
     }
-    free(image);
+    
+    srand(seed);
+    for (size_t i = 0; i < len; i++) {
+        seq[i] = rand() % RANGE;
+    }
 }
 
-void skip_comments(FILE *fp) {
-    int ch;
-    while ((ch = fgetc(fp)) == '#') {
-        while ((ch = fgetc(fp)) != '\n' && ch != EOF);
+// Шифрование/дешифрование
+void crypt_data(char *data, const char *password, size_t len) {
+    int *sequence = malloc(len * sizeof(int));
+    if (!sequence) return;
+    
+    generate_sequence(password, sequence, len);
+    
+    for (size_t i = 0; i < len; i++) {
+        // Преобразуем символ в позицию в диапазоне 0-(RANGE-1)
+        int pos = data[i] - MIN_CHAR;
+        
+        // XOR с псевдослучайной последовательностью
+        pos = pos ^ sequence[i];
+        
+        // Обеспечиваем цикличность в пределах диапазона
+        pos = pos % RANGE;
+        if (pos < 0) pos += RANGE;
+        
+        // Возвращаем в символьный вид
+        data[i] = pos + MIN_CHAR;
     }
-    ungetc(ch, fp);
+    
+    free(sequence);
 }
 
+// Функция для чтения PPM файла
 RGB** read_ppm(const char* filename, int* width, int* height) {
     FILE* fp = fopen(filename, "rb");
     if (!fp) {
@@ -35,160 +63,267 @@ RGB** read_ppm(const char* filename, int* width, int* height) {
     char format[3];
     int maxval;
     
-    // Читаем формат
     if (fscanf(fp, "%2s", format) != 1) {
         fprintf(stderr, "Invalid PPM format\n");
         fclose(fp);
         return NULL;
     }
     
-    skip_comments(fp);
-    
-    // Читаем ширину и высоту
-    if (fscanf(fp, "%d %d", width, height) != 2) {
-        fprintf(stderr, "Invalid dimensions in PPM\n");
+    if (fscanf(fp, "%d %d %d", width, height, &maxval) != 3) {
+        fprintf(stderr, "Invalid PPM header\n");
         fclose(fp);
         return NULL;
     }
     
-    skip_comments(fp);
-    
-    // Читаем максимальное значение
-    if (fscanf(fp, "%d", &maxval) != 1) {
-        fprintf(stderr, "Invalid max value in PPM\n");
-        fclose(fp);
-        return NULL;
-    }
-    
-    // Пропускаем один байт (обычно это '\n' или пробел)
-    fgetc(fp);
+    fgetc(fp); // Пропускаем перевод строки
 
-    printf("PPM format: %s, dimensions: %dx%d, maxval: %d\n", format, *width, *height, maxval);
-
-    if (strcmp(format, "P6") != 0 && strcmp(format, "P5") != 0 && strcmp(format, "P3") != 0) {
+    if (strcmp(format, "P6") != 0) {
         fprintf(stderr, "Unsupported PPM format: %s\n", format);
         fclose(fp);
         return NULL;
     }
 
-    if (*width > MAX_WIDTH || *height > MAX_HEIGHT) {
-        fprintf(stderr, "Image too large: %dx%d (max: %dx%d)\n", *width, *height, MAX_WIDTH, MAX_HEIGHT);
-        fclose(fp);
-        return NULL;
-    }
-
-    // Выделяем память для изображения
     RGB** image = malloc(*height * sizeof(RGB*));
     for (int i = 0; i < *height; i++) {
         image[i] = malloc(*width * sizeof(RGB));
-    }
-
-    // Читаем данные изображения в зависимости от формата
-    if (strcmp(format, "P6") == 0) {
-        // Binary PPM
-        for (int y = 0; y < *height; y++) {
-            for (int x = 0; x < *width; x++) {
-                image[y][x].r = fgetc(fp);
-                image[y][x].g = fgetc(fp);
-                image[y][x].b = fgetc(fp);
-            }
-        }
-    } else if (strcmp(format, "P5") == 0) {
-        // Binary PGM (grayscale) - конвертируем в RGB
-        for (int y = 0; y < *height; y++) {
-            for (int x = 0; x < *width; x++) {
-                unsigned char gray = fgetc(fp);
-                image[y][x].r = gray;
-                image[y][x].g = gray;
-                image[y][x].b = gray;
-            }
-        }
-    } else if (strcmp(format, "P3") == 0) {
-        // ASCII PPM
-        for (int y = 0; y < *height; y++) {
-            for (int x = 0; x < *width; x++) {
-                int r, g, b;
-                if (fscanf(fp, "%d %d %d", &r, &g, &b) != 3) {
-                    fprintf(stderr, "Error reading ASCII PPM data\n");
-                    fclose(fp);
-                    free_image(image, *height);
-                    return NULL;
-                }
-                image[y][x].r = (unsigned char)r;
-                image[y][x].g = (unsigned char)g;
-                image[y][x].b = (unsigned char)b;
-            }
-        }
+        fread(image[i], sizeof(RGB), *width, fp);
     }
 
     fclose(fp);
-    printf("Image %s loaded successfully\n", filename);
+    printf("Loaded image: %s (%dx%d)\n", filename, *width, *height);
     return image;
 }
 
-void save_channel_as_ppm(RGB** image, int width, int height, const char* filename, char channel) {
-    FILE* fp = fopen(filename, "wb");
-    if (!fp) {
-        perror("Cannot open output file");
-        return;
-    }
-
-    // Записываем заголовок PPM в бинарном формате
-    fprintf(fp, "P6\n%d %d\n255\n", width, height);
-
-    // Сохраняем только выбранный канал
+// Функция для извлечения канала с учетом цветного наложения
+unsigned char* extract_color_channel(RGB** image, int width, int height, char channel) {
+    unsigned char* gray = malloc(width * height * sizeof(unsigned char));
+    
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-            unsigned char value;
-            
+            // В вашем кодировщике цветные каналы накладываются на черный фон
+            // Нужно извлекать только соответствующий канал
             switch (channel) {
-                case 'r': value = image[y][x].r; break;
-                case 'g': value = image[y][x].g; break;
-                case 'b': value = image[y][x].b; break;
-                default: value = 0;
+                case 'r': 
+                    gray[y * width + x] = image[y][x].r;
+                    break;
+                case 'g': 
+                    gray[y * width + x] = image[y][x].g;
+                    break;
+                case 'b': 
+                    gray[y * width + x] = image[y][x].b;
+                    break;
+                default: 
+                    gray[y * width + x] = 0;
             }
             
-            // Сохраняем значение канала во всех трех каналах для монохромного изображения
-            fputc(value, fp);
-            fputc(value, fp);
-            fputc(value, fp);
+            // Инвертируем, так как в QR коде черный = 1, белый = 0
+            // Но в вашем кодировщике белый цвет маски становится цветным
+            gray[y * width + x] = 255 - gray[y * width + x];
         }
     }
+    
+    return gray;
+}
 
-    fclose(fp);
-    printf("Channel %c saved to %s\n", channel, filename);
+// Кастомная функция очистки для zbar
+static void zbar_cleanup_handler(zbar_image_t *image) {
+    const void *data = zbar_image_get_data(image);
+    if (data) {
+        free((void*)data);
+    }
+}
+
+// Функция для декодирования QR-кода с помощью zbar
+char* decode_qr_with_zbar(unsigned char* gray_image, int width, int height) {
+    zbar_image_scanner_t *scanner = zbar_image_scanner_create();
+    zbar_image_t *image = zbar_image_create();
+    
+    if (!scanner || !image) {
+        fprintf(stderr, "Failed to create zbar objects\n");
+        if (scanner) zbar_image_scanner_destroy(scanner);
+        if (image) zbar_image_destroy(image);
+        return NULL;
+    }
+    
+    // Настраиваем сканер
+    zbar_image_scanner_set_config(scanner, ZBAR_NONE, ZBAR_CFG_ENABLE, 1);
+    zbar_image_scanner_set_config(scanner, ZBAR_QRCODE, ZBAR_CFG_ENABLE, 1);
+    
+    // Создаем копию данных для zbar
+    unsigned char* image_data = malloc(width * height);
+    memcpy(image_data, gray_image, width * height);
+    
+    // Создаем изображение для zbar
+    zbar_image_set_format(image, zbar_fourcc('Y','8','0','0'));
+    zbar_image_set_size(image, width, height);
+    zbar_image_set_data(image, image_data, width * height, zbar_cleanup_handler);
+    
+    // Сканируем изображение
+    int n = zbar_scan_image(scanner, image);
+    
+    char* result = NULL;
+    
+    if (n > 0) {
+        // Получаем первый символ (результат)
+        const zbar_symbol_t *symbol = zbar_image_first_symbol(image);
+        for (; symbol; symbol = zbar_symbol_next(symbol)) {
+            zbar_symbol_type_t type = zbar_symbol_get_type(symbol);
+            if (type == ZBAR_QRCODE) {
+                const char *data = zbar_symbol_get_data(symbol);
+                if (data) {
+                    result = strdup(data);
+                    printf("Decoded QR: %s\n", result);
+                    break;
+                }
+            }
+        }
+    } else {
+        printf("No QR codes found in this channel\n");
+    }
+    
+    zbar_image_destroy(image);
+    zbar_image_scanner_destroy(scanner);
+    
+    return result;
+}
+
+// Функция для объединения трех частей
+char* combine_parts(const char* part1, const char* part2, const char* part3) {
+    if (!part1 || !part2 || !part3) {
+        return NULL;
+    }
+    
+    // Пропускаем первый символ '$' если он есть
+    const char* p1 = (part1[0] == '$') ? part1 + 1 : part1;
+    const char* p2 = (part2[0] == '$') ? part2 + 1 : part2;
+    const char* p3 = (part3[0] == '$') ? part3 + 1 : part3;
+    
+    size_t len1 = strlen(p1);
+    size_t len2 = strlen(p2);
+    size_t len3 = strlen(p3);
+    
+    char* result = malloc(len1 + len2 + len3 + 1);
+    if (!result) {
+        return NULL;
+    }
+    
+    strcpy(result, p1);
+    strcat(result, p2);
+    strcat(result, p3);
+    
+    return result;
+}
+
+// Функция для освобождения памяти изображения
+void free_image(RGB** image, int height) {
+    if (!image) return;
+    
+    for (int i = 0; i < height; i++) {
+        free(image[i]);
+    }
+    free(image);
+}
+
+// Главная функция декодирования
+char* decode_qr_image(const char* filename, const char* password) {
+    int width, height;
+    
+    // Читаем изображение
+    RGB** image = read_ppm(filename, &width, &height);
+    if (!image) {
+        fprintf(stderr, "Failed to read image: %s\n", filename);
+        return NULL;
+    }
+    
+    // Декодируем три канала
+    char* red_text = NULL;
+    char* green_text = NULL;
+    char* blue_text = NULL;
+    
+    printf("Decoding red channel...\n");
+    unsigned char* red_gray = extract_color_channel(image, width, height, 'r');
+    red_text = decode_qr_with_zbar(red_gray, width, height);
+    free(red_gray);
+    
+    printf("Decoding green channel...\n");
+    unsigned char* green_gray = extract_color_channel(image, width, height, 'g');
+    green_text = decode_qr_with_zbar(green_gray, width, height);
+    free(green_gray);
+    
+    printf("Decoding blue channel...\n");
+    unsigned char* blue_gray = extract_color_channel(image, width, height, 'b');
+    blue_text = decode_qr_with_zbar(blue_gray, width, height);
+    free(blue_gray);
+    
+    // Проверяем, что все три канала декодировались успешно
+    if (!red_text || !green_text || !blue_text) {
+        fprintf(stderr, "Failed to decode all channels:\n");
+        fprintf(stderr, "Red: %s\n", red_text ? red_text : "failed");
+        fprintf(stderr, "Green: %s\n", green_text ? green_text : "failed");
+        fprintf(stderr, "Blue: %s\n", blue_text ? blue_text : "failed");
+        
+        free_image(image, height);
+        if (red_text) free(red_text);
+        if (green_text) free(green_text);
+        if (blue_text) free(blue_text);
+        
+        return NULL;
+    }
+    
+    printf("\nDecoded parts:\n");
+    printf("Red: %s\n", red_text);
+    printf("Green: %s\n", green_text);
+    printf("Blue: %s\n", blue_text);
+    
+    // Объединяем части
+    char* combined = combine_parts(red_text, green_text, blue_text);
+    if (!combined) {
+        fprintf(stderr, "Failed to combine parts\n");
+        
+        free_image(image, height);
+        free(red_text);
+        free(green_text);
+        free(blue_text);
+        
+        return NULL;
+    }
+    
+    printf("Combined: %s\n", combined);
+    
+    crypt_data(combined, password, strlen(combined));
+    printf("Final decoded string: %s\n", combined);
+    
+    // Освобождаем память
+    free_image(image, height);
+    free(red_text);
+    free(green_text);
+    free(blue_text);
+    
+    return combined;
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s <input_ppm_file>\n", argv[0]);
-        printf("Example: %s qr.ppm\n", argv[0]);
+    if (argc != 3) {
+        printf("Usage: %s <input_ppm_file> <password>\n", argv[0]);
+        printf("Example: %s qr.ppm mypassword\n", argv[0]);
         return 1;
     }
-
-    const char* input_file = argv[1];
-    int width, height;
     
-    // Читаем исходное изображение
-    RGB** image = read_ppm(input_file, &width, &height);
-    if (!image) {
-        fprintf(stderr, "Failed to read image %s\n", input_file);
+    const char* input_file = argv[1];
+    const char* password = argv[2];
+    
+    printf("Starting QR decoding process...\n");
+    printf("Input file: %s\n", input_file);
+    printf("Password: %s\n", password);
+    
+    char* result = decode_qr_image(input_file, password);
+    if (result) {
+        printf("\n✅ Successfully decoded!\n");
+        printf("Final result: %s\n", result);
+        free(result);
+        return 0;
+    } else {
+        printf("\n❌ Failed to decode QR image\n");
         return 1;
     }
-
-    printf("Processing image: %dx%d\n", width, height);
-
-    // Сохраняем отдельные каналы
-    save_channel_as_ppm(image, width, height, "red_qr.ppm", 'r');
-    save_channel_as_ppm(image, width, height, "green_qr.ppm", 'g');
-    save_channel_as_ppm(image, width, height, "blue_qr.ppm", 'b');
-
-    printf("\nQR codes separated successfully:\n");
-    printf("- Red channel: red_qr.ppm\n");
-    printf("- Green channel: green_qr.ppm\n");
-    printf("- Blue channel: blue_qr.ppm\n");
-    printf("\nYou can now scan these QR codes separately.\n");
-
-    free_image(image, height);
-    return 0;
 }
