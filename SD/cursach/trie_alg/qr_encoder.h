@@ -10,7 +10,7 @@
 #define BASE_SCALE 4       // Базовый масштаб вместо фиксированного размера
 #define PADDING_RATIO 0.2  // Отступы в процентах от размера QR
 
-#define MIN_CHAR 32   // '!'
+#define MIN_CHAR 33   // '!'
 #define MAX_CHAR 126  // '~'
 #define RANGE (MAX_CHAR - MIN_CHAR + 1)
 
