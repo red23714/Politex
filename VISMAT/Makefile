@@ -1,3 +1,3 @@
 all:
-	gcc main.c -o main
+	gcc main.c -o main -lm
 	./main
