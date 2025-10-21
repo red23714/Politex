@@ -89,6 +89,11 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
+ 
+    int base_priority;                 /* original (base) priority */
+    struct list donations;             /* list of threads that donated priority to me */
+    struct lock *waiting_lock;         /* lock I'm currently waiting on (if any) */
+    struct list_elem donation_elem;    /* element to be in another thread's donations list */
 
     int64_t wakeup_time;
 
@@ -109,6 +114,9 @@ struct thread
    Controlled by kernel command-line option "-o mlfqs". */
 extern bool thread_mlfqs;
 
+/* List of processes in THREAD_READY state, that is, processes
+   that are ready to run but not actually running. */
+
 void thread_init (void);
 void thread_start (void);
 
@@ -124,6 +132,11 @@ void thread_unblock (struct thread *);
 struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
+
+bool
+thread_priority_less(const struct list_elem *a,
+                         const struct list_elem *b,
+                         void *aux UNUSED);
 
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);

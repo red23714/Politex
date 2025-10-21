@@ -16,6 +16,7 @@ int main() {
         "d1y/dx1 = y/x + x/y", // y' = f(y/x)
         "ln(x * y) = cos(x)",
         "1/x * dx = 1/y * dy",
+        "d1y/dx1 = 1/(x*y)"
     };
 
     int n = sizeof(tests) / sizeof(tests[0]);
@@ -23,10 +24,12 @@ int main() {
     for (int i = 0; i < n; i++) {
         printf("Вход: %s\n", tests[i]);
         math_tree mt = parser(tests[i]);
-        math_tree res = transform_to_standard(&mt);
+        node* res = transform_to_standard(mt.head);
         printf("После приведения: "); 
-        print_tree(&res);
-        solve_du(&res);
+        math_tree res_mt;
+        res_mt.head = res;
+        print_tree(&res_mt);
+        solve_du(&res_mt);
         printf("\n");
     }
 

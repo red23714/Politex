@@ -3,6 +3,7 @@
 
 #include "math_tree.h"
 #include "math_integrator.h"
+#include "equation_transformer.h"
 #include <stdbool.h>
 
 typedef enum du_type
@@ -83,9 +84,91 @@ node* solve_rasdel(node* root)
     return create_op_node(EQUAL_OP, left, right);
 }
 
+int is_ratio_of(node* n, char num, char den) {
+    if (!n || n->op != DIVIDE) return 0;
+    if (n->left && n->left->op == VARIABLE &&
+        n->right && n->right->op == VARIABLE &&
+        n->left->var_name == num && n->right->var_name == den)
+        return 1;
+    return 0;
+}
+
+// Проверка на (x/y)
+int is_inverse_ratio_of(node* n, char num, char den) {
+    if (!n || n->op != DIVIDE) return 0;
+    if (n->left && n->left->op == VARIABLE &&
+        n->right && n->right->op == VARIABLE &&
+        n->left->var_name == den && n->right->var_name == num)
+        return 1;
+    return 0;
+}
+
+// Подстановка через рекурсию
+node* substitute_ratio_with_u(node* n, char num, char den, char new_var) {
+    if (!n) return NULL;
+
+    // === Прямое соотношение: y/x -> u ===
+    if (is_ratio_of(n, num, den)) {
+        return create_variable_node(new_var);
+    }
+
+    // === Обратное: x/y -> 1/u ===
+    if (is_inverse_ratio_of(n, num, den)) {
+        return create_op_node(DIVIDE, create_value_node(1),
+                              create_variable_node(new_var));
+    }
+
+    // === Степени вида (y/x)^n → u^n ===
+    if (n->op == POWER && is_ratio_of(n->left, num, den)) {
+        node* exponent = substitute_ratio_with_u(n->right, num, den, new_var);
+        return create_op_node(POWER, create_variable_node(new_var), exponent);
+    }
+
+    // === Общий случай: рекурсивный обход дерева ===
+    node* left = substitute_ratio_with_u(n->left, num, den, new_var);
+    node* right = substitute_ratio_with_u(n->right, num, den, new_var);
+
+    node* new_node = (node*)calloc(1, sizeof(node));
+    memcpy(new_node, n, sizeof(node));
+    new_node->left = left;
+    new_node->right = right;
+
+    return new_node;
+}
+
+// Вспомогательная функция: если нужно вывести результат подстановки
+void print_after_substitution(node* expr, char num, char den, char new_var) {
+    printf("До подстановки: ");
+    print_infix(expr);
+    printf("\n");
+
+    node* substituted = substitute_ratio_with_u(expr, num, den, new_var);
+
+    printf("После подстановки u = %c/%c: ", num, den);
+    print_infix(substituted);
+    printf("\n");
+
+    free(substituted);
+}
+
 node* solve_odnorod(math_tree* mt)
 {
+    node* substituted = substitute_ratio_with_u(mt->head, 'y', 'x', 'u');
+    node* diff_u = create_diff_node('u', 'x', 1);
+    node* x_var = create_variable_node('x');
+    node* mul_x = create_op_node(MULTIPLY, diff_u, x_var);
+    node* u_var = create_variable_node('u');
+    node* left_side = create_op_node(PLUS, mul_x, u_var);
 
+    substituted->left = left_side;
+
+    print_infix(substituted);
+
+    printf("\n");
+
+    node* transformed1 = transform_to_standard(substituted);
+
+    print_infix(transformed1); 
 }
 
 void solve_du(math_tree* mt)
@@ -123,6 +206,7 @@ void solve_du(math_tree* mt)
         else if(is_op_of_var(right, DIVIDE, left_diff))
         {
             printf("Однородное\n");
+            solve_odnorod(mt);
         }
     }
     else {

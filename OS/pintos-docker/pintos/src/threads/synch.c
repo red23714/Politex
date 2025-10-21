@@ -50,6 +50,16 @@ sema_init (struct semaphore *sema, unsigned value)
   list_init (&sema->waiters);
 }
 
+static bool
+donation_priority_cmp (const struct list_elem *a,
+                       const struct list_elem *b,
+                       void *aux UNUSED)
+{
+  const struct thread *ta = list_entry (a, struct thread, donation_elem);
+  const struct thread *tb = list_entry (b, struct thread, donation_elem);
+  return ta->priority > tb->priority;
+}
+
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
    to become positive and then atomically decrements it.
 
@@ -68,7 +78,9 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      // Вставляем в отсортированный список ожидающих
+      list_insert_ordered (&sema->waiters, &thread_current ()->elem, 
+                          thread_priority_less, NULL);
       thread_block ();
     }
   sema->value--;
@@ -114,8 +126,12 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) 
+  {
+    // Сортируем список и берем первый (наивысший приоритет)
+    list_sort (&sema->waiters, thread_priority_less, NULL);
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
                                 struct thread, elem));
+  }
   sema->value++;
   intr_set_level (old_level);
 }
@@ -181,6 +197,29 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+/* Remove donations related to this lock */
+void
+remove_donations_for_lock (struct thread *t, struct lock *lock)
+{
+  struct list_elem *e = list_begin (&t->donations);
+
+  while (e != list_end (&t->donations))
+    {
+      struct thread *donor = list_entry (e, struct thread, donation_elem);
+      struct list_elem *next = list_next (e);
+      
+      if (donor->waiting_lock == lock)
+        {
+          list_remove (e);
+          /* Очищаем waiting_lock у донатора */
+          donor->waiting_lock = NULL;
+        }
+
+      e = next;
+    }
+}
+
+
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -189,16 +228,48 @@ lock_init (struct lock *lock)
    interrupt handler.  This function may be called with
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
+
 void
 lock_acquire (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
-  ASSERT (!lock_held_by_current_thread (lock));
+
+  struct thread *cur = thread_current ();
+  enum intr_level old_level = intr_disable ();
+
+  if (lock->holder != NULL)
+    {
+      cur->waiting_lock = lock;
+
+      /* Добавляем в donations holder'а */
+      list_insert_ordered (&lock->holder->donations,
+                          &cur->donation_elem,
+                          donation_priority_cmp,
+                          NULL);
+
+      /* ВАЖНО: Обновляем приоритеты по ВСЕЙ цепочке до корня */
+      struct thread *chain_current = lock->holder;
+      while (chain_current != NULL)
+        {
+          thread_update_priority (chain_current);
+          
+          /* Переходим к следующему в цепочке */
+          if (chain_current->waiting_lock != NULL)
+            chain_current = chain_current->waiting_lock->holder;
+          else
+            break;
+        }
+    }
 
   sema_down (&lock->semaphore);
-  lock->holder = thread_current ();
+
+  cur->waiting_lock = NULL;
+  lock->holder = cur;
+
+  intr_set_level (old_level);
 }
+
 
 /* Tries to acquires LOCK and returns true if successful or false
    on failure.  The lock must not already be held by the current
@@ -225,14 +296,28 @@ lock_try_acquire (struct lock *lock)
    An interrupt handler cannot acquire a lock, so it does not
    make sense to try to release a lock within an interrupt
    handler. */
+
 void
-lock_release (struct lock *lock) 
+lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  enum intr_level old_level = intr_disable ();
+  struct thread *cur = thread_current ();
+
   lock->holder = NULL;
+
+  /* Удаляем донаты для этого lock */
+  remove_donations_for_lock (cur, lock);
+
+  /* Восстанавливаем приоритет (рекурсивно обновит цепочку) */
+  thread_update_priority (cur);
+
   sema_up (&lock->semaphore);
+  intr_set_level (old_level);
+
+  thread_yield ();
 }
 
 /* Returns true if the current thread holds LOCK, false

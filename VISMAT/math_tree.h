@@ -446,148 +446,211 @@ int is_zero(node* n) { return is_value(n) && fabs(n->value) < 1e-9; }
 
 int is_one(node* n) { return is_value(n) && fabs(n->value - 1.0) < 1e-9; }
 
+// Вспомогательная функция для сравнения узлов
+int nodes_equal(node* a, node* b) {
+    if (!a && !b) return 1;
+    if (!a || !b) return 0;
+    
+    if (a->op != b->op) return 0;
+    
+    switch (a->op) {
+        case VALUE:
+            return fabs(a->value - b->value) < 1e-9;
+        case VARIABLE:
+            return a->var_name == b->var_name;
+        case DIFF_VAR:
+            return a->var_name == b->var_name;
+        case DIFF_OP:
+            return a->var_name == b->var_name && a->order == b->order &&
+                   nodes_equal(a->left, b->left) && nodes_equal(a->right, b->right);
+        default:
+            // Для операторов и функций сравниваем поддеревья
+            return nodes_equal(a->left, b->left) && nodes_equal(a->right, b->right);
+    }
+}
 
-// === Базовое упрощение выражений ===
 
+// Вспомогательная структура для хранения слагаемых
+typedef struct term {
+    node* expr;   // выражение без коэффициента
+    double coeff; // коэффициент перед expr
+    struct term* next;
+} term;
+
+// Функции для работы со списком слагаемых
+term* flatten_sum(node* n);
+term* combine_terms(term* head);
+node* build_sum_from_terms(term* head);
+node* simplify_plus_minus(node* n);
+
+// === Основное упрощение ===
 node* simplify(node* n) {
-
     if (!n) return NULL;
 
+    // 1️⃣ Рекурсивное упрощение поддеревьев
     n->left = simplify(n->left);
-
     n->right = simplify(n->right);
 
-
-
-    // 1️⃣ Свертка констант
-
+    // 2️⃣ Свертка констант
     if (n->left && n->right && is_value(n->left) && is_value(n->right)) {
-
         double a = n->left->value, b = n->right->value, r = 0;
-
         switch (n->op) {
-
             case PLUS: r = a + b; break;
-
             case MINUS: r = a - b; break;
-
             case MULTIPLY: r = a * b; break;
-
             case DIVIDE: if (fabs(b) > 1e-9) r = a / b; else return n; break;
-
             case POWER: r = pow(a, b); break;
-
             default: return n;
+        }
+        return create_value_node(r);
+    }
 
+    // 3️⃣ Упрощение для SUM/DIFF с объединением одинаковых термов
+    if (n->op == PLUS || n->op == MINUS) {
+        node* simplified = simplify_plus_minus(n);
+        if (simplified != n) return simplified;
+    }
+
+    // 4️⃣ MULTIPLY
+    if (n->op == MULTIPLY) {
+        if (is_zero(n->left) || is_zero(n->right)) return create_value_node(0);
+        if (is_one(n->left)) return copy_node(n->right);
+        if (is_one(n->right)) return copy_node(n->left);
+
+        // (-1) * x → -x
+        if (is_value(n->left) && n->left->value == -1) {
+            if (n->right->op == MULTIPLY && is_value(n->right->left)) {
+                node* new_node = copy_node(n->right);
+                new_node->left->value *= -1;
+                return new_node;
+            } else {
+                return create_op_node(MULTIPLY, create_value_node(-1), copy_node(n->right));
+            }
         }
 
-        return create_value_node(r);
-
-    }
-
-
-
-    // 2️⃣ Простые правила
-
-    if (n->op == MULTIPLY) {
-
-        // 0*x = 0
-
-        if (is_zero(n->left) || is_zero(n->right)) return create_value_node(0);
-
-        // 1*x = x
-
-        if (is_one(n->left)) return copy_node(n->right);
-
-        if (is_one(n->right)) return copy_node(n->left);
-
-
-
-        // 💥 Случай (a * (expr / a)) → expr
-
+        // Случаи (a * (expr / a)) → expr
         if (is_value(n->left) && n->right && n->right->op == DIVIDE &&
-
             n->right->right && is_value(n->right->right) &&
-
             fabs(n->left->value - n->right->right->value) < 1e-9)
-
             return copy_node(n->right->left);
 
-
-
-        // 💥 Случай ((expr / a) * a) → expr
-
         if (is_value(n->right) && n->left && n->left->op == DIVIDE &&
-
             n->left->right && is_value(n->left->right) &&
-
             fabs(n->right->value - n->left->right->value) < 1e-9)
-
             return copy_node(n->left->left);
-
     }
 
-
-
+    // 5️⃣ DIVIDE
     if (n->op == DIVIDE) {
-
-        // x/1 = x
-
         if (is_one(n->right)) return copy_node(n->left);
-
-        // 0/x = 0
-
         if (is_zero(n->left)) return create_value_node(0);
-
-
-
-        // 💥 Случай ((a * expr) / a) → expr
+        if (nodes_equal(n->left, n->right)) return create_value_node(1);
 
         if (n->left && n->left->op == MULTIPLY &&
-
             n->left->left && is_value(n->left->left) &&
-
             is_value(n->right) &&
-
             fabs(n->left->left->value - n->right->value) < 1e-9)
-
             return copy_node(n->left->right);
-
     }
 
-
-
-    if (n->op == PLUS || n->op == MINUS) {
-
-        // 0+x = x
-
-        if (is_zero(n->left) && n->op == PLUS) return copy_node(n->right);
-
-        // x+0 = x
-
-        if (is_zero(n->right)) return copy_node(n->left);
-
-    }
-
-
-
+    // 6️⃣ POWER
     if (n->op == POWER) {
-
-        // x^1 = x
-
         if (is_one(n->right)) return copy_node(n->left);
-
-        // x^0 = 1
-
         if (is_zero(n->right)) return create_value_node(1);
-
+        if (is_one(n->left)) return create_value_node(1);
+        if (is_zero(n->left) && n->right &&
+            (is_value(n->right) ? n->right->value > 0 : true)) 
+            return create_value_node(0);
     }
 
-
+    // 7️⃣ Упрощение двойного минуса
+    if (n->op == MULTIPLY && is_value(n->left) && n->left->value == -1) {
+        if (n->right->op == MULTIPLY && is_value(n->right->left) && n->right->left->value == -1)
+            return copy_node(n->right->right);
+    }
 
     return n;
-
 }
+
+// =======================
+// === Реализация sum ===
+// =======================
+term* flatten_sum(node* n) {
+    term* head = NULL;
+    if (!n) return NULL;
+
+    if (n->op == PLUS || n->op == MINUS) {
+        term* left_terms = flatten_sum(n->left);
+        term* right_terms = flatten_sum(n->right);
+
+        // объединяем слева
+        term* t = left_terms;
+        while (t) { term* next = t->next; t->next = head; head = t; t = next; }
+
+        // объединяем справа
+        t = right_terms;
+        while (t) {
+            term* next = t->next;
+            if (n->op == MINUS) t->coeff *= -1;
+            t->next = head; head = t; t = next;
+        }
+        return head;
+    }
+
+    if (n->op == MULTIPLY && is_value(n->left)) {
+        term* t = (term*)malloc(sizeof(term));
+        t->coeff = n->left->value;
+        t->expr = copy_node(n->right);
+        t->next = NULL;
+        return t;
+    }
+
+    term* t = (term*)malloc(sizeof(term));
+    t->coeff = 1;
+    t->expr = copy_node(n);
+    t->next = NULL;
+    return t;
+}
+
+term* combine_terms(term* head) {
+    for (term* t1 = head; t1 != NULL; t1 = t1->next) {
+        if (fabs(t1->coeff) < 1e-9) continue;
+        for (term* t2 = t1->next; t2 != NULL; t2 = t2->next) {
+            if (nodes_equal(t1->expr, t2->expr)) {
+                t1->coeff += t2->coeff;
+                t2->coeff = 0;
+            }
+        }
+    }
+    return head;
+}
+
+node* build_sum_from_terms(term* head) {
+    node* result = NULL;
+    for (term* t = head; t; t = t->next) {
+        if (fabs(t->coeff) < 1e-9) continue;
+
+        node* term_node;
+        if (fabs(t->coeff - 1) < 1e-9) term_node = copy_node(t->expr);
+        else term_node = create_op_node(MULTIPLY, create_value_node(t->coeff), copy_node(t->expr));
+
+        if (!result) result = term_node;
+        else result = create_op_node(PLUS, result, term_node);
+    }
+
+    if (!result) return create_value_node(0);
+    return result;
+}
+
+node* simplify_plus_minus(node* n) {
+    term* terms = flatten_sum(n);
+    terms = combine_terms(terms);
+    node* simplified = build_sum_from_terms(terms);
+
+    for (term* t = terms; t;) { term* next = t->next; free(t); t = next; }
+    return simplified;
+}
+
 
 // === парсер (shunting-yard) ===
 node* parse_expression(const char* expr) {

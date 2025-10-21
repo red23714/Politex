@@ -369,18 +369,16 @@ eq_type detect_equation_type(node* eq_root) {
 
 // ---------------------- Главная функция трансформации -----------------------
 
-math_tree transform_to_standard(math_tree* input) {
-    math_tree result = { NULL };
-    if (!input || !input->head) return result;
-    node* root = clone_node(input->head);
+node* transform_to_standard(node* input) { 
+    if (!input) return NULL;
+    node* root = clone_node(input);
 
     // 1) если уравнение уже в форме дифф.формы: M(x,y)dx + N(x,y)dy = 0 -> просто вернуть (нормализовано)
     // detect: уравнение = 0 и содержатся DIFF_VAR в левой части (или right-left)
     if (root->op == EQUAL_OP) {
         // если right == 0 и left содержит DIFF_VAR -> differential form
         if (root->right->op == VALUE && root->right->value == 0 && contains_diffvar(root->left)) {
-            result.head = root;
-            return result;
+            return root;
         }
     }
 
@@ -392,8 +390,7 @@ math_tree transform_to_standard(math_tree* input) {
     // 3) Попытаемся привести к разделяемому виду (M(y)dy = N(x)dx)
     node* sep = make_separable_if_possible(root);
     if (sep) {
-        result.head = sep;
-        return result;
+        return sep;
     }
 
     // 4) Определим тип и сделаем дополнительные шаги
@@ -402,20 +399,17 @@ math_tree transform_to_standard(math_tree* input) {
         // уже покрыто в make_separable_if_possible но покроем случай, если detect увидел separable
         node* sep2 = make_separable_if_possible(root);
         if (sep2) {
-            result.head = sep2;
-            return result;
+            return sep2;
         }
     } else if (t == TYPE_DIFFERENTIAL_FORM) {
         // если обнаружили diff form — просто вернуть (или можно нормализовать в left=0)
-        result.head = clone_node(root);
-        return result;
+        return clone_node(root);
     } else if (t == TYPE_LINEAR) {
         // Нормализуем линейное уравнение: сделаем коэфф. перед y' = 1
         // root: DIFF_OP = RHS (или left side DIFF_OP)
         if (root->op == EQUAL_OP && node_is_diffop(root->left)) {
             // diff already isolated
-            result.head = simplify(root);
-            return result;
+            return simplify(root);
         } else {
             // возможно left part is something like (x*DIFF_OP - 2*y)
             node* isolated2 = isolate_diff_to_left(root);
@@ -426,30 +420,25 @@ math_tree transform_to_standard(math_tree* input) {
                 // ensure coefficient is 1 (isolate_diff_to_left tries to do that)
                 // but isolate_diff_to_left may have already divided by coef
                 // final simplify
-                result.head = simplify(root);
-                return result;
+                return simplify(root);
             }
-            result.head = clone_node(root);
-            return result;
+            return clone_node(root);
         }
     } else if (t == TYPE_BERNOULLI) {
         // Изолируем дифферениал, приведём к виду y' + P(x)y = Q(x) y^n
         node* isolated2 = isolate_diff_to_left(root);
         free_node(root);
         root = isolated2;
-        result.head = simplify(root);
-        return result;
+        return simplify(root);
     }
 
     // fallback: вернуть изолированную форму (если содержится DIFF_OP)
     if (contains_diffop(root)) {
-        result.head = simplify(root);
-        return result;
+        return simplify(root);
     }
 
     // если ничего не подошло — вернуть клонированное исходное (нормализация не выполнена)
-    result.head = clone_node(input->head); 
-    return result;
+    return clone_node(input); 
 }
 
 #endif
