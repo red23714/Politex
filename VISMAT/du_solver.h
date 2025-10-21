@@ -78,97 +78,55 @@ bool is_op_of_var(node* root, operation op, char var) {
 }
 
 node* solve_rasdel(node* root)
-{   
+{  
+    printf("Интегрируем обе части:\n");
     node* right = integrate(root->right, get_dif_var(root->right)); 
     node* left = integrate(root->left, get_dif_var(root->left));
     return create_op_node(EQUAL_OP, left, right);
 }
 
-int is_ratio_of(node* n, char num, char den) {
-    if (!n || n->op != DIVIDE) return 0;
-    if (n->left && n->left->op == VARIABLE &&
-        n->right && n->right->op == VARIABLE &&
-        n->left->var_name == num && n->right->var_name == den)
-        return 1;
-    return 0;
-}
-
-// Проверка на (x/y)
-int is_inverse_ratio_of(node* n, char num, char den) {
-    if (!n || n->op != DIVIDE) return 0;
-    if (n->left && n->left->op == VARIABLE &&
-        n->right && n->right->op == VARIABLE &&
-        n->left->var_name == den && n->right->var_name == num)
-        return 1;
-    return 0;
-}
-
-// Подстановка через рекурсию
-node* substitute_ratio_with_u(node* n, char num, char den, char new_var) {
-    if (!n) return NULL;
-
-    // === Прямое соотношение: y/x -> u ===
-    if (is_ratio_of(n, num, den)) {
-        return create_variable_node(new_var);
-    }
-
-    // === Обратное: x/y -> 1/u ===
-    if (is_inverse_ratio_of(n, num, den)) {
-        return create_op_node(DIVIDE, create_value_node(1),
-                              create_variable_node(new_var));
-    }
-
-    // === Степени вида (y/x)^n → u^n ===
-    if (n->op == POWER && is_ratio_of(n->left, num, den)) {
-        node* exponent = substitute_ratio_with_u(n->right, num, den, new_var);
-        return create_op_node(POWER, create_variable_node(new_var), exponent);
-    }
-
-    // === Общий случай: рекурсивный обход дерева ===
-    node* left = substitute_ratio_with_u(n->left, num, den, new_var);
-    node* right = substitute_ratio_with_u(n->right, num, den, new_var);
-
-    node* new_node = (node*)calloc(1, sizeof(node));
-    memcpy(new_node, n, sizeof(node));
-    new_node->left = left;
-    new_node->right = right;
-
-    return new_node;
-}
-
-// Вспомогательная функция: если нужно вывести результат подстановки
-void print_after_substitution(node* expr, char num, char den, char new_var) {
-    printf("До подстановки: ");
-    print_infix(expr);
-    printf("\n");
-
-    node* substituted = substitute_ratio_with_u(expr, num, den, new_var);
-
-    printf("После подстановки u = %c/%c: ", num, den);
-    print_infix(substituted);
-    printf("\n");
-
-    free(substituted);
-}
-
-node* solve_odnorod(math_tree* mt)
+node* solve_odnorod(node* root)
 {
-    node* substituted = substitute_ratio_with_u(mt->head, 'y', 'x', 'u');
-    node* diff_u = create_diff_node('u', 'x', 1);
-    node* x_var = create_variable_node('x');
+    char left_diff = root->left->left->var_name;
+    char right_diff = root->left->right->var_name;
+    node* substituted = substitute_binop_with_var(root, DIVIDE, left_diff, right_diff, 'u');
+    node* diff_u = create_diff_node('u', right_diff, 1);
+    node* x_var = create_variable_node(right_diff);
     node* mul_x = create_op_node(MULTIPLY, diff_u, x_var);
     node* u_var = create_variable_node('u');
     node* left_side = create_op_node(PLUS, mul_x, u_var);
 
+    printf("Заменяем y/x на u: ");
+
     substituted->left = left_side;
+    print_tree(substituted);
 
-    print_infix(substituted);
+    node* transformed1 = transform_to_standard_2_times(substituted);
 
-    printf("\n");
+    printf("Решаем уравнение с разделяющимися переменными: ");
+    print_tree(transformed1);
+    node* res_u = solve_rasdel(transformed1);
+    print_tree(res_u);
 
-    node* transformed1 = transform_to_standard(substituted);
+    printf("Подставляем переменную u: ");
+    node* result = restore_substituted_var(res_u, DIVIDE, left_diff, right_diff, 'u');
+    return result;
+}
 
-    print_infix(transformed1); 
+node* solve_lin(node* root)
+{
+    node* equal_zero;
+    if(count_variables(root->right->right) == 2) equal_zero = create_op_node(EQUAL_OP, root->left, root->right->right);
+    else equal_zero = create_op_node(EQUAL_OP, root->left, root->right->left);
+
+    printf("Приравниваем часть без y к нулю: ");
+    print_tree(equal_zero);
+    
+    node* transformed_zero = transform_to_standard_2_times(equal_zero);
+
+    printf("Решаем уравнение с разделяющимися переменными: ");
+    node* res_u = solve_rasdel(transformed_zero);
+    print_tree(res_u);
 }
 
 void solve_du(math_tree* mt)
@@ -184,9 +142,8 @@ void solve_du(math_tree* mt)
     else if (left->op == MULTIPLY && left->right->op == DIFF_VAR && count_variables(left->left) &&
             right->op == MULTIPLY && right->right->op == DIFF_VAR && count_variables(right->left)) {
         printf("с разделяющимеся переменными\n");
-        struct math_tree result;
-        result.head = solve_rasdel(mt->head);
-        print_tree(&result);
+        node* res_rasdel = solve_rasdel(mt->head);
+        print_tree(res_rasdel);
     } 
     else if(left->op == DIFF_OP){
         char left_diff = left->left->var_name;
@@ -200,13 +157,16 @@ void solve_du(math_tree* mt)
             }
             else 
             {
-            printf("Линейноне уравнение первого порядка\n");
+                printf("Линейноне уравнение первого порядка\n");
+                solve_lin(mt->head);
             }
         }
         else if(is_op_of_var(right, DIVIDE, left_diff))
         {
             printf("Однородное\n");
-            solve_odnorod(mt);
+            node* res_odnorod = solve_odnorod(mt->head);
+            printf("Ответ: ");
+            print_tree(res_odnorod);
         }
     }
     else {

@@ -41,6 +41,32 @@ typedef struct math_tree {
     node* head;
 } math_tree;
 
+node* clone_node(node* n) {
+    if (!n) return NULL;
+    node* c = (node*)calloc(1, sizeof(node));
+    c->op = n->op;
+    c->value = n->value;
+    c->var_name = n->var_name;
+    c->order = n->order;
+    if (n->left) c->left = clone_node(n->left);
+    if (n->right) c->right = clone_node(n->right);
+    return c;
+}
+
+void free_node(node* n) {
+    if (!n) return;
+    if (n->left) free_node(n->left);
+    if (n->right) free_node(n->right);
+    free(n);
+}
+
+math_tree clone_tree(math_tree* mt) {
+    math_tree r = { NULL };
+    if (!mt) return r;
+    r.head = clone_node(mt->head);
+    return r;
+}
+
 // === функции создания узлов ===
 node* create_value_node(double val) {
     node* n = (node*)calloc(1, sizeof(node));
@@ -482,6 +508,7 @@ term* flatten_sum(node* n);
 term* combine_terms(term* head);
 node* build_sum_from_terms(term* head);
 node* simplify_plus_minus(node* n);
+node* combine_divide(node* n);
 
 // === Основное упрощение ===
 node* simplify(node* n) {
@@ -553,6 +580,9 @@ node* simplify(node* n) {
             return copy_node(n->left->right);
     }
 
+    // объединяем цепочки делений
+    n = combine_divide(n);
+
     // 6️⃣ POWER
     if (n->op == POWER) {
         if (is_one(n->right)) return copy_node(n->left);
@@ -572,6 +602,41 @@ node* simplify(node* n) {
     return n;
 }
 
+
+// Вспомогательная функция для объединения цепочек делений
+node* combine_divide(node* n) {
+    if (!n) return NULL;
+
+    // рекурсивно упрощаем поддеревья
+    n->left = simplify(n->left);
+    n->right = simplify(n->right);
+
+    // Только для последовательного деления
+    if (n->op == DIVIDE) {
+        // Если левый — 1 и правый — тоже DIVIDE → объединяем
+        if (is_value(n->left) && n->left->value == 1 &&
+            n->right && n->right->op == DIVIDE) {
+
+            // Левая и правая часть знаменателя
+            node* new_den = create_op_node(MULTIPLY,
+                                           copy_node(n->right->left),
+                                           copy_node(n->right->right));
+
+            return create_op_node(DIVIDE, create_value_node(1), simplify(new_den));
+        }
+
+        // Если левый — тоже DIVIDE, превращаем a / b / c в a / (b * c)
+        if (n->left && n->left->op == DIVIDE) {
+            node* new_den = create_op_node(MULTIPLY,
+                                           copy_node(n->left->right),
+                                           copy_node(n->right));
+            return create_op_node(DIVIDE, copy_node(n->left->left), simplify(new_den));
+        }
+    }
+
+    return n;
+}
+
 // =======================
 // === Реализация sum ===
 // =======================
@@ -585,19 +650,37 @@ term* flatten_sum(node* n) {
 
         // объединяем слева
         term* t = left_terms;
-        while (t) { term* next = t->next; t->next = head; head = t; t = next; }
+        while (t) {
+            term* next = t->next;
+            if (fabs(t->coeff) >= 1e-9) { // игнорируем нули
+                t->next = head;
+                head = t;
+            } else {
+                free(t);
+            }
+            t = next;
+        }
 
         // объединяем справа
         t = right_terms;
         while (t) {
             term* next = t->next;
             if (n->op == MINUS) t->coeff *= -1;
-            t->next = head; head = t; t = next;
+
+            if (fabs(t->coeff) >= 1e-9) { // игнорируем нули
+                t->next = head;
+                head = t;
+            } else {
+                free(t);
+            }
+            t = next;
         }
         return head;
     }
 
+    // MULTIPLY с константой
     if (n->op == MULTIPLY && is_value(n->left)) {
+        if (fabs(n->left->value) < 1e-9) return NULL; // ноль — пропускаем
         term* t = (term*)malloc(sizeof(term));
         t->coeff = n->left->value;
         t->expr = copy_node(n->right);
@@ -605,12 +688,14 @@ term* flatten_sum(node* n) {
         return t;
     }
 
+    // одиночный терм
     term* t = (term*)malloc(sizeof(term));
     t->coeff = 1;
     t->expr = copy_node(n);
     t->next = NULL;
     return t;
 }
+
 
 term* combine_terms(term* head) {
     for (term* t1 = head; t1 != NULL; t1 = t1->next) {
@@ -627,15 +712,30 @@ term* combine_terms(term* head) {
 
 node* build_sum_from_terms(term* head) {
     node* result = NULL;
+
     for (term* t = head; t; t = t->next) {
-        if (fabs(t->coeff) < 1e-9) continue;
+        if (fabs(t->coeff) < 1e-9) continue; // пропускаем нули
 
         node* term_node;
-        if (fabs(t->coeff - 1) < 1e-9) term_node = copy_node(t->expr);
-        else term_node = create_op_node(MULTIPLY, create_value_node(t->coeff), copy_node(t->expr));
+        if (fabs(t->coeff - 1) < 1e-9) {
+            term_node = copy_node(t->expr);
+        } else if (fabs(t->coeff + 1) < 1e-9) {
+            term_node = create_op_node(MULTIPLY, create_value_node(-1), copy_node(t->expr));
+        } else if (t->coeff > 0) {
+            term_node = create_op_node(MULTIPLY, create_value_node(t->coeff), copy_node(t->expr));
+        } else {
+            term_node = create_op_node(MULTIPLY, create_value_node(-t->coeff), copy_node(t->expr));
+        }
 
-        if (!result) result = term_node;
-        else result = create_op_node(PLUS, result, term_node);
+        if (!result) {
+            result = term_node;
+        } else {
+            if (t->coeff > 0) {
+                result = create_op_node(PLUS, result, term_node);
+            } else {
+                result = create_op_node(MINUS, result, term_node);
+            }
+        }
     }
 
     if (!result) return create_value_node(0);
@@ -651,94 +751,151 @@ node* simplify_plus_minus(node* n) {
     return simplified;
 }
 
+// Проверка узла на конкретную бинарную операцию с двумя переменными
+int is_binop_of(node* n, int op, char left_var, char right_var) {
+    if (!n || n->op != op) return 0;
+    if (n->left && n->left->op == VARIABLE &&
+        n->right && n->right->op == VARIABLE &&
+        n->left->var_name == left_var &&
+        n->right->var_name == right_var)
+        return 1;
+    return 0;
+}
+
+// Проверка обратной операции (перевернутые переменные)
+int is_inverse_binop_of(node* n, int op, char left_var, char right_var) {
+    if (!n || n->op != op) return 0;
+    if (n->left && n->left->op == VARIABLE &&
+        n->right && n->right->op == VARIABLE &&
+        n->left->var_name == right_var &&
+        n->right->var_name == left_var)
+        return 1;
+    return 0;
+}
+
+// Рекурсивная подстановка любой бинарной операции
+node* substitute_binop_with_var(node* n, int op, char left_var, char right_var, char new_var) {
+    if (!n) return NULL;
+
+    // === Прямое соответствие: left_var op right_var -> new_var ===
+    if (is_binop_of(n, op, left_var, right_var)) {
+        return create_variable_node(new_var);
+    }
+
+    // === Обратное: right_var op left_var -> 1/new_var (для деления) ===
+    if (op == DIVIDE && is_inverse_binop_of(n, op, left_var, right_var)) {
+        return create_op_node(DIVIDE, create_value_node(1), create_variable_node(new_var));
+    }
+
+    // === Степени вида (left_var op right_var)^n → new_var^n ===
+    if (n->op == POWER && is_binop_of(n->left, op, left_var, right_var)) {
+        node* exponent = substitute_binop_with_var(n->right, op, left_var, right_var, new_var);
+        return create_op_node(POWER, create_variable_node(new_var), exponent);
+    }
+
+    // === Общий случай: рекурсивный обход дерева ===
+    node* left_sub = substitute_binop_with_var(n->left, op, left_var, right_var, new_var);
+    node* right_sub = substitute_binop_with_var(n->right, op, left_var, right_var, new_var);
+
+    node* new_node = (node*)calloc(1, sizeof(node));
+    memcpy(new_node, n, sizeof(node));
+    new_node->left = left_sub;
+    new_node->right = right_sub;
+
+    return new_node;
+}
+
+
+// Обратная подстановка: new_var → исходная операция left_var op right_var
+node* restore_substituted_var(node* n, int op, char left_var, char right_var, char new_var) {
+    if (!n) return NULL;
+
+    // === Найдена переменная new_var → восстанавливаем исходную операцию ===
+    if (n->op == VARIABLE && n->var_name == new_var) {
+        return create_op_node(op,
+                              create_variable_node(left_var),
+                              create_variable_node(right_var));
+    }
+
+    // === Особый случай для обратного деления: 1/new_var → right_var / left_var ===
+    if (op == DIVIDE && n->op == DIVIDE &&
+        n->left && is_value(n->left) && n->left->value == 1 &&
+        n->right && n->right->op == VARIABLE && n->right->var_name == new_var) {
+        return create_op_node(DIVIDE,
+                              create_variable_node(right_var),
+                              create_variable_node(left_var));
+    }
+
+    // === Степени вида new_var^n → (left_var op right_var)^n ===
+    if (n->op == POWER && n->left && n->left->op == VARIABLE && n->left->var_name == new_var) {
+        node* exponent = restore_substituted_var(n->right, op, left_var, right_var, new_var);
+        return create_op_node(POWER,
+                              create_op_node(op,
+                                             create_variable_node(left_var),
+                                             create_variable_node(right_var)),
+                              exponent);
+    }
+
+    // === Общий случай: рекурсивный обход дерева ===
+    node* left_sub = restore_substituted_var(n->left, op, left_var, right_var, new_var);
+    node* right_sub = restore_substituted_var(n->right, op, left_var, right_var, new_var);
+
+    node* new_node = (node*)calloc(1, sizeof(node));
+    memcpy(new_node, n, sizeof(node));
+    new_node->left = left_sub;
+    new_node->right = right_sub;
+
+    return new_node;
+}
 
 // === парсер (shunting-yard) ===
 node* parse_expression(const char* expr) {
 
     lexer L = { .s = expr, .pos = 0 };
-
     token stack[512];
-
     token output[512];
-
     int op_sp = 0, out_sp = 0;
-
-
 
     token t;
 
     while((t = next_token(&L)).type != TOK_END) {
-
         if(t.type == TOK_NUM || t.type == TOK_VAR || t.type == TOK_DIFFVAR || t.type == TOK_DIFF) {
-
             output[out_sp++] = t;
-
         } else if(t.type == TOK_FUNC) {
-
             // функция в стек
-
             stack[op_sp++] = t;
-
         } else if(t.type == TOK_OP) {
-
             if(t.op == '(') {
-
                 stack[op_sp++] = t;
-
             } else if(t.op == ')') {
-
                 // вынести все до '('
-
                 while(op_sp > 0 && !(stack[op_sp-1].type == TOK_OP && stack[op_sp-1].op == '(')) {
-
                     output[out_sp++] = stack[--op_sp];
-
                 }
 
                 if(op_sp > 0 && stack[op_sp-1].type == TOK_OP && stack[op_sp-1].op == '(')
-
                     op_sp--; // убрать '('
-
                 // если сверху функция, то она применима к аргументу в скобках
-
                 if(op_sp > 0 && stack[op_sp-1].type == TOK_FUNC)
-
                     output[out_sp++] = stack[--op_sp];
-
             } else {
-
                 // обычные бинарные операторы
-
                 while(op_sp > 0 && 
-
                       ((stack[op_sp-1].type == TOK_OP && precedence(stack[op_sp-1].op) >= precedence(t.op)) ||
-
                        stack[op_sp-1].type == TOK_FUNC)) {
-
                     output[out_sp++] = stack[--op_sp];
-
                 }
-
                 stack[op_sp++] = t;
-
             }
-
         }
-
     }
-
 
 
     while(op_sp > 0) {
-
         output[out_sp++] = stack[--op_sp];
-
     }
 
-
-
     return build_from_tokens(output, out_sp);
-
 }
 
 
@@ -749,12 +906,12 @@ math_tree parser(const char* expression) {
     return mt;
 }
 
-void print_tree(math_tree* mt) {
-    if (!mt || !mt->head) {
+void print_tree(node* mt) {
+    if (!mt) {
         printf("(пустое дерево)\n");
         return;
     }
-    print_infix(mt->head);
+    print_infix(mt);
     printf("\n");
 }
 

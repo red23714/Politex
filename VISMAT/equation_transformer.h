@@ -9,34 +9,6 @@
  - Основная точка входа: math_tree transform_to_standard(math_tree* input)
 */
 
-// ---------------------- Утилиты: клонирование / освобождение -----------------------
-
-node* clone_node(node* n) {
-    if (!n) return NULL;
-    node* c = (node*)calloc(1, sizeof(node));
-    c->op = n->op;
-    c->value = n->value;
-    c->var_name = n->var_name;
-    c->order = n->order;
-    if (n->left) c->left = clone_node(n->left);
-    if (n->right) c->right = clone_node(n->right);
-    return c;
-}
-
-void free_node(node* n) {
-    if (!n) return;
-    if (n->left) free_node(n->left);
-    if (n->right) free_node(n->right);
-    free(n);
-}
-
-math_tree clone_tree(math_tree* mt) {
-    math_tree r = { NULL };
-    if (!mt) return r;
-    r.head = clone_node(mt->head);
-    return r;
-}
-
 // ---------------------- Побочные проверки -----------------------
 
 int node_is_diffop(node* n) {
@@ -272,30 +244,105 @@ int is_fraction(node* n, node** num_out, node** den_out) {
     return 0;
 }
 
+
+
 node* make_separable_if_possible(node* eq_root) {
-    if (!eq_root || eq_root->op != EQUAL_OP) return NULL;
-    // ожидаем: left is DIFF_OP
+    if (!eq_root || eq_root->op != EQUAL_OP)
+        return NULL;
+
     node* left = eq_root->left;
     node* right = eq_root->right;
+    if (!node_is_diffop(left))
+        return NULL;
 
-    if (!node_is_diffop(left)) return NULL;
+    char dep = left->left ? left->left->var_name : 'y';  // зависимая
+    char indep = left->right ? left->right->var_name : 'x'; // независимая
 
-    node* num = NULL;
-    node* den = NULL;
-    if (is_fraction(right, &num, &den)) {
-        // check that den contains y and num contains x (best-effort)
-        char y = left->left ? left->left->var_name : 'y';
-        char x = left->right ? left->right->var_name : 'x';
-        if (contains_var(den, y) && !contains_var(den, x) && contains_var(num, x) && !contains_var(num, y)) {
-            // build (den)*dy = (num)*dx
-            node* L = create_op_node(MULTIPLY, den, create_diffvar_node(y));
-            node* R = create_op_node(MULTIPLY, num, create_diffvar_node(x));
+    // --- Если правая часть — дробь ---
+    if (right->op == DIVIDE) {
+        node* num = right->left ? clone_node(right->left) : create_value_node(1);
+        node* den = right->right;
+
+        // Попробуем выделить части, зависящие от x и от y/u
+        int has_x = contains_var(den, indep);
+        int has_y = contains_var(den, dep);
+
+        // --- Типичный случай: y' = 1/(x*y)
+        if (den->op == MULTIPLY && has_x && has_y) {
+            // Разделим знаменатель на две части
+            node* dx_part = NULL;
+            node* dy_part = NULL;
+
+            // выбираем поддеревья
+            if (contains_var(den->left, indep)) dx_part = clone_node(den->left);
+            if (contains_var(den->right, indep)) dx_part = clone_node(den->right);
+            if (contains_var(den->left, dep)) dy_part = clone_node(den->left);
+            if (contains_var(den->right, dep)) dy_part = clone_node(den->right);
+
+            if (dx_part && dy_part) {
+                // du * (dy_part) = (num / dx_part) * dx
+                node* L = create_op_node(MULTIPLY, clone_node(dy_part), create_diffvar_node(dep));
+                node* R_num = create_op_node(DIVIDE, num, clone_node(dx_part));
+                node* R = create_op_node(MULTIPLY, R_num, create_diffvar_node(indep));
+
+                return create_op_node(EQUAL_OP, L, R);
+            }
+        }
+
+        // --- случай 1/(x*u) или 1/x/u ---
+        if (has_x && has_y) {
+            node* dy_factor = create_variable_node(dep);
+            node* dx_factor = create_variable_node(indep);
+            node* L = create_op_node(MULTIPLY, dy_factor, create_diffvar_node(dep));
+            node* R = create_op_node(MULTIPLY, num,
+                                     create_op_node(DIVIDE, create_value_node(1), dx_factor));
+            R = create_op_node(MULTIPLY, R, create_diffvar_node(indep));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+
+        // --- случай y' = f(x)/g(y)
+        if (contains_var(num, indep) && contains_var(den, dep)) {
+            node* L = create_op_node(MULTIPLY, den, create_diffvar_node(dep));
+            node* R = create_op_node(MULTIPLY, num, create_diffvar_node(indep));
             return create_op_node(EQUAL_OP, L, R);
         }
     }
-    // также случай: right = MULTIPLY(num, INV(den)) или другие - not implemented
+
+    // --- случай y' = (1/u)*1/x или аналогичные ---
+    if (right->op == MULTIPLY) {
+        node* left_part = right->left;
+        node* right_part = right->right;
+
+        if (contains_var(left_part, indep) && contains_var(right_part, dep)) {
+            node* L = create_op_node(MULTIPLY, clone_node(right_part), create_diffvar_node(dep));
+            node* R = create_op_node(MULTIPLY, clone_node(left_part), create_diffvar_node(indep));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+        if (contains_var(left_part, dep) && contains_var(right_part, indep)) {
+            node* L = create_op_node(MULTIPLY, clone_node(left_part), create_diffvar_node(dep));
+            node* R = create_op_node(MULTIPLY, clone_node(right_part), create_diffvar_node(indep));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+    }
+
+    // --- если правая часть 1/(x*u^n) ---
+    if (right->op == DIVIDE && right->right && right->right->op == POWER) {
+        node* denom = right->right;
+        if (contains_var(denom->left, dep) && contains_var(denom->left, indep)) {
+            // 1/(x*u^n)
+            node* L = create_op_node(MULTIPLY, denom->left, create_diffvar_node(dep));
+            node* R = create_op_node(MULTIPLY, right->left,
+                                     create_op_node(DIVIDE, create_value_node(1),
+                                                    clone_node(denom->left)));
+            R = create_op_node(MULTIPLY, R, create_diffvar_node(indep));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+    }
+
     return NULL;
 }
+
+
 
 // ---------------------- Распознавание типа и финальная нормализация -----------------------
 
@@ -367,8 +414,133 @@ eq_type detect_equation_type(node* eq_root) {
     return TYPE_UNKNOWN;
 }
 
-// ---------------------- Главная функция трансформации -----------------------
 
+// -----------------------------
+// Универсальное приведение d1u/dx1 = f(x,u) к разделяемой форме
+// -----------------------------
+node* make_general_separable(node* eq_root) {
+    if (!eq_root || eq_root->op != EQUAL_OP)
+        return NULL;
+
+    node* lhs = eq_root->left;
+    node* rhs = eq_root->right;
+
+    // Проверяем, что слева d1u/dx1
+    if (!node_is_diffop(lhs))
+        return NULL;
+
+    char u = lhs->left ? lhs->left->var_name : 'u';
+    char x = lhs->right ? lhs->right->var_name : 'x';
+
+    // === Шаг 1. Если правая часть — дробь g(x)/h(u)
+    if (rhs->op == DIVIDE) {
+        node* num = rhs->left;
+        node* den = rhs->right;
+
+        int num_has_x = contains_var(num, x);
+        int num_has_u = contains_var(num, u);
+        int den_has_x = contains_var(den, x);
+        int den_has_u = contains_var(den, u);
+
+        // случай f = g(x)/h(u)
+        if (num_has_x && !num_has_u && !den_has_x && den_has_u) {
+            node* L = create_op_node(MULTIPLY, clone_node(den), create_diffvar_node(u));
+            node* R = create_op_node(MULTIPLY, clone_node(num), create_diffvar_node(x));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+
+        // случай f = h(u)/g(x) → du/h(u) = dx/g(x)
+        if (!num_has_x && num_has_u && den_has_x && !den_has_u) {
+            node* L = create_op_node(DIVIDE, create_diffvar_node(u), clone_node(num));
+            node* R = create_op_node(DIVIDE, create_diffvar_node(x), clone_node(den));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+
+        // случай f = 1/(x*u)
+        if (den->op == MULTIPLY) {
+            node* a = den->left;
+            node* b = den->right;
+            if (a && b && a->op == VARIABLE && b->op == VARIABLE) {
+                char xa = a->var_name, xb = b->var_name;
+                if ((xa == x && xb == u) || (xa == u && xb == x)) {
+                    node* L = create_op_node(MULTIPLY, create_variable_node(u), create_diffvar_node(u));
+                    node* R = create_op_node(MULTIPLY,
+                                             create_op_node(DIVIDE, create_value_node(1), create_variable_node(x)),
+                                             create_diffvar_node(x));
+                    return create_op_node(EQUAL_OP, L, R);
+                }
+            }
+        }
+    }
+
+    // === Шаг 2. Если правая часть — произведение g(x)*h(u)
+    if (rhs->op == MULTIPLY) {
+        node* a = rhs->left;
+        node* b = rhs->right;
+
+        int a_has_x = contains_var(a, x);
+        int b_has_x = contains_var(b, x);
+        int a_has_u = contains_var(a, u);
+        int b_has_u = contains_var(b, u);
+
+        // f = g(x)*h(u)
+        if ((a_has_x && b_has_u) || (a_has_u && b_has_x)) {
+            node* gx = a_has_x ? a : b;
+            node* hu = a_has_u ? a : b;
+
+            // du/h(u) = g(x)*dx
+            node* L = create_op_node(DIVIDE, create_diffvar_node(u), clone_node(hu));
+            node* R = create_op_node(MULTIPLY, clone_node(gx), create_diffvar_node(x));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+    }
+
+    // === Шаг 3. Если правая часть — чистая функция от u: f(u)
+    if (contains_var(rhs, u) && !contains_var(rhs, x)) {
+        node* L = create_op_node(DIVIDE, create_diffvar_node(u), clone_node(rhs));
+        node* R = create_diffvar_node(x);
+        return create_op_node(EQUAL_OP, L, R);
+    }
+
+    // === Шаг 4. Если правая часть — чистая функция от x: f(x)
+    if (contains_var(rhs, x) && !contains_var(rhs, u)) {
+        node* L = create_diffvar_node(u);
+        node* R = create_op_node(MULTIPLY, clone_node(rhs), create_diffvar_node(x));
+        return create_op_node(EQUAL_OP, L, R);
+    }
+
+    // === Шаг 5. Смешанные случаи: f(x,u) = (1/u)/x, (x/u), (u/x)
+    if (rhs->op == DIVIDE) {
+        node* num = rhs->left;
+        node* den = rhs->right;
+
+        // f = (1/u)/x
+        if (num->op == DIVIDE && num->left->op == VALUE && num->left->value == 1 &&
+            num->right->op == VARIABLE && num->right->var_name == u &&
+            den->op == VARIABLE && den->var_name == x) {
+            node* L = create_op_node(MULTIPLY, create_variable_node(u), create_diffvar_node(u));
+            node* R = create_op_node(MULTIPLY,
+                                     create_op_node(DIVIDE, create_value_node(1), create_variable_node(x)),
+                                     create_diffvar_node(x));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+
+        // f = (x/u)
+        if (num->op == VARIABLE && num->var_name == x &&
+            den->op == VARIABLE && den->var_name == u) {
+            node* L = create_diffvar_node(u);
+            node* R = create_op_node(MULTIPLY,
+                                     create_op_node(DIVIDE, create_variable_node(x), create_variable_node(u)),
+                                     create_diffvar_node(x));
+            return create_op_node(EQUAL_OP, L, R);
+        }
+    }
+
+    // не удалось определить — возвращаем NULL
+    return NULL;
+}
+
+// ---------------------- Главная функция трансформации -----------------------
 node* transform_to_standard(node* input) { 
     if (!input) return NULL;
     node* root = clone_node(input);
@@ -437,8 +609,23 @@ node* transform_to_standard(node* input) {
         return simplify(root);
     }
 
+    
+    node* gen_sep = make_general_separable(root);
+    if (gen_sep) {
+        free_node(root);
+        root = gen_sep;
+    }
+
     // если ничего не подошло — вернуть клонированное исходное (нормализация не выполнена)
     return clone_node(input); 
+}
+
+node* transform_to_standard_2_times(node* input)
+{
+    node* first = transform_to_standard(input);
+    node* second = transform_to_standard(first);
+
+    return second;
 }
 
 #endif
