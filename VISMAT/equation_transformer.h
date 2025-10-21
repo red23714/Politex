@@ -620,12 +620,48 @@ node* transform_to_standard(node* input) {
     return clone_node(input); 
 }
 
+
 node* transform_to_standard_2_times(node* input)
 {
     node* first = transform_to_standard(input);
     node* second = transform_to_standard(first);
 
-    return second;
+    print_tree(second);
+
+    char tranform_input[1024]; // буфер для ввода
+    printf("\nПравильно ли я привел? Отправьте правильную версию уравнения или нажмите Enter:\n");
+
+    // Читаем строку безопасно
+    if (fgets(tranform_input, sizeof(tranform_input), stdin)) {
+        // убираем перенос строки
+        size_t len = strlen(tranform_input);
+        if (len > 0 && tranform_input[len - 1] == '\n') {
+            tranform_input[len - 1] = '\0';
+        }
+    } else {
+        tranform_input[0] = '\0';
+    }
+
+    // если пользователь нажал Enter без ввода — возвращаем second
+    if (strlen(tranform_input) == 0) {
+        return second;
+    }
+
+    // если ввели "y" — тоже возвращаем second
+    if (strcmp(tranform_input, "y") == 0 || strcmp(tranform_input, "Y") == 0) {
+        return second;
+    }
+
+    // иначе парсим пользовательский ввод
+    math_tree right_mt = parser(tranform_input);
+    if (!right_mt.head) {
+        printf("Ошибка при разборе введенного уравнения. Возвращаем автоматически преобразованное.\n");
+        return second;
+    }
+    print_tree(right_mt.head);
+
+    return right_mt.head;
 }
+
 
 #endif

@@ -228,15 +228,6 @@ thread_block (void)
   schedule ();
 }
 
-bool thread_priority_less (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED)
-{
-    // Получаем указатели на структуры thread из элементов списка
-    const struct thread *a = list_entry (a_, struct thread, elem);
-    const struct thread *b = list_entry (b_, struct thread, elem);
-
-    return a->priority > b->priority;
-}
-
 /* Transitions a blocked thread T to the ready-to-run state.
    This is an error if T is not blocked.  (Use thread_yield() to
    make the running thread ready.)
@@ -254,7 +245,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered (&ready_list, &t->elem, thread_priority_less, NULL);
+  list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -325,7 +316,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_insert_ordered (&ready_list, &cur->elem, thread_priority_less, NULL);
+    list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -348,54 +339,12 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
-/* Recalculate thread effective priority from base_priority and donations. */
+/* Sets the current thread's priority to NEW_PRIORITY. */
 void
-thread_update_priority (struct thread *t)
+thread_set_priority (int new_priority) 
 {
-  enum intr_level old_level = intr_disable ();
-  
-  int old_priority = t->priority;
-  int new_priority = t->base_priority;
-
-  /* Находим максимальный приоритет среди донаторов */
-  struct list_elem *e;
-  for (e = list_begin (&t->donations); e != list_end (&t->donations);
-       e = list_next (e))
-    {
-      struct thread *donor = list_entry (e, struct thread, donation_elem);
-      if (donor->priority > new_priority)
-        new_priority = donor->priority;
-    }
- 
-  t->priority = new_priority;
-
-  /* Обновляем позицию в ready_list */
-  if (old_priority != new_priority && t->status == THREAD_READY)
-    {
-      list_remove (&t->elem);
-      list_insert_ordered (&ready_list, &t->elem, thread_priority_less, NULL);
-    }
-
-  intr_set_level (old_level);
+  thread_current ()->priority = new_priority;
 }
-
-void
-thread_set_priority (int new_priority)
-{
-  enum intr_level old_level = intr_disable ();
-  struct thread *cur = thread_current ();
-
-  cur->base_priority = new_priority;
-  thread_update_priority (cur);
-
-  intr_set_level (old_level);
-
-  if (intr_context ())
-    intr_yield_on_return ();
-  else
-    thread_yield ();
-}
-
 
 /* Returns the current thread's priority. */
 int
@@ -520,12 +469,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  
-  // ВАЖНО: Инициализируем списки ПРАВИЛЬНО
-  list_init (&t->donations);
-  t->base_priority = priority;
-  t->waiting_lock = NULL;
-  
   list_push_back (&all_list, &t->allelem);
 }
 

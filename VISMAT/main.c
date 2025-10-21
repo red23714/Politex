@@ -32,10 +32,8 @@ int main() {
         printf("Вход: %s\n", tests[i]);
         math_tree mt = parser(tests[i]);
         node* res = transform_to_standard_2_times(mt.head);
-        printf("После приведения: "); 
         math_tree res_mt;
         res_mt.head = res;
-        print_tree(res_mt.head);
         solve_du(&res_mt);
         printf("\n");
     }
