@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "du_solver.h"
 #include "equation_transformer.h"
+#include "math_differenciate.h"
 
 // const char* tests[] = {
 //         "d1y/dx1 - 2/x * y = 2*x^3", // y' + P(x)y = f(x)
@@ -19,22 +20,20 @@ int main() {
     printf("=== Тест дерева выражений ===\n\n");
 
     const char* tests[] = {
-        "d1y/dx1 = y/x + x/y", // y' = f(y/x)
-        "d1y/dx1 = 2*x/(3 * y^2 + 1)",
-        "x*d1y/dx1 - 2 * y = 2 * x^4",
-        "d1y/dx1 = (3 * y)/x + x",
-        "(2*x + 1) * d1y/dx1 = 4 * x + 2 * y"
-    };
+            "d1y/dx1 = y/x + cos(y/x)",
+            "d1y/dx1 - 2/x * y = 2*x^3", // y' + P(x)y = f(x)
+            "x*d1y/dx1 - 2 * y = 2 * x^4",
+            "d1y/dx1 = (3 * y)/x + x",
+            "(2*x + 1) * d1y/dx1 = 4 * x + 2 * y",
+            "d1y/dx1 = y/x + x/y",
+        }; 
 
     int n = sizeof(tests) / sizeof(tests[0]);
 
     for (int i = 0; i < n; i++) {
         printf("Вход: %s\n", tests[i]);
         math_tree mt = parser(tests[i]);
-        node* res = transform_to_standard_2_times(mt.head);
-        math_tree res_mt;
-        res_mt.head = res;
-        solve_du(&res_mt);
+        solve_du(&mt);
         printf("\n");
     }
 

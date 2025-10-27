@@ -1,0 +1,315 @@
+Понял! Оставлю только существенные изменения в алгоритмах, убрав пролог/эпилог функций и вызовы printf. Вот сравнение "до оптимизации" → "после оптимизации":
+
+**1** - Упрощение логических проверок
+```asm
+# До
+movl  $2, -8(%rbp)
+movl  $1, -12(%rbp)
+movl  $1, -4(%rbp)
+movl  -12(%rbp), %eax
+cmpl  -8(%rbp), %eax
+jge  .L2
+movl  -4(%rbp), %eax
+cmpl  -8(%rbp), %eax
+jge  .L2
+movl  $2, -12(%rbp)
+.L2:
+
+# После
+movl  $2, %edx
+movl  $2, %edi
+```
+
+**2** - Упрощение работы с регистрами
+```asm
+# До
+movl  $3, -12(%rbp)
+movsd  .LC0(%rip), %xmm0
+movsd  %xmm0, -8(%rbp)
+movq  -8(%rbp), %rdx
+
+# После
+movl  $3, %edx
+movl  $2, %edi
+movsd  .LC0(%rip), %xmm0
+```
+
+**3** - Вычисление констант
+```asm
+# До
+movl  $5, -20(%rbp)
+movl  -20(%rbp), %eax
+movl  %eax, -16(%rbp)
+movl  -20(%rbp), %eax
+movl  %eax, -12(%rbp)
+movl  -20(%rbp), %eax
+movl  %eax, -8(%rbp)
+movl  $0, -4(%rbp)
+
+# После
+xorl  %r9d, %r9d
+movl  $5, %r8d
+movl  $5, %ecx
+movl  $5, %edx
+```
+
+**4** - Удаление мертвого кода
+```asm
+# До
+movl  $5, -12(%rbp)
+leaq  .LC0(%rip), %rax
+movq  %rax, -8(%rbp)
+leaq  .LC1(%rip), %rax
+
+# После
+leaq  .LC0(%rip), %rdi
+```
+
+**5** - Удаление дублирующих присваиваний
+```asm
+# До
+movl  $1, -4(%rbp)
+movl  $1, -4(%rbp)
+
+# После
+movl  $1, %edx
+```
+
+**6** - Вычисление сдвига на этапе компиляции
+```asm
+# До
+movl  $10, -8(%rbp)
+movl  -8(%rbp), %eax
+sall  $2, %eax
+movl  %eax, -4(%rbp)
+
+# После
+movl  $40, %edx
+```
+
+**7** - Развертывание цикла
+```asm
+# До
+movl  $0, -420(%rbp)
+jmp  .L2
+.L3:
+movl  -420(%rbp), %eax
+addl  %eax, %eax
+addl  $3, %eax
+cltq
+movl  $5, -416(%rbp,%rax,4)
+addl  $1, -420(%rbp)
+.L2:
+cmpl  $99, -420(%rbp)
+jle  .L3
+
+# После
+leaq  812(%rsp), %rdx
+leaq  12(%rsp), %rax
+.L2:
+movl  $5, (%rax)
+addq  $16, %rax
+movl  $5, -8(%rax)
+cmpq  %rdx, %rax
+jne  .L2
+```
+
+**8** - Удаление ветвления
+```asm
+# До
+cmpl  $9, -12(%rbp)
+jg  .L2
+movl  -8(%rbp), %edx
+movl  -4(%rbp), %eax
+addl  %edx, %eax
+jmp  .L3
+.L2:
+movl  -8(%rbp), %edx
+movl  -4(%rbp), %eax
+addl  %edx, %eax
+.L3:
+
+# После
+movl  $13, %edx
+```
+
+**9** - Полное удаление недостижимого кода
+```asm
+# До
+movl  -12(%rbp), %edx
+movl  -8(%rbp), %eax
+addl  %edx, %eax
+testl  %eax, %eax
+js  .L2
+movl  -12(%rbp), %edx
+movl  -8(%rbp), %eax
+addl  %edx, %eax
+cmpl  $5, %eax
+jle  .L3
+.L2:
+leaq  .LC0(%rip), %rax
+movq  %rax, %rdi
+call  puts@PLT
+.L3:
+
+# После
+xorl  %eax, %eax
+ret
+```
+
+**10** - Удаление цикла вычислений
+```asm
+# До
+movl  $0, -24(%rbp)
+jmp  .L2
+.L3:
+movl  -20(%rbp), %eax
+movl  %eax, %ecx
+movl  -16(%rbp), %eax
+movl  %eax, %edx
+movl  %ecx, %eax
+imull  %edx, %eax
+movl  %eax, %edx
+movl  -24(%rbp), %eax
+cltq
+movb  %dl, -11(%rbp,%rax)
+addl  $1, -24(%rbp)
+.L2:
+cmpl  $2, -24(%rbp)
+jle  .L3
+
+# После
+movl  $15, %edx
+```
+
+**11** - Упрощение цикла
+```asm
+# До
+movl  $0, -12(%rbp)
+jmp  .L2
+.L3:
+movl  -8(%rbp), %edx
+movl  -4(%rbp), %eax
+addl  %edx, %eax
+movl  %eax, -16(%rbp)
+addl  $1, -12(%rbp)
+.L2:
+cmpl  $4, -12(%rbp)
+jle  .L3
+
+# После
+movl  $10, %edx
+```
+
+**12** - Вычисление вложенных циклов
+```asm
+# До
+# Внешний цикл
+movl  $0, -16(%rbp)
+jmp  .L2
+.L3:
+movl  -4(%rbp), %eax
+imull  -16(%rbp), %eax
+movl  %eax, %edx
+movl  -8(%rbp), %eax
+addl  %edx, %eax
+movl  %eax, -24(%rbp)
+addl  $1, -16(%rbp)
+.L2:
+cmpl  $4, -16(%rbp)
+jle  .L3
+
+# Внутренний цикл
+movl  $0, -12(%rbp)
+jmp  .L4
+.L5:
+movl  -8(%rbp), %eax
+imull  -24(%rbp), %eax
+movl  -12(%rbp), %edx
+imull  %edx, %eax
+movl  %eax, -20(%rbp)
+addl  $1, -12(%rbp)
+.L4:
+cmpl  $4, -12(%rbp)
+jle  .L5
+
+# После
+movl  $112, %ecx
+movl  $14, %edx
+```
+
+**13** - Удаление инициализации массива
+```asm
+# До
+movl  $0, -24(%rbp)
+jmp  .L2
+.L3:
+movl  -24(%rbp), %eax
+cltq
+movw  $0, -20(%rbp,%rax,2)
+addl  $1, -24(%rbp)
+.L2:
+cmpl  $5, -24(%rbp)
+jle  .L3
+
+# После
+xorl  %edx, %edx
+```
+
+**14** - Оптимизация сложного условия
+```asm
+# До
+movl  %edi, -4(%rbp)
+movl  %esi, -8(%rbp)
+movl  %edx, -12(%rbp)
+movl  %ecx, -16(%rbp)
+movl  %r8d, -20(%rbp)
+movl  -4(%rbp), %eax
+cmpl  -8(%rbp), %eax
+jge  .L2
+movl  -8(%rbp), %eax
+cmpl  -12(%rbp), %eax
+jge  .L2
+movl  -12(%rbp), %eax
+cmpl  -16(%rbp), %eax
+jge  .L2
+movl  -16(%rbp), %eax
+cmpl  -20(%rbp), %eax
+jge  .L2
+movl  $1, %eax
+jmp  .L3
+.L2:
+movl  $0, %eax
+.L3:
+
+# После
+cmpl  %ecx, %edx
+setl  %al
+cmpl  %r8d, %ecx
+setl  %cl
+andl  %ecx, %eax
+cmpl  %edx, %esi
+setl  %dl
+andl  %edx, %eax
+xorl  %edx, %edx
+cmpl  %esi, %edi
+setl  %dl
+andl  %edx, %eax
+```
+
+**15** - Замена цикла на константу
+```asm
+# До
+movl  $0, -8(%rbp)
+movl  $10000, -4(%rbp)
+.L2:
+subl  $1, -4(%rbp)
+addl  $1, -8(%rbp)
+cmpl  $0, -4(%rbp)
+jg  .L2
+
+# После
+movl  $10000, %edx
+```
+
+Основные виды оптимизаций: вычисление на этапе компиляции, удаление мертвого кода, упрощение циклов, удаление избыточных условий.

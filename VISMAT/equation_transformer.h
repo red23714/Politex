@@ -624,7 +624,7 @@ node* transform_to_standard(node* input) {
 node* transform_to_standard_2_times(node* input)
 {
     node* first = transform_to_standard(input);
-    node* second = transform_to_standard(first);
+    node* second = input; //transform_to_standard(first);
 
     print_tree(second);
 

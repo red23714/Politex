@@ -109,6 +109,15 @@ bool thread_priority_less (const struct list_elem *a_, const struct list_elem *b
     return a->priority > b->priority;
 }
 
+bool donation_priority_less (const struct list_elem *a_, const struct list_elem *b_, void *aux UNUSED)
+{
+    // Получаем указатели на структуры thread из элементов списка
+    const struct thread *a = list_entry (a_, struct thread, donation_elem);
+    const struct thread *b = list_entry (b_, struct thread, donation_elem);
+
+    return a->priority > b->priority;
+}
+
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
 void
@@ -355,10 +364,106 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  enum intr_level old_level = intr_disable();
-  thread_current ()->priority = new_priority;
-  thread_yield();
-  intr_set_level(old_level);
+  enum intr_level old_level = intr_disable ();
+  struct thread *cur = thread_current ();
+
+  /* Set base priority, then recompute effective priority with donations applied. */
+  cur->base_priority = new_priority;
+  thread_update_priority (cur);
+
+  /* If a higher-priority thread is ready, yield. */
+  if (!list_empty (&ready_list))
+    {
+      struct thread *front = list_entry (list_front (&ready_list),
+                                         struct thread, elem);
+      if (front->priority > cur->priority)
+        {
+          intr_set_level (old_level);
+          thread_yield ();
+          return;
+        }
+    }
+
+  intr_set_level (old_level);
+}
+
+/* Обновляет приоритет потока с учётом донейшнов */
+void
+thread_update_priority (struct thread *t)
+{
+  int max = t->base_priority;
+  struct list_elem *e;
+
+  for (e = list_begin (&t->donations); e != list_end (&t->donations);
+       e = list_next (e))
+    {
+      struct thread *donor = list_entry (e, struct thread, donation_elem);
+      if (donor->priority > max)
+        max = donor->priority;
+    }
+
+  t->priority = max;
+}
+
+/* Добавляет донейшн текущему потоку */
+void
+thread_donate_priority (struct thread *donor, struct thread *receiver)
+{
+  /* Если донор имеет меньший приоритет — не имеет смысла донейтить */
+  if (donor->priority <= receiver->priority)
+    return;
+
+  /* Добавляем донейшн (уникальный для каждого донора) */
+  bool already_donated = false;
+  struct list_elem *e;
+  for (e = list_begin (&receiver->donations);
+       e != list_end (&receiver->donations);
+       e = list_next (e))
+    {
+      struct thread *d = list_entry (e, struct thread, donation_elem);
+      if (d == donor)
+        {
+          already_donated = true;
+          break;
+        }
+    }
+
+  if (!already_donated)
+    list_insert_ordered (&receiver->donations, &donor->donation_elem,
+                         donation_priority_less, NULL);
+
+  /* Пересортировать список, чтобы максимальный донор был первым */
+  list_sort (&receiver->donations, donation_priority_less, NULL);
+
+  /* Обновляем приоритет получателя */
+  thread_update_priority (receiver);
+
+  /* Рекурсивно продолжаем донейт вверх, если receiver ждёт другой lock */
+  if (receiver->waiting_lock != NULL && receiver->waiting_lock->holder != NULL)
+    thread_donate_priority (receiver, receiver->waiting_lock->holder);
+}
+
+/* Удаляет донейшны, связанные с данным замком */
+void
+thread_remove_donations (struct lock *lock)
+{
+  struct thread *cur = thread_current ();
+  struct list_elem *e = list_begin (&cur->donations);
+
+  while (e != list_end (&cur->donations))
+    {
+      struct thread *donor = list_entry (e, struct thread, donation_elem);
+      if (donor->waiting_lock == lock)
+        {
+            e = list_remove (e); /* удаляет и возвращает следующий элемент */
+            donor->donated = false;
+        }
+      else
+        e = list_next (e);
+    }
+
+  /* После удаления пересчитать приоритет */
+  thread_update_priority (cur);
 }
 
 /* Returns the current thread's priority. */
@@ -483,6 +588,12 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  t->base_priority = priority;
+  list_init(&t->donations);
+  t->waiting_lock = NULL;
+  t->donation_elem.prev = NULL;
+  t->donation_elem.next = NULL;
+  t->donated = false;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 }

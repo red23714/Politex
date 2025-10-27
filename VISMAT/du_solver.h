@@ -85,33 +85,49 @@ node* solve_rasdel(node* root)
     return create_op_node(EQUAL_OP, left, right);
 }
 
+
 node* solve_odnorod(node* root)
 {
-    char left_diff = root->left->left->var_name;
-    char right_diff = root->left->right->var_name;
-    node* substituted = substitute_binop_with_var(root, DIVIDE, left_diff, right_diff, 'u');
-    node* diff_u = create_diff_node('u', right_diff, 1);
-    node* x_var = create_variable_node(right_diff);
-    node* mul_x = create_op_node(MULTIPLY, diff_u, x_var);
+    // 1️⃣ Определяем переменные
+    char y_var = root->left->left->var_name;   // y
+    char x_var = root->left->right->var_name;  // x
+
+    // 2️⃣ Подстановка u = y/x
+    node* substituted = substitute_binop_with_var(root, DIVIDE, y_var, x_var, 'u');
+
+    // Создаем дифференциал du/dx = ...
+    node* diff_u = create_diff_node('u', x_var, 1);
     node* u_var = create_variable_node('u');
-    node* left_side = create_op_node(PLUS, mul_x, u_var);
+    node* x_node = create_variable_node(x_var);
 
-    printf("Заменяем y/x на u: ");
-
+    // Левая часть уравнения после замены: du/dx = (уравнение с разделяющимися переменными)
+    node* left_side = create_op_node(PLUS, create_op_node(MULTIPLY, diff_u, x_node), u_var);
     substituted->left = left_side;
+
+    printf("После подстановки y/x = u:\n");
     print_tree(substituted);
 
-    node* transformed1 = transform_to_standard_2_times(substituted);
+    // 3️⃣ Приводим к стандартной форме (разделяющиеся переменные)
+    node* standard_eq = transform_to_standard_2_times(substituted);
 
-    printf("Решаем уравнение с разделяющимися переменными: ");
-    print_tree(transformed1);
-    node* res_u = solve_rasdel(transformed1);
+    printf("Уравнение с разделяющимися переменными:\n");
+    print_tree(standard_eq);
+
+    // 4️⃣ Решаем уравнение с разделяющимися переменными
+    node* res_u = solve_rasdel(standard_eq);
+
+    printf("Решение для u:\n");
     print_tree(res_u);
 
-    printf("Подставляем переменную u: ");
-    node* result = restore_substituted_var(res_u, DIVIDE, left_diff, right_diff, 'u');
-    return result;
+    // 5️⃣ Обратная замена u -> y/x
+    node* final_result = restore_substituted_var(res_u, DIVIDE, y_var, x_var, 'u');
+
+    printf("Общее решение исходного уравнения:\n");
+    print_tree(final_result);
+
+    return final_result;
 }
+
 
 node* solve_lin(node* root)
 {
@@ -125,12 +141,22 @@ node* solve_lin(node* root)
     node* transformed_zero = transform_to_standard_2_times(equal_zero);
 
     printf("Решаем уравнение с разделяющимися переменными: ");
-    node* res_u = solve_rasdel(transformed_zero);
-    print_tree(res_u);
+    node* res_zero = solve_rasdel(transformed_zero);
+    print_tree(res_zero);
+
+    node* transformed_res_zero = transform_to_standard_2_times(res_zero);
+}
+
+node* solve_bernuli()
+{
+
 }
 
 void solve_du(math_tree* mt)
 {
+    node* res = transform_to_standard_2_times(mt->head);
+    mt->head = res;
+
     node* right = mt->head->right;
     node* left = mt->head->left;
    
@@ -165,8 +191,6 @@ void solve_du(math_tree* mt)
         {
             printf("Однородное\n");
             node* res_odnorod = solve_odnorod(mt->head);
-            printf("Ответ: ");
-            print_tree(res_odnorod);
         }
     }
     else {
