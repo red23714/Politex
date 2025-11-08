@@ -1,5 +1,11 @@
 import sympy as sp
 import re
+from playwright.sync_api import sync_playwright
+import matplotlib.pyplot as plt
+import io
+from PIL import Image
+import numpy as np
+import base64
 
 # ================================================================
 # Символы и константа
@@ -7,42 +13,81 @@ import re
 x, y = sp.symbols('x y')
 C = sp.Symbol('C')
 
-def print_instructions():
-    print("=" * 70)
-    print("📘  ИНСТРУКЦИЯ ПО ВВОДУ УРАВНЕНИЙ ДЛЯ РЕШАТЕЛЯ ДИФФЕРЕНЦИАЛЬНЫХ УРАВНЕНИЙ")
-    print("=" * 70)
-    print("\n🔹 ПРАВИЛА ЗАПИСИ ВЫРАЖЕНИЙ:")
-    print("1. Все знаки умножения должны быть указаны явно — неявное умножение не поддерживается.")
-    print("   ❌  Плохо:  2x + 3y")
-    print("   ✅  Правильно:  2*x + 3*y")
-    print()
-    print("2. Степень обозначается с помощью двойной звёздочки **")
-    print("   Пример:  y**2,  x**3,  e**x")
-    print()
-    print("3. Используйте скобки для чёткого указания числителей и знаменателей:")
-    print("   Пример:  (x**2 + 1)/(x - 3)")
-    print()
-    print("4. Для обозначения дифференциалов используйте *dx и *dy:")
-    print("   Пример:  (x**2 + y)*dx + (y**2 - x)*dy = 0")
-    print()
-    print("5. Производная должна быть записана как dy/dx:")
-    print("   Пример:  dy/dx = x*y")
-    print()
-    print("=" * 70)
-    print("🔹 ДОПУСТИМЫЕ СТАНДАРТНЫЕ ВИДЫ УРАВНЕНИЙ:")
-    print("1) dy/dx = f(x, y)")
-    print("2) dy/dx = f(y/x)")
-    print("3) dy/dx + P(x)*y = Q(x)")
-    print("4) dy/dx + P(x)*y = Q(x)*y**n")
-    print("5) M(x, y)*dx + N(x, y)*dy = 0")
-    print()
-    print("⚠️  Если перед y в линейном или Бернуллиевом уравнении нет коэффициента умножения,")
-    print("    следует явно указать 1 * y, чтобы программа корректно определила структуру:")
-    print("    Пример:  dy/dx + 1*y = x**2")
-    print()
-    print("=" * 70)
-    print("✅  Теперь вы готовы ввести уравнение в одном из поддерживаемых форматов.")
-    print("=" * 70)
+def safe_render_latex(latex_string, fontsize=20, dpi=100):
+    try:
+        fig = plt.figure(figsize=(0.01, 0.01), dpi=dpi)
+        plt.text(0.5, 0.5, f'${latex_string}$', fontsize=fontsize, 
+                ha='center', va='center')
+        plt.axis('off')
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', 
+                   pad_inches=0.1, dpi=dpi)
+        buf.seek(0)
+        
+        img = Image.open(buf)
+        
+        plt.close(fig)
+        return img
+        
+    except Exception:
+        plt.close('all')
+        return None
+
+def combine_images_vertically(images, spacing=20, background='white'):
+    if not images:
+        return None
+    
+    total_height = sum(img.height for img in images) + spacing * (len(images) - 1)
+    max_width = max(img.width for img in images) if images else 0
+    
+    combined = Image.new('RGB', (max_width, total_height), background)
+    
+    y_offset = 0
+    for img in images:
+        x_offset = (max_width - img.width) // 2
+        combined.paste(img, (x_offset, y_offset))
+        y_offset += img.height + spacing
+    
+    return combined
+
+def render_all_steps(latex_strings, fontsize=20, output_filename=None, dpi=100):
+    successful_images = []
+    
+    for _, latex_str in enumerate(latex_strings):        
+        img = safe_render_latex(latex_str, fontsize, dpi)
+        if img is not None:
+            successful_images.append(img)
+    
+    combined_image = combine_images_vertically(successful_images)
+    
+    if output_filename and combined_image:
+        combined_image.save(output_filename)
+        print(f"📁 Изображение сохранено как: {output_filename}")
+    
+    return combined_image
+
+def extract_equations_from_steps(steps):
+    equations = []
+    
+    for i, step in enumerate(steps):
+        ktx_elements = step.query_selector_all(".ktx")
+        latex_strings = []
+        
+        for elem in ktx_elements:
+            tex = elem.get_attribute("data-tex")
+            if tex:
+                latex_strings.append(tex)
+        
+        if latex_strings:
+            if i == 0: 
+                selected_equation = latex_strings[0]
+            else: 
+                selected_equation = latex_strings[-1]
+            
+            equations.append(selected_equation)
+    
+    return equations
 
 # ================================================================
 # ======================= Общие функции =========================
@@ -349,33 +394,47 @@ def solve_equation(eq_str: str) -> sp.Eq | None:
 # Примеры
 # ================================================================
 if __name__ == "__main__":
-    examples = [
-        "dy/dx = x*y",                   
-        "dy/dx = (y/x) + cos(y/x)",     
-        "dy/dx = x - y",                 
-        "dy/dx = y/x + x/y",             
-        "dy/dx - 2/(2*x + 1) * y = 4*x/(2*x + 1)",          
-        "dy/dx - 2/x*y = 2*x**3",
-        "dy/dx*x - 2*y = 2*x**4",
-        "dy/dx + 2*y = y**2 * exp(x)",
-        "(2*x + 3*x**2*y)*dx + (x**3 - 3*y**2)*dy = 0",
+    input_text = input("Введите выражение (или 'q' для выхода): ")
 
-        "dy/dx = x*y**2",                    # Разделяющиеся переменные
-        "dy/dx = cos(x)/y",                  # Разделяющиеся переменные
-        # Однородные уравнения (dy/dx = f(y/x))
-        "dy/dx = y/x + tan(y/x)",            # Однородное
-        "dy/dx = (x**2 + y**2)/(2*x*y)",     # Однородное
-        
-        # Линейные уравнения первого порядка
-        "dy/dx + 2*x*y = x",                 # Линейное
-        "dy/dx + y/x = x**2",                # Линейное
-        
-        # Уравнения в полных дифференциалах
-        "(2*x + y)*dx + (x + 2*y)*dy = 0",   # Полные дифференциалы
-        "(2*x*y + cos(y))*dx + (x**2 - x*sin(y))*dy = 0"  # Полные дифференциалы
-    ]
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
 
-    print_instructions()
+        coded_string = '''aHR0cHM6Ly9tYXRoZGYuY29tL2RpZi9ydQ=='''
 
-    for e in examples:
-        solve_equation(e)
+        page.goto(base64.b64decode(coded_string).decode('ascii'))
+
+        while input_text != 'q':
+            page.wait_for_selector("#input-expression")
+            page.fill("#input-expression", input_text)
+
+            page.click("#solve")
+
+            page.wait_for_selector("#math-canvas", timeout=20000)
+
+            steps = page.query_selector_all(".step")
+
+            selected_equations = extract_equations_from_steps(steps)
+            
+            if selected_equations:
+                selected_equations = [selected_equations[-1]]
+                output_filename = f"solution_{input_text.replace('/', '_')}.png"
+                combined_image = render_all_steps(
+                    selected_equations, 
+                    fontsize=20, 
+                    output_filename=output_filename,
+                    dpi=150
+                )
+                
+                if combined_image:
+                    plt.figure(figsize=(10, len(selected_equations) * 2))
+                    plt.imshow(np.array(combined_image))
+                    plt.axis('off')
+                    plt.tight_layout()
+                    plt.show()
+                else:
+                    print("❌ Не удалось создать объединенное изображение")
+            
+            input_text = input("Введите следующее выражение (или 'q' для выхода): ")
+
+        browser.close()
