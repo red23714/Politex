@@ -1,0 +1,62 @@
+Вот команда для максимально сжатой компиляции:
+
+```bash
+gcc -Os -s -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-unwind-tables -fno-asynchronous-unwind-tables -fmerge-all-constants -fno-ident -flto main.c qr_encoder.c -o main -lqrencode -Wl,--strip-all
+```
+
+**Пояснение флагов:**
+
+- `-Os` - оптимизация по размеру кода
+- `-s` - удаление символов и отладочной информации
+- `-ffunction-sections -fdata-sections -Wl,--gc-sections` - удаление неиспользуемых функций и данных
+- `-fno-unwind-tables -fno-asynchronous-unwind-tables` - отключение таблиц исключений
+- `-fmerge-all-constants` - объединение констант
+- `-fno-ident` - отключение идентификатора компилятора
+- `-flto` - межмодульная оптимизация
+- `-Wl,--strip-all` - полная очистка бинарника
+
+**Дополнительные опции для еще большей минимизации:**
+
+```bash
+gcc -Os -s -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-unwind-tables -fno-asynchronous-unwind-tables -fmerge-all-constants -fno-ident -flto -fno-stack-protector -fno-plt -Wl,-z,norelro main.c qr_encoder.c -o main -lqrencode -Wl,--strip-all -Wl,-z,noseparate-code
+```
+
+**Для статической линковки (если возможно):**
+```bash
+gcc -Os -s -static -ffunction-sections -fdata-sections -Wl,--gc-sections -fno-unwind-tables -fno-asynchronous-unwind-tables -fmerge-all-constants -fno-ident -flto main.c qr_encoder.c -o main -lqrencode -Wl,--strip-all
+```
+
+**Проверить размер можно командой:**
+```bash
+strip --strip-all main && ls -la main
+```
+
+Эти флаги дадут максимально компактный исполняемый файл за счет агрессивного удаления всего лишнего.
+
+
+    time ./main_optimize -c input.txt file.lzqr --password 123
+QR 89x89 modules -> 248x248 pixels (scale: 2)
+QR 89x89 modules -> 248x248 pixels (scale: 2)
+QR 89x89 modules -> 248x248 pixels (scale: 2)
+Combined image saved to qr.ppm (248x248)
+Compression completed. Output: file.lzqr
+
+________________________________________________________
+Executed in   47.87 millis    fish           external
+   usr time   43.77 millis    0.07 millis   43.70 millis
+   sys time    3.95 millis    1.02 millis    2.92 millis
+
+    time ./main -c input.txt file.lzqr --password 123
+QR 89x89 modules -> 248x248 pixels (scale: 2)
+QR 89x89 modules -> 248x248 pixels (scale: 2)
+QR 89x89 modules -> 248x248 pixels (scale: 2)
+Combined image saved to qr.ppm (248x248)
+Compression completed. Output: file.lzqr
+
+________________________________________________________
+Executed in   83.97 millis    fish           external
+   usr time   81.64 millis  625.00 micros   81.02 millis
+   sys time    2.13 millis  168.00 micros    1.96 millis
+
+.rwxr-xr-x  21k red 27 Oct 00:35 󰡯 main
+.rwxr-xr-x  19k red 27 Oct 00:35 󰡯 main_optimize
