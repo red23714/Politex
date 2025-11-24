@@ -1,9 +1,9 @@
     .global _start
     .extern kmain
 _start:
-    call kmain           # вызвать C-функцию kmain()
-    mov %rax, %rdi       # вернуть код возврата из kmain
-    mov $60, %rax        # syscall: exit
+    call kmain           
+    mov %rax, %rdi       
+    mov $60, %rax        
     syscall
 
     .section .note.GNU-stack,"",@progbits

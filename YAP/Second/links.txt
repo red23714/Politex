@@ -1,1 +1,6 @@
 https://gist.github.com/tcoppex/443d1dd45f873d96260195d6431b0989
+gcc -c start.S -o start.o
+gcc -c sys_write.S -o sys_write.o
+gcc -c hello.c -o hello.o
+gcc -nostdlib -static -s -o hello start.o sys_write.o hello.o
+strip --strip-all hello 
