@@ -8,3 +8,7 @@ build
 .tar
 
 *.tar
+
+!Makefile
+!makefile
+!Docker

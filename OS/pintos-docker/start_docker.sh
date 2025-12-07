@@ -1,1 +1,1 @@
-docker run -it --rm -v $(pwd)/pintos_4lab/:/pintos pintos-env
+docker run -it --rm -v $(pwd)/pintos_4lab_2/:/pintos pintos-env
