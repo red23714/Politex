@@ -8,31 +8,18 @@ typedef unsigned char u8;
 
 // --------------------- Шифрование ---------------------
 
-void generate_sequence(const char* password, int* seq, size_t len)
-{
-	size_t pass_len = strlen(password);
-	unsigned int seed = 0;
-	for (size_t i = 0; i < pass_len; i++)
-		seed = seed * 31 + (unsigned char)password[i];
-	srand(seed);
-	for (size_t i = 0; i < len; i++)
-		seq[i] = rand() % RANGE;
-}
-
 void crypt_data(char* data, const char* password, size_t len)
 {
-	int* seq = malloc(len * sizeof(int));
-	generate_sequence(password, seq, len);
+	size_t pass_len = strlen(password);
 	for (size_t i = 0; i < len; i++)
 	{
 		int pos = data[i] - MIN_CHAR;
-		pos ^= seq[i];
-		pos %= RANGE;
-		if (pos < 0)
-			pos += RANGE;
+		int key = password[i % pass_len] - MIN_CHAR;
+
+		pos = (pos + key) % RANGE;
+
 		data[i] = pos + MIN_CHAR;
 	}
-	free(seq);
 }
 
 // --------------------- Разделение строки ---------------------
@@ -143,6 +130,35 @@ void ppm_to_memory(RGB** r, RGB** g, RGB** b, ImageSize s, u8** out_buf,
 			*p++ = g[y][x].g;
 			*p++ = b[y][x].b;
 		}
+}
+
+char* combine_parts(const char* part1, const char* part2, const char* part3)
+{
+	if (!part1 || !part2 || !part3)
+	{
+		return NULL;
+	}
+
+	// Пропускаем первый символ '$' если он есть
+	const char* p1 = (part1[0] == '$') ? part1 + 1 : part1;
+	const char* p2 = (part2[0] == '$') ? part2 + 1 : part2;
+	const char* p3 = (part3[0] == '$') ? part3 + 1 : part3;
+
+	size_t len1 = strlen(p1);
+	size_t len2 = strlen(p2);
+	size_t len3 = strlen(p3);
+
+	char* result = malloc(len1 + len2 + len3 + 1);
+	if (!result)
+	{
+		return NULL;
+	}
+
+	strcpy(result, p1);
+	strcat(result, p2);
+	strcat(result, p3);
+
+	return result;
 }
 
 // --------------------- Генерация QR в память ---------------------

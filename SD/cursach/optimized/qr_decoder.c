@@ -12,52 +12,19 @@ typedef struct
 	unsigned char r, g, b;
 } RGB;
 
-// Генерация псевдослучайной последовательности на основе пароля
-void generate_sequence(const char* password, int* seq, size_t len)
+void decrypt_data(char* data, const char* password, size_t len)
 {
 	size_t pass_len = strlen(password);
-	unsigned int seed = 0;
-
-	// Создаем seed из пароля
-	for (size_t i = 0; i < pass_len; i++)
-	{
-		seed = seed * 31 + password[i];
-	}
-
-	srand(seed);
 	for (size_t i = 0; i < len; i++)
 	{
-		seq[i] = rand() % RANGE;
-	}
-}
-
-// Шифрование/дешифрование
-void crypt_data(char* data, const char* password, size_t len)
-{
-	int* sequence = malloc(len * sizeof(int));
-	if (!sequence)
-		return;
-
-	generate_sequence(password, sequence, len);
-
-	for (size_t i = 0; i < len; i++)
-	{
-		// Преобразуем символ в позицию в диапазоне 0-(RANGE-1)
 		int pos = data[i] - MIN_CHAR;
+		int key = password[i % pass_len] - MIN_CHAR;
 
-		// XOR с псевдослучайной последовательностью
-		pos = pos ^ sequence[i];
+		// Обратное смещение
+		pos = (pos - key + RANGE) % RANGE;
 
-		// Обеспечиваем цикличность в пределах диапазона
-		pos = pos % RANGE;
-		if (pos < 0)
-			pos += RANGE;
-
-		// Возвращаем в символьный вид
 		data[i] = pos + MIN_CHAR;
 	}
-
-	free(sequence);
 }
 
 // Функция для чтения PPM файла
@@ -336,8 +303,7 @@ char* decode_qr_image(const char* filename, const char* password)
 
 	printf("Combined: %s\n", combined);
 
-	crypt_data(combined, password, strlen(combined));
-	printf("Final decoded string: %s\n", combined);
+	decrypt_data(combined, password, strlen(combined));
 
 	// Освобождаем память
 	free_image(image, height);
