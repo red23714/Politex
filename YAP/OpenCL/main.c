@@ -1,137 +1,126 @@
+#define CL_TARGET_OPENCL_VERSION 120
+#include <CL/cl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <CL/cl.h>
+#include <math.h>
+#include <time.h>
 
-#define MAX_SOURCE_SIZE (0x100000)
+#define WIDTH 4096
+#define HEIGHT 4096
+#define ITER 2000
+
+double cpu_time_sec() { return (double)clock() / CLOCKS_PER_SEC; }
+
+const char* kernelSource =
+	"__kernel void mandelbrot(__global int* output,            \n"
+	"                         int width, int height, int iter)\n"
+	"{                                                         \n"
+	"    int x = get_global_id(0);                             \n"
+	"    int y = get_global_id(1);                             \n"
+	"    if (x >= width || y >= height) return;                \n"
+	"                                                          \n"
+	"    double cx = (x - width  * 0.5) * 4.0 / width;         \n"
+	"    double cy = (y - height * 0.5) * 4.0 / height;        \n"
+	"    double zx = 0.0, zy = 0.0;                             \n"
+	"    int i;                                                 \n"
+	"                                                          \n"
+	"    for (i = 0; i < iter; i++) {                           \n"
+	"        double zx2 = zx*zx - zy*zy + cx;                   \n"
+	"        zy = 2.0*zx*zy + cy;                               \n"
+	"        zx = zx2;                                          \n"
+	"        if (zx*zx + zy*zy > 4.0) break;                    \n"
+	"    }                                                      \n"
+	"    output[y * width + x] = i;                             \n"
+	"}                                                         \n";
 
 int main()
 {
-	printf("=== OpenCL Vector Addition ===\n");
+	size_t pixels = (size_t)WIDTH * HEIGHT;
+	int* cpu = malloc(sizeof(int) * pixels);
+	int* gpu = malloc(sizeof(int) * pixels);
 
-	// Размер векторов
-	const int LIST_SIZE = 1024;
-	float* A = (float*)malloc(sizeof(float) * LIST_SIZE);
-	float* B = (float*)malloc(sizeof(float) * LIST_SIZE);
-	float* C = (float*)malloc(sizeof(float) * LIST_SIZE);
+	// ================= CPU =================
+	double t0 = cpu_time_sec();
 
-	// Инициализация векторов
-	for (int i = 0; i < LIST_SIZE; i++)
+	for (int y = 0; y < HEIGHT; y++)
 	{
-		A[i] = (float)i;
-		B[i] = (float)(LIST_SIZE - i);
-	}
-
-	// 1. Получаем платформы
-	cl_platform_id platform_id = NULL;
-	cl_uint num_platforms;
-	clGetPlatformIDs(1, &platform_id, &num_platforms);
-	printf("Platforms found: %u\n", num_platforms);
-
-	// 2. Получаем устройства
-	cl_device_id device_id = NULL;
-	cl_uint num_devices;
-	clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 1, &device_id,
-				   &num_devices);
-	printf("Devices found: %u\n", num_devices);
-
-	// 3. Получаем имя устройства
-	char device_name[256];
-	clGetDeviceInfo(device_id, CL_DEVICE_NAME, sizeof(device_name), device_name,
-					NULL);
-	printf("Using device: %s\n", device_name);
-
-	// 4. Создаем контекст
-	cl_context context = clCreateContext(NULL, 1, &device_id, NULL, NULL, NULL);
-
-	// 5. Создаем очередь команд
-	cl_command_queue command_queue =
-		clCreateCommandQueueWithProperties(context, device_id, 0, NULL);
-
-	// 6. Загружаем исходный код ядра
-	FILE* fp = fopen("vector_add.cl", "r");
-	if (!fp)
-	{
-		printf("Failed to load kernel\n");
-		return 1;
-	}
-
-	char* source_str = (char*)malloc(MAX_SOURCE_SIZE);
-	size_t source_size = fread(source_str, 1, MAX_SOURCE_SIZE, fp);
-	fclose(fp);
-
-	// 7. Создаем программу
-	cl_program program =
-		clCreateProgramWithSource(context, 1, (const char**)&source_str,
-								  (const size_t*)&source_size, NULL);
-
-	// 8. Компилируем программу
-	clBuildProgram(program, 1, &device_id, NULL, NULL, NULL);
-
-	// 9. Создаем ядро
-	cl_kernel kernel = clCreateKernel(program, "vector_add", NULL);
-
-	// 10. Создаем буферы в памяти устройства
-	cl_mem a_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
-									  LIST_SIZE * sizeof(float), NULL, NULL);
-	cl_mem b_mem_obj = clCreateBuffer(context, CL_MEM_READ_ONLY,
-									  LIST_SIZE * sizeof(float), NULL, NULL);
-	cl_mem c_mem_obj = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
-									  LIST_SIZE * sizeof(float), NULL, NULL);
-
-	// 11. Копируем данные в буферы
-	clEnqueueWriteBuffer(command_queue, a_mem_obj, CL_TRUE, 0,
-						 LIST_SIZE * sizeof(float), A, 0, NULL, NULL);
-	clEnqueueWriteBuffer(command_queue, b_mem_obj, CL_TRUE, 0,
-						 LIST_SIZE * sizeof(float), B, 0, NULL, NULL);
-
-	// 12. Устанавливаем аргументы ядра
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&a_mem_obj);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&b_mem_obj);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&c_mem_obj);
-
-	// 13. Выполняем ядро
-	size_t global_item_size = LIST_SIZE;
-	size_t local_item_size = 64;
-	clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_item_size,
-						   &local_item_size, 0, NULL, NULL);
-
-	// 14. Копируем результат обратно
-	clEnqueueReadBuffer(command_queue, c_mem_obj, CL_TRUE, 0,
-						LIST_SIZE * sizeof(float), C, 0, NULL, NULL);
-
-	// 15. Проверяем результат
-	printf("\nFirst 10 results:\n");
-	for (int i = 0; i < 10; i++)
-	{
-		printf("C[%d] = %.1f + %.1f = %.1f\n", i, A[i], B[i], C[i]);
-	}
-
-	// Проверка
-	int correct = 1;
-	for (int i = 0; i < LIST_SIZE; i++)
-	{
-		if (C[i] != A[i] + B[i])
+		for (int x = 0; x < WIDTH; x++)
 		{
-			correct = 0;
-			break;
+			double cx = (x - WIDTH * 0.5) * 4.0 / WIDTH;
+			double cy = (y - HEIGHT * 0.5) * 4.0 / HEIGHT;
+			double zx = 0.0, zy = 0.0;
+			int i;
+			for (i = 0; i < ITER; i++)
+			{
+				double zx2 = zx * zx - zy * zy + cx;
+				zy = 2.0 * zx * zy + cy;
+				zx = zx2;
+				if (zx * zx + zy * zy > 4.0)
+					break;
+			}
+			cpu[y * WIDTH + x] = i;
 		}
 	}
-	printf("\nResult: %s\n", correct ? "PASS" : "FAIL");
 
-	// 16. Освобождаем ресурсы
-	clReleaseKernel(kernel);
-	clReleaseProgram(program);
-	clReleaseMemObject(a_mem_obj);
-	clReleaseMemObject(b_mem_obj);
-	clReleaseMemObject(c_mem_obj);
-	clReleaseCommandQueue(command_queue);
-	clReleaseContext(context);
+	double t1 = cpu_time_sec();
+	double cpu_time = t1 - t0;
 
-	free(A);
-	free(B);
-	free(C);
-	free(source_str);
+	printf("CPU time: %.3f sec\n", cpu_time);
+
+	// ================= OpenCL =================
+	cl_platform_id platform;
+	cl_device_id device;
+	cl_context context;
+	cl_command_queue queue;
+
+	clGetPlatformIDs(1, &platform, NULL);
+	clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL);
+
+	context = clCreateContext(NULL, 1, &device, NULL, NULL, NULL);
+	queue =
+		clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, NULL);
+
+	cl_mem out = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+								sizeof(int) * pixels, NULL, NULL);
+
+	cl_program program =
+		clCreateProgramWithSource(context, 1, &kernelSource, NULL, NULL);
+
+	clBuildProgram(program, 1, &device, "-cl-fast-relaxed-math", NULL, NULL);
+
+	cl_kernel kernel = clCreateKernel(program, "mandelbrot", NULL);
+
+	int width = WIDTH;
+	int height = HEIGHT;
+	int iter = ITER;
+
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), &out);
+	clSetKernelArg(kernel, 1, sizeof(int), &width);
+	clSetKernelArg(kernel, 2, sizeof(int), &height);
+	clSetKernelArg(kernel, 3, sizeof(int), &iter);
+
+	size_t global[2] = {(size_t)width, (size_t)height};
+
+	cl_event event;
+	clEnqueueNDRangeKernel(queue, kernel, 2, NULL, global, NULL, 0, NULL,
+						   &event);
+	clFinish(queue);
+
+	cl_ulong start, end;
+	clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(start),
+							&start, NULL);
+	clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(end), &end,
+							NULL);
+
+	double gpu_time = (end - start) * 1e-9;
+
+	clEnqueueReadBuffer(queue, out, CL_TRUE, 0, sizeof(int) * pixels, gpu, 0,
+						NULL, NULL);
+
+	printf("GPU kernel time: %.3f sec\n", gpu_time);
+	printf("Speedup: %.1fx\n", cpu_time / gpu_time);
+
+	printf("Verification: %s\n", cpu[123] == gpu[123] ? "OK" : "FAILED");
 
 	return 0;
 }
