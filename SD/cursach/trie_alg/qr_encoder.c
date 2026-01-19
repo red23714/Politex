@@ -173,20 +173,34 @@ void combine_color_channels(RGB** red_channel, RGB** green_channel,
 	// Записываем заголовок PPM
 	fprintf(fp, "P6\n%d %d\n255\n", size.width, size.height);
 
-	// Комбинируем цветовые каналы
+	// Принудительно сбрасываем буфер после заголовка
+	fflush(fp);
+
+	// Комбинируем цветовые каналы С ПОСТРОЧНОЙ ЗАПИСЬЮ НА ДИСК
 	for (int y = 0; y < size.height; y++)
 	{
+		// Выделяем буфер для одной строки
+		unsigned char* row_buffer = malloc(size.width * 3);
+		if (!row_buffer)
+		{
+			fclose(fp);
+			return;
+		}
+
+		unsigned char* ptr = row_buffer;
 		for (int x = 0; x < size.width; x++)
 		{
-			RGB pixel;
-			pixel.r = red_channel[y][x].r;
-			pixel.g = green_channel[y][x].g;
-			pixel.b = blue_channel[y][x].b;
-
-			fputc(pixel.r, fp);
-			fputc(pixel.g, fp);
-			fputc(pixel.b, fp);
+			*ptr++ = red_channel[y][x].r;
+			*ptr++ = green_channel[y][x].g;
+			*ptr++ = blue_channel[y][x].b;
 		}
+
+		// Записываем строку на диск и сразу сбрасываем буфер
+		fwrite(row_buffer, 1, size.width * 3, fp);
+		fflush(fp); // Принудительная запись на диск
+
+		// Освобождаем буфер строки
+		free(row_buffer);
 	}
 
 	fclose(fp);
