@@ -5,59 +5,71 @@
   height: 100%
 )
 
+#set text(
+  font: "Times New Roman",
+  size: 14pt,
+)
+
+#set par(
+  leading: 0.4em
+)
+
 #grid(
-  rows: (0.5fr, 2fr, 2fr, 0.25fr),
+  rows: (0.6fr, 2fr, 2fr, 0.25fr),
   gutter: 3pt,
-  rect[ 
+  [ 
     #align(center)[
       Министерство образования и науки Российской Федерации \
       Санкт-Петербургский Политехнический Университет Петра Великого \
       — \
       Институт кибербезопасности и защиты информации]
   ],
-  rect[
+  [
     #align(center + horizon)[
-      *ЛАБОРАТОРНАЯ РАБОТА № 3*
-
-      *«Нахождение n-нного элемента последовательности»* \  
+      #text(size: 16pt)[*ЛАБОРАТОРНАЯ РАБОТА № 3*] \
+      \
+      *«Нахождение n-нного элемента последовательности»* \ 
+      \
       по дисциплине «Структуры данных»
     ]
   ],
   grid(
-    rows: (1fr, 1fr),
-    columns: (1fr, 1fr, 1fr),
+    rows: (0.3fr, 1fr),
+    columns: (0.8fr, 0.7fr, 0.6fr),
     gutter: 3pt,
-    rect[
+    [
       Выполнил \
       студент гр.5151001/40001
     ],
-    rect[
+    [
       #align(center)[
         \
         #symbol("<")подпись#symbol(">")
       ]
     ],
-    rect[
+    [
       #align(right)[Волошкевич М.А.]
     ],
-    rect[
+    [
       Преподователь /\
       ассистент
     ],
-    rect[
+    [
       #align(center)[
         \
         #symbol("<")подпись#symbol(">")
       ]
     ],
-    rect[
+    [
       #align(right)[Семьянов П.В.]
     ]
   ),
-  rect(height: 100%)[
+  [
     #align(center + horizon)[
       Санкт-Петербург\
       2025г.
     ]
   ]
 )
+
+#pagebreak()
