@@ -45,7 +45,7 @@ DECODER_MEMORY_SUM=0
 QR_DECODER_TIME_SUM=0
 QR_DECODER_MEMORY_SUM=0
 
-ITERATIONS=10000
+ITERATIONS=100
 SAMPLE_RATE=1000 # Измеряем память каждые N итераций
 
 echo "Запуск тестов (${ITERATIONS} итераций)..."

@@ -24,11 +24,18 @@ pkgs.mkShell {
     fd
     btop
     htop
+    wl-clipboard
 
     curl
     wget
     unzip
     gnutar
+
+    qemu
+
+    zbar
+    qrencode
+    time
   ];
 
   shellHook = ''
@@ -45,6 +52,9 @@ pkgs.mkShell {
 
     mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" projects
     cd projects
+
+    export XDG_RUNTIME_DIR=/run/user/1000
+    export WAYLAND_DISPLAY=wayland-1
 
     echo "🚀 my-ide nix shell loaded"
     exec fish
