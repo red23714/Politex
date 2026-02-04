@@ -6,6 +6,8 @@
 build
 .vscode
 .tar
+.cache
+.share
 
 *.tar
 
