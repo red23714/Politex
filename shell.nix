@@ -32,6 +32,7 @@ pkgs.mkShell {
     gnutar
 
     qemu
+    firefox
 
     zbar
     qrencode
@@ -50,15 +51,18 @@ pkgs.mkShell {
     export NPM_CONFIG_CACHE="$XDG_CACHE_HOME/npm"
     export PIP_CACHE_DIR="$XDG_CACHE_HOME/pip"
 
+    export BROWSER=firefox
+
     mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" projects
     cd projects
 
-    if [ -n "$WAYLAND_DISPLAY" ]; then
-        echo "🟢 Wayland session detected ($WAYLAND_DISPLAY)"
-    elif [ -n "$DISPLAY" ]; then
-        echo "🟡 X11 session detected ($DISPLAY)"
+    
+    if [ "$XDG_SESSION_DESKTOP" = "Hyprland" ]; then
+        export XDG_RUNTIME_DIR=/run/user/1000
+        export WAYLAND_DISPLAY=wayland-1
+        echo "🟢 Hyprland detected — using hardcoded Wayland values"
     else
-        echo "🔴 No graphical session detected"
+        echo "🟢 Non-Hyprland session — inheriting env"
     fi
 
     echo "🚀 my-ide nix shell loaded"
