@@ -53,8 +53,13 @@ pkgs.mkShell {
     mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" projects
     cd projects
 
-    export XDG_RUNTIME_DIR=/run/user/1000
-    export WAYLAND_DISPLAY=wayland-1
+    if [ -n "$WAYLAND_DISPLAY" ]; then
+        echo "🟢 Wayland session detected ($WAYLAND_DISPLAY)"
+    elif [ -n "$DISPLAY" ]; then
+        echo "🟡 X11 session detected ($DISPLAY)"
+    else
+        echo "🔴 No graphical session detected"
+    fi
 
     echo "🚀 my-ide nix shell loaded"
     exec fish
