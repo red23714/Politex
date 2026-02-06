@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profile>
+ <version>LibreOffice v1</version>
+ <device>
+  <type>opencl</type>
+  <name>NVIDIA GeForce RTX 4060 Ti</name>
+  <driver>590.48.01</driver>
+  <time>13674</time>
+  <errors>false</errors>
+ </device>
+ <device>
+  <type>native</type>
+  <time>1428480</time>
+  <errors>false</errors>
+ </device>
+</profile>

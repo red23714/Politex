@@ -17,6 +17,7 @@ pkgs.mkShell {
     python312
     nodejs_20
     typst
+    fasm
 
     git
     openssh
@@ -26,12 +27,17 @@ pkgs.mkShell {
     htop
     wl-clipboard
 
+    pkg-config
+    tree-sitter
+    openssl
+    icu
+
     curl
     wget
     unzip
     gnutar
 
-    qemu
+    qemu_full
     firefox
 
     zbar
@@ -52,7 +58,7 @@ pkgs.mkShell {
     export PIP_CACHE_DIR="$XDG_CACHE_HOME/pip"
 
     export BROWSER=firefox
-
+ 
     mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" projects
     cd projects
 
