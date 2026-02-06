@@ -57,7 +57,8 @@ pkgs.mkShell {
     export NPM_CONFIG_CACHE="$XDG_CACHE_HOME/npm"
     export PIP_CACHE_DIR="$XDG_CACHE_HOME/pip"
 
-    export BROWSER=firefox
+    export BROWSER=firefox 
+    export SHELL=$(which fish)
  
     mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" projects
     cd projects
