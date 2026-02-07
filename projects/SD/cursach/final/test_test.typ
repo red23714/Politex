@@ -1,16 +1,13 @@
-#import "@preview/lilaq:0.5.0" as lq
-
 #set heading(numbering: "1.")
 #show heading.where(level: 1): set text(size: 16pt)
-#show heading.where(level: 2): set text(size: 14pt)
 
 #set page(
   paper: "a4",
   margin: (
     top: 2.54cm,
     bottom: 2.54cm,
-    right: 2.54cm,
-    left: 2.54cm
+    right: 2cm,
+    left: 2cm
   )
 )
 
@@ -59,77 +56,67 @@
   #it
 ]
 
-#set rect(
-  inset: 8pt,
-  fill: rgb("ffff"),
-  width: 100%,
-)
 
-#grid(
-  rows: (0.6fr, 2fr, 2fr, 0fr),
-  columns: (100%),
-  gutter: 3pt,
-  stroke: none,
-  fill: none,
-  rect[ 
-    #align(center + top)[
-      Министерство образования и науки Российской Федерации\
-    ] 
-    #align(right)[
-      Санкт-Петербургский Политехнический Университет Петра Великого \
-    ]
+#align(center)[
+  Министерство образования и науки Российской Федерации \
+  Санкт-Петербургский Политехнический Университет Петра Великого \
+  — \
+  Институт компьютерных наук и кибербезопасности
+]
+
+#v(4.5cm)
+
+#align(center)[
+  #text(size: 16pt)[*ЛАБОРАТОРНАЯ РАБОТА № 3*] \
+  \
+  *«Нахождение n-нного элемента последовательности»* \
+  \
+  по дисциплине «Структуры данных»
+]
+
+#v(3.5cm)
+
+#box(width: 100%)[
+  #box(width: 32%)[
+    Выполнил \
+    студент гр.5151001/40001
+  ]
+  #box(width: 35%)[
     #align(center)[
-      — \
-      Институт компьютерных наук и кибербезопасности
-    ]
-  ],
-  [
-    #align(center + horizon)[
-      #text(size: 16pt)[*ЛАБОРАТОРНАЯ РАБОТА № 3*] \
       \
-      *«Нахождение n-нного элемента последовательности»* \ 
-      \
-      по дисциплине «Структуры данных»
-    ]
-  ],
-  grid(
-    rows: (0.5fr, 1fr),
-    columns: (0.8fr, 0.7fr, 0.6fr),
-    gutter: 3pt,
-    [
-      Выполнил \
-      студент гр.5151001/40001
-    ],
-    [
-      #align(center)[
-        \
-        #symbol("<")подпись#symbol(">")
-      ]
-    ],
-    [
-      #align(right)[Волошкевич М.А.]
-    ],
-    [
-      Преподователь /\
-      ассистент
-    ],
-    [
-      #align(center)[
-        \
-        #symbol("<")подпись#symbol(">")
-      ]
-    ],
-    [
-      #align(right)[Семьянов П.В.]
-    ]
-  ),
-  [
-    #align(center + horizon)[
-      Санкт-Петербург\
-      2025г.
+      #symbol("<")подпись#symbol(">")
     ]
   ]
-)
+  #box(width: 29%)[
+    #align(right)[Волошкевич М.А.]
+  ]
+]
+
+#v(2cm)
+
+#box(width: 100%)[
+  #box(width: 32%)[
+    Преподаватель / \
+    ассистент
+  ]
+  #box(width: 35%)[
+    #align(center)[
+      \
+      #symbol("<")подпись#symbol(">")
+    ]
+  ]
+  #box(width: 29%)[
+    #align(right)[Семьянов П.В.]
+  ]
+]
+
+
+#v(5.79cm)
+
+#align(center)[
+  Санкт-Петербург \
+  2025 г.
+]
 
 #pagebreak()
 
@@ -191,25 +178,16 @@
 
 В @tab1 какая-то залупа
 
-#figure(
-  lq.diagram(
-    lq.plot((0, 1, 2, 3, 4), (3, 5, 4, 2, 3))
-  ),
-  caption: [График говна по говну]
-) <pic2>
-
-В @pic2 у нас какой-то график по состоянию говна на сегодняшний говеный день
-
-#pagebreak()
-
 #set heading(numbering: none)
 = Приложения
-
-== Приложение А
-\
+Приложение А \
 main.c
 ```c
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "qr_encoder.h"
+#include "lzw.h"
 
 void print_usage()
 {
@@ -220,4 +198,96 @@ void print_usage()
 		   "<password>\n");
 }
 
+int main(int argc, char* argv[])
+{
+	if (argc != 6 || strcmp(argv[4], "--password") != 0)
+	{
+		print_usage();
+		return 1;
+	}
+
+	char mode = argv[1][1];
+	char* input_file = argv[2];
+	char* output_file = argv[3];
+	char* password = argv[5];
+
+	if (mode == 'c')
+	{
+		// Читаем входной файл
+		FILE* f = fopen(input_file, "rb");
+		if (!f)
+		{
+			perror("input");
+			return 1;
+		}
+		fseek(f, 0, SEEK_END);
+		long size = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		char* buf = malloc(size + 1); // +1 для '\0'
+		fread(buf, 1, size, f);
+		buf[size] = '\0';
+		fclose(f);
+
+		// Генерируем QR PPM в памяти
+		unsigned char* ppm_buf = NULL;
+		size_t ppm_size = 0;
+		if (!generate_qr_mem(buf, size, password, &ppm_buf, &ppm_size))
+		{
+			printf("QR generation failed\n");
+			free(buf);
+			return 1;
+		}
+		free(buf);
+
+		// Сжимаем LZW в память
+		unsigned char* compressed = NULL;
+		size_t compressed_size =
+			lzw_compress_mem(ppm_buf, ppm_size, &compressed);
+		free(ppm_buf);
+
+		// Сохраняем результат
+		FILE* out = fopen(output_file, "wb");
+		fwrite(compressed, 1, compressed_size, out);
+		fclose(out);
+		free(compressed);
+
+		printf("Compression completed. Output: %s\n", output_file);
+	}
+	else if (mode == 'd')
+	{
+		// Читаем сжатый файл
+		FILE* f = fopen(input_file, "rb");
+		if (!f)
+		{
+			perror("input");
+			return 1;
+		}
+		fseek(f, 0, SEEK_END);
+		long size = ftell(f);
+		fseek(f, 0, SEEK_SET);
+		unsigned char* compressed = malloc(size);
+		fread(compressed, 1, size, f);
+		fclose(f);
+
+		// Декомпрессия в память
+		unsigned char* decompressed = NULL;
+		size_t decompressed_size =
+			lzw_decompress_mem(compressed, size, &decompressed);
+		free(compressed);
+
+		// Сохраняем декомпрессированный PPM
+		FILE* out = fopen(output_file, "wb");
+		fwrite(decompressed, 1, decompressed_size, out);
+		fclose(out);
+		free(decompressed);
+
+		printf("Decompression completed. Output: %s\n", output_file);
+	}
+	else
+	{
+		print_usage();
+		return 1;
+	}
+	return 0;
+}
 ```
