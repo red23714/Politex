@@ -1,2 +1,3 @@
-2026/02/05-22:24:42.635 6f92 Creating DB /home/red/Documents/Politex/.config/chromium/Default/GCM Store/Encryption since it was missing.
-2026/02/05-22:24:42.642 6f92 Reusing MANIFEST /home/red/Documents/Politex/.config/chromium/Default/GCM Store/Encryption/MANIFEST-000001
+2026/02/05-22:25:08.142 70c9 Reusing MANIFEST /home/red/Documents/Politex/.config/chromium/Default/GCM Store/Encryption/MANIFEST-000001
+2026/02/05-22:25:08.142 70c9 Recovering log #3
+2026/02/05-22:25:08.142 70c9 Reusing old log /home/red/Documents/Politex/.config/chromium/Default/GCM Store/Encryption/000003.log 
