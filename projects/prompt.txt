@@ -63,8 +63,11 @@ void print_usage()
 ```
 
 Пример графика
+#let (x, y) = lq.load-txt(read("data.csv"))
 
-
+#lq.diagram(
+  lq.plot(x, y),
+)
 
 Жирный текст *text*
 Итальянский _text_
