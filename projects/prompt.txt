@@ -1,0 +1,72 @@
+У меня вот такой формат:
+- не нумерованый список
++ нумерованный список
+
+- First
+ - First First
+ - First Second
+- Second
+
++ First
+ + First First
+ + First Second
++ Second
+
+= Заголовок первого типа(для пунктов в отчете по типу цели задачи, теоретические сведения, заключение)
+== Заголовок второго типа(поменьше)
+
+Пример Таблицы
+#figure(
+  table(
+    columns: 2,
+    [*Amount*], [*Ingredient*],
+    [360g], [Baking flour],
+    [250g], [Butter (room temp.)],
+    [150g], [Brown sugar],
+    [100g], [Cane sugar],
+    [100g], [70% cocoa chocolate],
+    [100g], [35-40% cocoa chocolate],
+    [2], [Eggs],
+    [Pinch], [Salt],
+    [Drizzle], [Vanilla extract],
+  ),
+  caption: [Таблица с говном]
+) <tab1>
+
+Пример изображения
+
+#figure(
+  image("diagram.png", height: 60%),
+  caption: [Блок схема работы программы]
+) <pic1>
+
+Отступы перед #figure не делай
+
+Оформление приложения для кода
+= Приложения
+
+== Приложение А
+\
+main.c
+```c
+#include <stdio.h>
+
+void print_usage()
+{
+	printf("Usage:\n");
+	printf("  Compression:   ./main -c <input_file> <output_file> --password "
+		   "<password>\n");
+	printf("  Decompression: ./main -d <input_file> <output_file> --password "
+		   "<password>\n");
+}
+
+```
+
+Пример графика
+
+
+
+Жирный текст *text*
+Итальянский _text_
+
+напиши все что ты хочешь мне дать в ``` все что пишешь в моем формате```
