@@ -163,12 +163,12 @@
 #lorem(70)
 
 
-#figure(
-  image("diagram.png", height: 60%),
-  caption: [Блок схема работы программы]
-) <pic1>
+// #figure(
+//   image("diagram.png", height: 60%),
+//   caption: [Блок схема работы программы]
+// ) <pic1>
 
-В @pic1 у нас находится блок схема с говном
+// В @pic1 у нас находится блок схема с говном
 
 #pagebreak()
 

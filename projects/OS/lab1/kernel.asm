@@ -1,5 +1,5 @@
 use32
-org 0x1000
+org 0x10000
 
 kernel_start:
     ; СНАЧАЛА очищаем экран
