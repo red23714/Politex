@@ -12,7 +12,9 @@ pkgs.mkShell {
     zig
     llvmPackages_latest.clang
     llvmPackages_latest.clang-tools
-    gcc
+    libgcc
+    gccMultiStdenv
+    binutils
 
     python312
     nodejs_20
@@ -43,7 +45,7 @@ pkgs.mkShell {
     zbar
     qrencode
     time
-  ];
+  ]; 
 
   shellHook = ''
     export IDE_ROOT="$PWD"
