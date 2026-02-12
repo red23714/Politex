@@ -8,8 +8,27 @@ __asm("jmp kmain");
 #define IDT_TYPE_INTR (0x0E)
 #define IDT_TYPE_TRAP (0x0F)
 
+#define PIC1_PORT (0x20)
+#define CURSOR_PORT (0x3D4)
+
+#define VIDEO_WIDTH (80)
+
 // Селектор секции кода, установленный загрузчиком ОС
 #define GDT_CS (0x08)
+
+unsigned int curs_x = 0, curs_y = 0;
+
+static inline unsigned char inb(unsigned short port)
+{
+	unsigned char data;
+	asm volatile("inb %w1, %b0" : "=a"(data) : "Nd"(port));
+	return data;
+}
+
+static inline void outb(unsigned short port, unsigned char data)
+{
+	asm volatile("outb %b0, %w1" : : "a"(data), "Nd"(port));
+}
 
 // Структура описывает данные об обработчике прерывания
 struct idt_entry
@@ -78,11 +97,22 @@ void intr_enable() { asm("sti"); }
 
 void intr_disable() { asm("cli"); }
 
+void cursor_moveto(unsigned int strnum, unsigned int pos)
+{
+	unsigned short new_pos = strnum * VIDEO_WIDTH + pos;
+
+	outb(CURSOR_PORT, 0x0F);			   // индекс младшего байта
+	outb(CURSOR_PORT + 1, new_pos & 0xFF); // младший байт
+
+	outb(CURSOR_PORT, 0x0E);					  // индекс старшего байта
+	outb(CURSOR_PORT + 1, (new_pos >> 8) & 0xFF); // старший байт
+}
+
 void clear_screen(int color)
 {
 	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
 
-	for (int i = 0; i < 80 * 25; i++)
+	for (int i = 0; i < VIDEO_WIDTH * 25; i++)
 	{
 		video_buf[0] = ' ';
 		video_buf[1] = color;
@@ -106,9 +136,52 @@ void out_str(int color, const char* ptr, unsigned int strnum)
 		video_buf += 2;
 		ptr++;
 	}
+
+	cursor_moveto(strnum + 1, 0);
 }
 
-const char* g_test = "This is zig heil string!";
+void out_char(int color, const char ch, unsigned int strnum, unsigned int pos)
+{
+	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
+	video_buf += VIDEO_WIDTH * 2 * strnum + pos;
+
+	video_buf[0] = (unsigned char)ch;
+	video_buf[1] = color;
+
+	cursor_moveto(strnum, pos + 1);
+}
+
+void keyb_process_keys()
+{
+	if (inb(0x64) & 0x01)
+	{
+		unsigned char scan_code;
+		unsigned char state;
+
+		scan_code = inb(0x60);
+
+		if (scan_code < 128)
+		{
+		}
+	}
+}
+
+void keyb_handler()
+{
+	asm("pusha");
+
+	keyb_process_keys();
+
+	outb(PIC1_PORT, 0x20);
+	asm("popa; leave; iret");
+}
+
+void keyb_init()
+{
+	intr_reg_handler(0x09, GDT_CS, 0x80 | IDT_TYPE_INTR, keyb_handler);
+
+	outb(PIC1_PORT + 1, 0xFF ^ 0x02);
+}
 
 extern "C" int kmain()
 {
@@ -116,7 +189,13 @@ extern "C" int kmain()
 
 	clear_screen(0x07);
 	out_str(0x07, hello, 0);
-	out_str(0x07, g_test, 1);
+	out_char(0x07, 'h', 1, 0);
+
+	intr_disable();
+	intr_init();
+	keyb_init();
+	intr_start();
+	intr_enable();
 
 	while (1)
 	{

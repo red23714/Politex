@@ -15,6 +15,7 @@ pkgs.mkShell {
     libgcc
     gccMultiStdenv
     binutils
+    gdb
 
     python312
     nodejs_20
