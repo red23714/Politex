@@ -7,6 +7,7 @@
 #define CURSOR_PORT (0x3D4)
 #define VIDEO_WIDTH (80)
 #define GDT_CS (0x8)
+#define BOOT_MODE_ADDR (*(int*)0x500)
 
 typedef enum
 {
@@ -109,6 +110,8 @@ typedef enum
 	// остальное можно добавить по необходимости
 } Keycode;
 
+extern const char* mode;
+
 extern unsigned int curs_x, curs_y;
 
 // Функции ввода-вывода
@@ -122,6 +125,11 @@ static inline unsigned char inb(unsigned short port)
 static inline void outb(unsigned short port, unsigned char data)
 {
 	asm volatile("outb %b0, %w1" : : "a"(data), "Nd"(port));
+}
+
+static inline void outw(unsigned short port, unsigned short data)
+{
+	asm volatile("outw %w0, %w1" : : "a"(data), "Nd"(port));
 }
 
 // Функции работы с экраном

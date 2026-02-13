@@ -33,7 +33,59 @@ start:
     mov si, load_ok_msg
     call print_string
     
+    call wait_for_keys
+
     jmp turn_protected
+ 
+wait_for_keys:
+    pusha
+    
+    ; Храним только последние 2 символа для bm
+    ; и последние 3 для std
+    mov byte [last], 0
+    mov byte [prev], 0
+    mov byte [prev2], 0 
+    
+.read_loop:
+    mov ah, 0x00
+    int 0x16
+    cmp al, 0
+    je .read_loop
+    
+    ; Выводим символ
+    mov ah, 0x0E
+    mov bl, al
+    xor bh, bh
+    int 0x10
+    
+    ; Обновляем буфер
+    mov al, [prev]
+    mov [prev2], al
+    mov al, [last]
+    mov [prev], al
+    mov [last], bl
+    
+    cmp byte [last], 'm'
+    jne .check_std
+    cmp byte [prev], 'b'
+    jne .check_std
+    
+    mov byte [boot_mode], 0
+    popa
+    ret
+    
+.check_std:
+    cmp byte [last], 'd'
+    jne .read_loop
+    cmp byte [prev], 't'
+    jne .read_loop
+    cmp byte [prev2], 's'
+    jne .read_loop
+    
+    mov byte [boot_mode], 1
+    popa
+    ret
+
 
 gdt:
     ; Нулевой дескриптор
@@ -75,6 +127,11 @@ protected_mode:
     mov es, ax
     mov ds, ax
     mov ss, ax
+    mov esp, 0x20000
+
+    xor eax, eax
+    mov al, [boot_mode]
+    mov [0x500], eax
 
     ; Передача управления загруженному ядру
     jmp 0x08:0x10000 ; Адрес равен адресу загрузки в случае если ядро скомпилировано в "плоский" код
@@ -100,6 +157,10 @@ print_string:
 msg db "Bootloader starting...", 13, 10, 0
 error_msg db "Disk error!", 13, 10, 0
 load_ok_msg db "Kernel loaded!", 13, 10, 0
+last db 0
+prev db 0
+prev2 db 0
+boot_mode db 0
 
 ; Заполнение до 510 байт
 times 510 - ($ - $$) db 0

@@ -52,12 +52,20 @@ void intr_enable() { asm("sti"); }
 
 void intr_disable() { asm("cli"); }
 
+const char* mode;
+
 extern "C" int kmain()
 {
 	const char* hello = "Welcum to GoydaOS";
 
 	clear_screen(0x07);
 	print_const_str(hello);
+
+	int boot_choice = BOOT_MODE_ADDR;
+
+	const char* boot_data = (boot_choice == 0) ? "BM mode" : "STD mode";
+
+	mode = boot_data;
 
 	intr_disable();
 	intr_init();

@@ -23,6 +23,11 @@ void command_machine(unsigned char* str)
 	{
 		print_const_str("Zubenko Mikhail Petrovich");
 		print_const_str("FASM and GCC");
-		print_const_str("bm");
+		print_const_str(mode);
+	}
+	else if (uc_strcmp(command, "shutdown") == 0)
+	{
+		clear_screen(0x07);
+		outw(0x604, 0x2000);
 	}
 }
