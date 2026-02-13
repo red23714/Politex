@@ -14,7 +14,108 @@ __asm("jmp kmain");
 #define VIDEO_WIDTH (80)
 
 // Селектор секции кода, установленный загрузчиком ОС
-#define GDT_CS (0x08)
+#define GDT_CS (0x8)
+
+typedef enum
+{
+	KEY_NONE = 0,
+	KEY_ESC = 1,
+	KEY_1 = 2,
+	KEY_2 = 3,
+	KEY_3 = 4,
+	KEY_4 = 5,
+	KEY_5 = 6,
+	KEY_6 = 7,
+	KEY_7 = 8,
+	KEY_8 = 9,
+	KEY_9 = 10,
+	KEY_0 = 11,
+	KEY_MINUS = 12,
+	KEY_EQUAL = 13,
+	KEY_BACKSPACE = 14,
+	KEY_TAB = 15,
+	KEY_Q = 16,
+	KEY_W = 17,
+	KEY_E = 18,
+	KEY_R = 19,
+	KEY_T = 20,
+	KEY_Y = 21,
+	KEY_U = 22,
+	KEY_I = 23,
+	KEY_O = 24,
+	KEY_P = 25,
+	KEY_LBRACKET = 26,
+	KEY_RBRACKET = 27,
+	KEY_ENTER = 28,
+	KEY_LCTRL = 29,
+	KEY_A = 30,
+	KEY_S = 31,
+	KEY_D = 32,
+	KEY_F = 33,
+	KEY_G = 34,
+	KEY_H = 35,
+	KEY_J = 36,
+	KEY_K = 37,
+	KEY_L = 38,
+	KEY_SEMICOLON = 39,
+	KEY_APOSTROPHE = 40,
+	KEY_GRAVE = 41,
+	KEY_LSHIFT = 42,
+	KEY_BACKSLASH = 43,
+	KEY_Z = 44,
+	KEY_X = 45,
+	KEY_C = 46,
+	KEY_V = 47,
+	KEY_B = 48,
+	KEY_N = 49,
+	KEY_M = 50,
+	KEY_COMMA = 51,
+	KEY_DOT = 52,
+	KEY_SLASH = 53,
+	KEY_RSHIFT = 54,
+	KEY_KP_MULT = 55, // клавиатура numpad
+	KEY_LALT = 56,
+	KEY_SPACE = 57,
+	KEY_CAPSLOCK = 58,
+	KEY_F1 = 59,
+	KEY_F2 = 60,
+	KEY_F3 = 61,
+	KEY_F4 = 62,
+	KEY_F5 = 63,
+	KEY_F6 = 64,
+	KEY_F7 = 65,
+	KEY_F8 = 66,
+	KEY_F9 = 67,
+	KEY_F10 = 68,
+	KEY_NUMLOCK = 69,
+	KEY_SCROLLLOCK = 70,
+	KEY_KP7 = 71,
+	KEY_KP8 = 72,
+	KEY_KP9 = 73,
+	KEY_KP_MINUS = 74,
+	KEY_KP4 = 75,
+	KEY_KP5 = 76,
+	KEY_KP6 = 77,
+	KEY_KP_PLUS = 78,
+	KEY_KP1 = 79,
+	KEY_KP2 = 80,
+	KEY_KP3 = 81,
+	KEY_KP0 = 82,
+	KEY_KP_DOT = 83,
+	KEY_F11 = 87,
+	KEY_F12 = 88,
+	KEY_HOME = 71, // пример, можно уточнить точные сканкоды стрелок и навигации
+	KEY_UP = 72,
+	KEY_PAGEUP = 73,
+	KEY_LEFT = 75,
+	KEY_RIGHT = 77,
+	KEY_END = 79,
+	KEY_DOWN = 80,
+	KEY_PAGEDOWN = 81,
+	KEY_INSERT = 82,
+	KEY_DELETE = 83
+	// остальное можно добавить по необходимости
+} Keycode;
 
 unsigned int curs_x = 0, curs_y = 0;
 
@@ -79,7 +180,9 @@ void intr_init()
 
 	for (i = 0; i < idt_count; i++)
 	{
-		intr_reg_handler(i, GDT_CS, 0x80 | IDT_TYPE_INTR, default_intr_handler);
+		if (i != 0x09) // только клавиатура
+			intr_reg_handler(i, GDT_CS, 0x80 | IDT_TYPE_INTR,
+							 default_intr_handler);
 	}
 }
 
@@ -97,59 +200,7 @@ void intr_enable() { asm("sti"); }
 
 void intr_disable() { asm("cli"); }
 
-void cursor_moveto(unsigned int strnum, unsigned int pos)
-{
-	unsigned short new_pos = strnum * VIDEO_WIDTH + pos;
-
-	outb(CURSOR_PORT, 0x0F);			   // индекс младшего байта
-	outb(CURSOR_PORT + 1, new_pos & 0xFF); // младший байт
-
-	outb(CURSOR_PORT, 0x0E);					  // индекс старшего байта
-	outb(CURSOR_PORT + 1, (new_pos >> 8) & 0xFF); // старший байт
-}
-
-void clear_screen(int color)
-{
-	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
-
-	for (int i = 0; i < VIDEO_WIDTH * 25; i++)
-	{
-		video_buf[0] = ' ';
-		video_buf[1] = color;
-
-		video_buf += 2;
-	}
-}
-
-void out_str(int color, const char* ptr, unsigned int strnum)
-{
-	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
-	video_buf +=
-		80 * 2 * strnum; // В зависимости от номера строки мы указываем смещение
-						 // в видеобуфере где будет отображаться наша строка
-
-	while (*ptr)
-	{
-		video_buf[0] = (unsigned char)*ptr; // Символ(код)
-		video_buf[1] = color;				// Цвет символа и фона
-
-		video_buf += 2;
-		ptr++;
-	}
-
-	cursor_moveto(strnum + 1, 0);
-}
-
-void out_char(int color, const char ch, unsigned int strnum, unsigned int pos)
-{
-	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
-	video_buf += VIDEO_WIDTH * 2 * strnum + pos;
-
-	video_buf[0] = (unsigned char)ch;
-	video_buf[1] = color;
-
-	cursor_moveto(strnum, pos + 1);
-}
+void keyboard_machine(int scan_code, bool is_pressed);
 
 void keyb_process_keys()
 {
@@ -160,8 +211,14 @@ void keyb_process_keys()
 
 		scan_code = inb(0x60);
 
-		if (scan_code < 128)
+		if (scan_code & 0x80)
 		{
+			scan_code -= 0x80;
+			keyboard_machine(scan_code, false);
+		}
+		else
+		{
+			keyboard_machine(scan_code, true);
 		}
 	}
 }
@@ -183,13 +240,298 @@ void keyb_init()
 	outb(PIC1_PORT + 1, 0xFF ^ 0x02);
 }
 
+void cursor_moveto(unsigned int strnum, unsigned int pos)
+{
+	unsigned short new_pos = strnum * VIDEO_WIDTH + pos;
+
+	curs_x = pos;
+	curs_y = strnum;
+
+	outb(CURSOR_PORT, 0x0F);			   // индекс младшего байта
+	outb(CURSOR_PORT + 1, new_pos & 0xFF); // младший байт
+
+	outb(CURSOR_PORT, 0x0E);					  // индекс старшего байта
+	outb(CURSOR_PORT + 1, (new_pos >> 8) & 0xFF); // старший байт
+}
+
+void clear_screen(int color)
+{
+	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
+
+	for (int i = 0; i < VIDEO_WIDTH * 25; i++)
+	{
+		video_buf[0] = ' ';
+		video_buf[1] = color;
+
+		video_buf += 2;
+	}
+
+	cursor_moveto(0, 0);
+}
+
+void out_str(int color, unsigned char* str, unsigned int strnum,
+			 unsigned int pos)
+{
+	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
+	video_buf += (80 * strnum + pos) *
+				 2; // В зависимости от номера строки мы указываем смещение
+					// в видеобуфере где будет отображаться наша строка
+
+	int len = 0;
+	while (*str)
+	{
+		video_buf[0] = (unsigned char)*str; // Символ(код)
+		video_buf[1] = color;				// Цвет символа и фона
+
+		video_buf += 2;
+		str++;
+
+		len++;
+	}
+}
+
+void clear_str(unsigned char* str)
+{
+	if (str == 0)
+		return;
+
+	unsigned char* ptr = str;
+	while (*ptr != 0)
+	{
+		*ptr = 0;
+		ptr++;
+	}
+}
+
+void print_str(unsigned char* ptr)
+{
+	out_str(0x07, ptr, curs_y, 0);
+
+	cursor_moveto(curs_y + 1, 0);
+}
+
+void print_const_str(const char* str)
+{
+	unsigned int i = 0;
+	unsigned char dest[VIDEO_WIDTH];
+
+	while (str[i] && i < VIDEO_WIDTH - 1) // оставляем место для нуля
+	{
+		dest[i] = (unsigned char)str[i];
+		i++;
+	}
+
+	dest[i] = 0;
+
+	print_str(dest);
+}
+
+void out_char(int color, unsigned char ch, unsigned int strnum,
+			  unsigned int pos)
+{
+	unsigned char* video_buf = (unsigned char*)VIDEO_BUF_PTR;
+	video_buf += (VIDEO_WIDTH * strnum + pos) * 2;
+
+	video_buf[0] = (unsigned char)ch;
+	video_buf[1] = color;
+}
+
+unsigned char
+	scan_table[128] =
+		{
+			0,	  27,  '1', '2', '3',  '4',	 '5', '6', '7',	 '8',
+			'9',  '0', '-', '=', '\b', '\t', 'q', 'w', 'e',	 'r',
+			't',  'y', 'u', 'i', 'o',  'p',	 '[', ']', '\n', 0, // LCtrl=29
+			'a',  's', 'd', 'f', 'g',  'h',	 'j', 'k', 'l',	 ';',
+			'\'', '`', 0, // LShift=42
+			'\\', 'z', 'x', 'c', 'v',  'b',	 'n', 'm', ',',	 '.',
+			'/',  0,   0,	0,	 ' ',  0,	 0,
+			' ' // пробел на 57
+				// Остальные элементы автоматически 0
+};
+
+void command_machine(unsigned char* str);
+
+void keyboard_machine(int scan_code, bool is_pressed)
+{
+	static bool shift_pressed = false;
+	static unsigned char command[40] = {0};
+	static unsigned char com_len = 0;
+
+	switch (scan_code)
+	{
+	case KEY_BACKSPACE:
+		if (is_pressed)
+		{
+			if (curs_x > 0)
+			{
+				com_len--;
+				command[com_len] = 0;
+				cursor_moveto(curs_y, curs_x - 1);
+				out_char(0x07, '\0', curs_y, curs_x);
+			}
+		}
+		break;
+	case KEY_LSHIFT:
+		shift_pressed = is_pressed;
+		break;
+	case KEY_ENTER:
+		if (is_pressed)
+		{
+			if (curs_y < 24)
+			{
+				cursor_moveto(curs_y + 1, 0);
+			}
+			else
+			{
+				clear_screen(0x07);
+			}
+
+			command_machine(command);
+			clear_str(command);
+			com_len = 0;
+		}
+		break;
+	default:
+		if (is_pressed && com_len < 40)
+		{
+			unsigned char c = 0;
+
+			if (scan_code < sizeof(scan_table))
+				c = scan_table[scan_code];
+
+			if (c != 0 && shift_pressed)
+			{
+				if (c >= 'a' && c <= 'z')
+					c -= 32; // буквы в верхний регистр
+				else
+				{
+					switch (c)
+					{
+					case '1':
+						c = '!';
+						break;
+					case '2':
+						c = '@';
+						break;
+					case '3':
+						c = '#';
+						break;
+					case '4':
+						c = '$';
+						break;
+					case '5':
+						c = '%';
+						break;
+					case '6':
+						c = '^';
+						break;
+					case '7':
+						c = '&';
+						break;
+					case '8':
+						c = '*';
+						break;
+					case '9':
+						c = '(';
+						break;
+					case '0':
+						c = ')';
+						break;
+					case '-':
+						c = '_';
+						break;
+					case '=':
+						c = '+';
+						break;
+					case '[':
+						c = '{';
+						break;
+					case ']':
+						c = '}';
+						break;
+					case '\\':
+						c = '|';
+						break;
+					case ';':
+						c = ':';
+						break;
+					case '\'':
+						c = '"';
+						break;
+					case ',':
+						c = '<';
+						break;
+					case '.':
+						c = '>';
+						break;
+					case '/':
+						c = '?';
+						break;
+					}
+				}
+			}
+
+			if (c == 0)
+				c = '?'; // для наглядности, если символ пуст
+
+			command[com_len] = c;
+			com_len++;
+
+			out_char(0x07, c, curs_y, curs_x);
+			cursor_moveto(curs_y, curs_x + 1);
+		}
+		break;
+	}
+}
+
+int uc_strcmp(const unsigned char* s1, const char* s2)
+{
+	while (*s1 && *s2)
+	{					// Пока обе строки не закончились
+		if (*s1 != *s2) // Если символы не равны
+			return (int)(*s1) - (int)(*s2);
+		s1++;
+		s2++;
+	}
+
+	// Если строки разной длины, возвращаем разницу последнего символа и нуля
+	return (int)(*s1) - (int)(*s2);
+}
+
+void command_machine(unsigned char* str)
+{
+	unsigned char* command = str;
+	unsigned char* arg = 0;
+
+	for (unsigned char* p = str; *p != 0; p++)
+	{
+		if (*p == ' ')
+		{
+			*p = 0;		 // Заменяем первый пробел на нуль-терминатор
+			arg = p + 1; // Второй кусок начинается после пробела
+			break;
+		}
+	}
+
+	if (uc_strcmp(command, "clear") == 0)
+	{
+		clear_screen(0x07);
+	}
+	else if (uc_strcmp(command, "info") == 0)
+	{
+		print_const_str("Zubenko Mikhail Petrovich");
+		print_const_str("FASM and GCC");
+		print_const_str("bm");
+	}
+}
+
 extern "C" int kmain()
 {
-	const char* hello = "Welcum to GoydaOS (gcc edition)";
+	const char* hello = "Welcum to GoydaOS";
 
 	clear_screen(0x07);
-	out_str(0x07, hello, 0);
-	out_char(0x07, 'h', 1, 0);
+	print_const_str(hello);
 
 	intr_disable();
 	intr_init();

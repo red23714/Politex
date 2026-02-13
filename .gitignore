@@ -7,7 +7,6 @@ build
 .vscode
 .tar
 .cache
-!.cache/zellij
 .share
 .config
 !.config/nvim

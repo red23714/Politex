@@ -6,5 +6,5 @@ SECTIONS
     .text : { *(.text) }         /* весь код */
     .rodata : { *(.rodata) }     /* строки */
     .data : { *(.data) }         /* глобальные изменяемые */
-    .bss : { *(.bss COMMON) }    /* нули */
+    .bss : { *(.bss) }    /* нули */
 }
