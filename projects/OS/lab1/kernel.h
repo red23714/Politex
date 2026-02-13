@@ -110,9 +110,11 @@ typedef enum
 	// остальное можно добавить по необходимости
 } Keycode;
 
-extern const char* mode;
+extern bool bm_mode;
 
 extern unsigned int curs_x, curs_y;
+
+extern unsigned char* templ;
 
 // Функции ввода-вывода
 static inline unsigned char inb(unsigned short port)
@@ -182,5 +184,13 @@ void command_machine(unsigned char* str);
 // Функции работы со строками
 void clear_str(unsigned char* str);
 int uc_strcmp(const unsigned char* s1, const char* s2);
+void to_upcase(unsigned char* in, unsigned char* out);
+void to_downcase(unsigned char* in, unsigned char* out);
+int uc_strlen(unsigned char* s);
+void uc_strcp(unsigned char* s1, unsigned char* s2);
+void int_to_str(int value, unsigned char* buffer);
+int boyer_moore_search(unsigned char* text);
+void print_bm_table_simple(unsigned char* pattern);
+int std_search(unsigned char* text);
 
 #endif

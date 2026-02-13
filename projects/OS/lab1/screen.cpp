@@ -39,25 +39,30 @@ void out_str(int color, unsigned char* str, unsigned int strnum,
 				 2; // В зависимости от номера строки мы указываем смещение
 					// в видеобуфере где будет отображаться наша строка
 
-	int len = 0;
+	unsigned short len = 0;
 	while (*str)
 	{
-		video_buf[0] = (unsigned char)*str; // Символ(код)
-		video_buf[1] = color;				// Цвет символа и фона
-
-		video_buf += 2;
-		str++;
-
 		len++;
+		if (*str == '\n')
+		{
+			cursor_moveto(strnum + 1, 0);
+			len = 0;
+		}
+		else
+		{
+			video_buf[0] = (unsigned char)*str; // Символ(код)
+			video_buf[1] = color;				// Цвет символа и фона
+
+			video_buf += 2;
+		}
+
+		str++;
 	}
+
+	cursor_moveto(curs_y, curs_x + len);
 }
 
-void print_str(unsigned char* ptr)
-{
-	out_str(0x07, ptr, curs_y, 0);
-
-	cursor_moveto(curs_y + 1, 0);
-}
+void print_str(unsigned char* ptr) { out_str(0x07, ptr, curs_y, curs_x); }
 
 void print_const_str(const char* str)
 {
