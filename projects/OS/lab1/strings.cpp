@@ -203,7 +203,6 @@ int boyer_moore_search(unsigned char* text)
 	return -1;
 }
 
-// Упрощенная функция для вывода таблицы сдвигов
 void print_bm_table_simple(unsigned char* pattern)
 {
 	int m = uc_strlen(pattern);
@@ -216,23 +215,18 @@ void print_bm_table_simple(unsigned char* pattern)
 
 	print_const_str("BM info: ");
 
-	// Массив для отслеживания уже выведенных символов
 	int printed[ALPHABET_SIZE] = {0};
 
-	// Проходим по шаблону слева направо
 	for (int i = 0; i < m; i++)
 	{
 		unsigned char c = pattern[i];
 
-		// Если символ еще не выводили
 		if (!printed[c])
 		{
 			printed[c] = 1;
 
-			// Вычисляем сдвиг
 			int shift;
 
-			// Ищем последнее вхождение этого символа
 			int last_occ = i;
 			for (int j = i + 1; j < m; j++)
 			{
@@ -242,7 +236,6 @@ void print_bm_table_simple(unsigned char* pattern)
 				}
 			}
 
-			// Если символ последний в шаблоне
 			if (last_occ == m - 1)
 			{
 				shift = m;
@@ -254,7 +247,6 @@ void print_bm_table_simple(unsigned char* pattern)
 					shift = 1; // Минимальный сдвиг = 1
 			}
 
-			// Выводим символ и сдвиг
 			unsigned char char_str[2] = {c, 0};
 			print_str(char_str);
 			print_const_str(":");
@@ -263,7 +255,6 @@ void print_bm_table_simple(unsigned char* pattern)
 			int_to_str(shift, shift_str);
 			print_str(shift_str);
 
-			// Добавляем пробел между записями
 			print_const_str(" ");
 		}
 	}
