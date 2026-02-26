@@ -5,12 +5,12 @@
   <type>opencl</type>
   <name>NVIDIA GeForce RTX 4060 Ti</name>
   <driver>590.48.01</driver>
-  <time>13674</time>
+  <time>14693</time>
   <errors>false</errors>
  </device>
  <device>
   <type>native</type>
-  <time>1428480</time>
+  <time>1433088</time>
   <errors>false</errors>
  </device>
 </profile>
