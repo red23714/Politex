@@ -882,8 +882,11 @@ AVRASM ver. 2.2.7  C:\Users\red\Documents\Atmel Studio\7.0\AssemblerApplication1
 000025 940e 0002                     CALL delay
                                  ; ??????? ? ?????? ????????? ?????
 000027 cff3                          RJMP loop ; ??????????? ??????? ?? ?????
-000028 cffe                          RJMP -2
-000029 99e1                          SBIC P15, 1
+                                metka:
+000028 ba0b                          OUT PORTA, R0
+000029 ba18                          OUT PORTB, R1
+00002a cffe                          RJMP metka
+00002b 99e1                          SBIC EECR, 1
 
 
 RESOURCE USE INFORMATION
