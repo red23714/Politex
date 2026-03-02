@@ -1,22 +1,27 @@
 .org $000
     JMP reset
-.org INT0Aaddr
+.org INT0addr
     JMP ext_int0
 .org INT1addr
     JMP ext_int1
 
+.equ FREQ1 = 0
+.equ FREQ2 = 1
+.equ MODE_BUTTON = 2
+.equ FREQ_BUTTON = 3
+.equ MODE1 = 4
+.equ MODE2 = 5
+.equ STATE_BIT = 6
+.equ ENTER_BUTTON = 7
+
 .def NULL = R16
 .def TMP = R17
-.def MODE1 = R4
-.def MODE2 = R5
-.def ENTER_NUM = R7
-.def FREQ1 = R0
-.def FREQ2 = R1
+.def NUM_D = R12
 .def VAL1 = R18
 .def VAL2 = R19
-.def STATE = R6
 .def PLUS_Y = R8
 .def MINUS_Y = R9
+.def STATE = R20
 
 reset: 
     ; Настройка стека
@@ -35,59 +40,76 @@ reset:
     OUT GIFR, TMP
     SEI
 
+main_loop:
+    SBIS PIND, ENTER_BUTTON
+    CALL read_y
 
+    CALL update_leds
+    CALL delay_freq
+
+    LDI TMP, (1 << STATE_BIT)
+    EOR STATE, TMP
+    EOR NUM_D, TMP 
+
+    CALL update_output
+
+    RJMP main_loop
+
+update_leds:
+    SBRS NUM_D, MODE1 ; Если первый бит установлен прыгаем на проверку второго бита
+    RJMP mode2
+    SBRS NUM_D, MODE2 ; Если второй бит установлен прыгаем в задержку 15, если не установлен то прыгаем в задержку 5
+    RJMP mode1
+    RJMP mode3 
 
 mode1:
     LDI R10, 0xFF
     LDI R11, 0x00
-    RJMP mode_loop
+    RJMP check_state
 
 mode2:
     LDI R10, 0xAA
     LDI R11, 0x55
-    RJMP mode_loop
+    RJMP check_state
 
 mode3:
-    LDI R10, PLUS_Y
+    MOV R10, PLUS_Y
+    CALL calc_neg_y
+    MOV R11, MINUS_Y
 
-    LDI TMP, PLUS_Y
-    SBRC TMP, 0 ; Прыгаем в pos если бит 0 очишен
-    RJMP pos
-    RJMP neg
-pos:
-    SBR TMP, 0 ; Установка первого бита регистра в единицу
-    RJMP main3
-neg:
-    CBR TMP, 0 ; Установка первого бита решистра в ноль
-main3:
-    LDI MINUS_Y, LDI
+check_state: 
+    CPI STATE, 0
+    BREQ out_leds
     
-    LDI R11, MINUS_Y
+    MOV TMP, R10
+    MOV R10, R11
+    MOV R11, TMP
 
-mode_loop:
+out_leds:
     OUT PORTA, R10
     OUT PORTB, R11
 
-    LDI TMP, R10
-    LDI R10, R11
-    LDI R11, TMP
-
-    CALL delay_freq
-
-    EOR STATE, STATE
-
-    RJMP mode_loop 
+    RET
 
 ext_int0:
     
 ext_int1:
 
+update_output:
+    OUT PORTD, NUM_D
 
+calc_neg_y:    
+    ; Для прямого кода: инвертируем старший бит (бит знака)
+    MOV MINUS_Y, Y_VAL
+    LDI TMP, 0x80 ; Маска для старшего бита
+    EOR MINUS_Y, TMP ; Инверсия знакового бита
+    
+    RET
 
 delay_freq:
-    SBRS FREQ1, 0 ; Если первый бит установлен прыгаем на проверку второго бита
+    SBRS NUM_D, FREQ1 ; Если первый бит установлен прыгаем на проверку второго бита
     RJMP delay_1
-    SBRS FREQ2, 0 ; Если второй бит установлен прыгаем в задержку 15, если не установлен то прыгаем в задержку 5
+    SBRS NUM_D, FREQ2 ; Если второй бит установлен прыгаем в задержку 15, если не установлен то прыгаем в задержку 5
     RJMP delay_05
     RJMP delay_15 
 delay_1:

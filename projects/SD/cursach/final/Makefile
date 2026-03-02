@@ -7,6 +7,6 @@ qr_encoder:
 qr_decoder:
 	gcc qr_decoder.c -o qr_decoder -lzbar -lm
 
-clear:
+clean:
 	rm qr_encoder 
 	rm qr_decoder
