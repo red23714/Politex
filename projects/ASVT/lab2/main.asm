@@ -22,6 +22,9 @@
 .def PLUS_Y = R8
 .def MINUS_Y = R9
 .def STATE = R20
+.def FREQ_VAL = R21
+.def MODE_VAL = R22
+.def TMP_CYCLE = R23
 
 reset: 
     ; Настройка стека
@@ -29,11 +32,27 @@ reset:
     OUT SPH, R20
     LDI R20, LOW(RAMEND)
     OUT SPL, R20
-    SER TMP
 
     ; Настройка портов
 
+    ; настройка исходных значений
+    CLR NULL ; 0x00
+    LDI PLUS_Y, 0x55
+    CLR NUM_D
+    CLR STATE
+    CLR FREQ_VAL
+    CLR MODE_VAL
+    ; настройка портов ввода-вывода
+    SER TMP
+    OUT DDRA, TMP ; Вывод
+    OUT DDRB, TMP ; Вывод
+    CLR TMP ; 0x00
+    OUT DDRC, TMP ; Ввод
+    LDI TMP, 0x73 ; 0xCE
+    OUT DDRD, TMP ; 0,1,4,5 - вывод, 2,3,7 - ввод
+
     ; Настройка прерываний
+    LDI TMP, 0x0F
     OUT MCUCR, TMP ; Настройка прерываний int0 и int1 на условие 0/1
     LDI TMP, 0xC0
     OUT GICR, TMP
@@ -41,7 +60,8 @@ reset:
     SEI
 
 main_loop:
-    SBIS PIND, ENTER_BUTTON
+    IN TMP, PIND
+    SBIS TMP, ENTER_BUTTON
     CALL read_y
 
     CALL update_leds
@@ -92,18 +112,68 @@ out_leds:
     RET
 
 ext_int0:
+    MOV TMP_CYCLE, FREQ_VAL
+    CALL inc_val
+    MOV FREQ_VAL, TMP_CYCLE
+
+    SBRS FREQ_VAL, 0
+    CBR NUM_D, FREQ1
+    SBRC FREQ_VAL, 0
+    SBR NUM_D, FREQ1
     
+    SBRS FREQ_VAL, 1
+    CBR NUM_D, FREQ2
+    SBRC FREQ_VAL, 1
+    SBR NUM_D, FREQ2
+
+    RETI
+
+
 ext_int1:
+    MOV TMP_CYCLE, MODE_VAL
+    CALL inc_val
+    MOV MODE_VAL, TMP_CYCLE
+
+    SBRS MODE_VAL, 0
+    CBR NUM_D, MODE1
+    SBRC MODE_VAL, 0
+    SBR NUM_D, MODE1
+    
+    SBRS MODE_VAL, 1
+    CBR NUM_D, MODE2
+    SBRC MODE_VAL, 1
+    SBR NUM_D, MODE2
+
+    RETI
+
+inc_val:
+    INC TMP_CYCLE        ; увеличить на 1
+    CPI TMP_CYCLE, 3     ; если >= 3
+    BRLO ok_inc
+    LDI TMP_CYCLE, 0     ; сбросить в 0
+ok_inc:
+    RET
+
 
 update_output:
     OUT PORTD, NUM_D
 
 calc_neg_y:    
     ; Для прямого кода: инвертируем старший бит (бит знака)
-    MOV MINUS_Y, Y_VAL
+    MOV MINUS_Y, PLUS_Y
     LDI TMP, 0x80 ; Маска для старшего бита
     EOR MINUS_Y, TMP ; Инверсия знакового бита
     
+    RET
+
+read_y: ; считывание операнда
+    IN TMP, PINC
+    CALL delay ; ожидание нажатия комбинации кнопок
+    MOV PLUS_Y, TMP
+stop_reading: ; обеспечение однократного ввода
+    IN TMP, PINC
+    CP TMP, NULL ; PINC = 0?
+    BRNE stop_reading ; ожидание условия PINC == 0
     RET
 
 delay_freq:
