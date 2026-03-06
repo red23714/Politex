@@ -1,4 +1,3 @@
-#include <netinet/in.h>
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -10,7 +9,9 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <errno.h>
+
 #include <unistd.h>
+#include <netinet/in.h>
 #endif
 
 #include <stdio.h>
@@ -45,7 +46,7 @@ int sock_err(const char* function, int s)
 #else
 	err = errno;
 #endif
-	fprintf(stderr, "%s: socket error: %d\n", err);
+	fprintf(stderr, "%s: socket error: %d\n", function, err);
 	return -1;
 }
 
