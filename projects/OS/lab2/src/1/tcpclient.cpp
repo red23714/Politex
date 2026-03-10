@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 int init()
 {
@@ -61,13 +61,9 @@ void s_close(int s)
 #endif
 }
 
-int send_request(int s, char* request, bool is_num)
+int send_request(int s, unsigned char* request, int size)
 {
-	int size = strlen(request);
-	if (is_num)
-	{
-		size = 4;
-	}
+	// int size = strlen((const char*)request);
 
 	int sent = 0;
 
@@ -86,62 +82,69 @@ int send_request(int s, char* request, bool is_num)
 			return sock_err("send", s);
 
 		sent += res;
+#if DEBUG
 		printf("%d bytes sent. \n", sent);
+#endif
 	}
 
 	return 0;
 }
 
-void pack_data(int num, char* output)
+void pack_message_data(uint32_t msg_num, uint32_t date, uint32_t time1,
+					   uint32_t time2, char* message, unsigned char* buffer)
 {
-	char pack_str[9];
-	sprintf(pack_str, "%d", num);
-	unsigned short num_len = strlen(pack_str);
-	if (num_len < 8)
-	{
-		int target_len = 8;
+	int offset = 0;
+	uint32_t net_value;
 
-		int zeroes_to_add = target_len - num_len;
-		char tmp[9];
+	// 1. Номер сообщения (4 байта)
+	net_value = htonl(msg_num);
+	memcpy(buffer + offset, &net_value, 4);
+	offset += 4;
 
-		for (int i = 0; i < zeroes_to_add; i++)
-		{
-			tmp[i] = '0';
-		}
+	// 2. Дата (4 байта)
+	net_value = htonl(date);
+	memcpy(buffer + offset, &net_value, 4);
+	offset += 4;
 
-		for (int i = zeroes_to_add; i < target_len; i++)
-		{
-			tmp[i] = pack_str[i - zeroes_to_add];
-		}
+	// 3. Первое время (4 байта)
+	net_value = htonl(time1);
+	memcpy(buffer + offset, &net_value, 4);
+	offset += 4;
 
-		strcpy(pack_str, tmp);
-		num_len = target_len;
-	}
+	// 4. Второе время (4 байта)
+	net_value = htonl(time2);
+	memcpy(buffer + offset, &net_value, 4);
+	offset += 4;
 
-	for (int i = 0; i < num_len; i += 2)
-	{
-		unsigned short num = '0' - pack_str[i];
-		num = num << 4;
-		num += '0' - pack_str[i + 1];
+	// 5. Длина сообщения (4 байта)
+	uint32_t msg_len = strlen(message);
+	net_value = htonl(msg_len);
+	memcpy(buffer + offset, &net_value, 4);
+	offset += 4;
 
-		output[i] = num;
-	}
+	// 6. Текст сообщения (N байт)
+	memcpy(buffer + offset, message, msg_len);
 }
 
-int recv_response(int s)
+int recv_ok(int s)
 {
-	char buffer[5];
-	int res;
+	char buf[2];
+	int received = 0;
 
-	// Принятие очередного блока данных.
-	// Если соединение будет разорвано удаленным узлом recv вернет 0
-	while ((res = recv(s, buffer, sizeof(buffer), 0)) > 0)
+	while (received < 2)
 	{
-		printf(" %d bytes receveied\n", res);
+		int r = recv(s, buf + received, 2 - received, 0);
+		if (r <= 0)
+			return sock_err("recv", s);
+
+		received += r;
 	}
 
-	if (res < 0)
-		return sock_err("recv", s);
+	if (buf[0] != 'o' || buf[1] != 'k')
+	{
+		printf("Protocol error\n");
+		return -1;
+	}
 
 	return 0;
 }
@@ -186,7 +189,7 @@ int tok_numbers(char* src, const char* delim, bool is_reverse)
 	return final_date;
 }
 
-void create_response(int s, FILE* f)
+unsigned int create_response(int s, FILE* f)
 {
 	int len_step = 256;
 
@@ -196,7 +199,7 @@ void create_response(int s, FILE* f)
 	if (!response)
 	{
 		printf("Memory allocation failed\n");
-		return;
+		return -1;
 	}
 
 	int character;
@@ -210,12 +213,13 @@ void create_response(int s, FILE* f)
 			char* date;
 			char* time1;
 			char* time2;
-			char msg[len_str];
 
 			/* strncpy(msg, response + 29, strlen(response) - 29); */
 
 			size_t resp_len = strlen(response);
 			unsigned int msg_len = resp_len - 29;
+
+			char* msg = (char*)malloc(msg_len + 1);
 
 			memcpy(msg, response + 29, msg_len);
 			msg[msg_len] = '\0';
@@ -234,41 +238,24 @@ void create_response(int s, FILE* f)
 				   final_time1, final_time2, msg_len, msg);
 #endif
 
-			char out[4];
-			pack_data(message_counter, out);
-			send_request(s, out, true);
+			uint32_t packet_size = 20 + msg_len;
 
-			pack_data(final_date, out);
-			send_request(s, out, true);
+			unsigned char* output = (unsigned char*)malloc(packet_size);
 
-			pack_data(final_time1, out);
-			send_request(s, out, true);
+			pack_message_data(message_counter, final_date, final_time1,
+							  final_time2, msg, output);
 
-			pack_data(final_time2, out);
-			send_request(s, out, true);
-
-			pack_data(msg_len, out);
-			send_request(s, out, true);
-
-			send_request(s, msg, false);
+			send_request(s, output, packet_size);
 
 			find_sym = false;
 
-			printf("%s %d %d\n", response, len_str, buffer_size);
-
-			memset(response, 0, buffer_size);
+			memset(response, 0, len_str);
 
 			message_counter++;
+			buffer_size = 0;
 
-			printf("all ok\n");
-
-			// free(date);
-			// printf("d");
-			// free(time1);
-			// printf("t1");
-			// free(time2);
-			// printf("t2");
-			// free(token);
+			free(msg);
+			free(output);
 		}
 
 		if (buffer_size >= len_str - 1)
@@ -280,7 +267,7 @@ void create_response(int s, FILE* f)
 			{
 				printf("Memory reallocation failed\n");
 				free(response);
-				return;
+				return -1;
 			}
 
 			response = tmp_str;
@@ -298,9 +285,10 @@ void create_response(int s, FILE* f)
 		}
 	}
 
+	return message_counter;
+
 	free(response);
 	response = NULL;
-	printf("gooooood\n");
 }
 
 int main(int argc, char* argv[])
@@ -314,8 +302,9 @@ int main(int argc, char* argv[])
 		address = token;
 		token = strtok(NULL, ":");
 		port = atoi(token);
-
+#if DEBUG
 		printf("%s %d\n", address, port);
+#endif
 	}
 
 	if (argv[2])
@@ -323,7 +312,9 @@ int main(int argc, char* argv[])
 		int len = strlen(argv[2]);
 		strncpy(filename, argv[2], len);
 		filename[len] = '\0';
+#if DEBUG
 		printf("%s\n", filename);
+#endif
 	}
 
 	int s;
@@ -344,20 +335,40 @@ int main(int argc, char* argv[])
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = inet_addr(address);
 
-	if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) != 0)
+	int attempt;
+	for (attempt = 0; attempt < 10; attempt++)
 	{
-		s_close(s);
-		return sock_err("connect", s);
+		if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) == 0)
+		{
+			printf("Connected\n");
+			break;
+		}
+
+		printf("Connect attempt %d failed\n", attempt + 1);
+
+		usleep(100000); // 100 ms
 	}
 
-	send_request(s, "p", false);
-	send_request(s, "u", false);
-	send_request(s, "t", false);
-	create_response(s, f);
+	if (attempt == 10)
+	{
+		printf("Unable to connect after 10 attempts\n");
+		s_close(s);
+		return -1;
+	}
 
-	printf("all in out\n");
+	send_request(s, (unsigned char*)"put", 3);
 
-	// recv_response(s);
+	unsigned int count = create_response(s, f);
+	if (count < 0)
+	{
+		printf("Error in client\n");
+	}
+
+	for (unsigned int i = 0; i < count; i++)
+	{
+		recv_ok(s);
+	}
+
 	fclose(f);
 
 	s_close(s);

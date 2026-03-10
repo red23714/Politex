@@ -1,4 +1,4 @@
-CC=gcc
+CC=g++
 BUILD=build
 SRC=src
 FIRST=1
