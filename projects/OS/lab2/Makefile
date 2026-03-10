@@ -21,7 +21,7 @@ simple_server_udp:
 
 tcpclient:
 	$(CC) $(SRC)/$(FIRST)/* -o $(BUILD)/tcpclient
-	./$(BUILD)/tcpclient 192.168.50.7:9000 file1.txt
+	./$(BUILD)/tcpclient 127.0.0.1:9000 file1.txt
 
 clean:
 	rm -r ./build/*

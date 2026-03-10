@@ -61,10 +61,14 @@ void s_close(int s)
 #endif
 }
 
-// Отправялет http-запрос на удаленный сервер
-int send_request(int s, char* request)
+int send_request(int s, char* request, bool is_num)
 {
 	int size = strlen(request);
+	if (is_num)
+	{
+		size = 4;
+	}
+
 	int sent = 0;
 
 #ifdef _WIN32
@@ -86,6 +90,42 @@ int send_request(int s, char* request)
 	}
 
 	return 0;
+}
+
+void pack_data(int num, char* output)
+{
+	char pack_str[9];
+	sprintf(pack_str, "%d", num);
+	unsigned short num_len = strlen(pack_str);
+	if (num_len < 8)
+	{
+		int target_len = 8;
+
+		int zeroes_to_add = target_len - num_len;
+		char tmp[9];
+
+		for (int i = 0; i < zeroes_to_add; i++)
+		{
+			tmp[i] = '0';
+		}
+
+		for (int i = zeroes_to_add; i < target_len; i++)
+		{
+			tmp[i] = pack_str[i - zeroes_to_add];
+		}
+
+		strcpy(pack_str, tmp);
+		num_len = target_len;
+	}
+
+	for (int i = 0; i < num_len; i += 2)
+	{
+		unsigned short num = '0' - pack_str[i];
+		num = num << 4;
+		num += '0' - pack_str[i + 1];
+
+		output[i] = num;
+	}
 }
 
 int recv_response(int s)
@@ -146,9 +186,11 @@ int tok_numbers(char* src, const char* delim, bool is_reverse)
 	return final_date;
 }
 
-void create_response(FILE* f)
+void create_response(int s, FILE* f)
 {
 	int len_step = 256;
+
+	unsigned int message_counter = 0;
 
 	char* response = (char*)calloc(len_step, sizeof(char));
 	if (!response)
@@ -160,6 +202,7 @@ void create_response(FILE* f)
 	int character;
 	bool find_sym = false;
 	int len_str = len_step;
+	int buffer_size = 0;
 	while ((character = fgetc(f)) != EOF)
 	{
 		if (character == '\n' && find_sym)
@@ -172,7 +215,7 @@ void create_response(FILE* f)
 			/* strncpy(msg, response + 29, strlen(response) - 29); */
 
 			size_t resp_len = strlen(response);
-			size_t msg_len = resp_len - 29;
+			unsigned int msg_len = resp_len - 29;
 
 			memcpy(msg, response + 29, msg_len);
 			msg[msg_len] = '\0';
@@ -182,22 +225,42 @@ void create_response(FILE* f)
 			time1 = strtok_r(NULL, " ", &saveptr);
 			time2 = strtok_r(NULL, " ", &saveptr);
 
-#if DEBUG
-			printf("%s | %s | %s | %s\n", date, time1, time2, msg);
-#endif
-
 			unsigned int final_date = tok_numbers(date, ".", true);
 			unsigned int final_time1 = tok_numbers(time1, ":", false);
 			unsigned int final_time2 = tok_numbers(time2, ":", false);
 
 #if DEBUG
-			printf("%d | %d | %d\n", final_date, final_time1, final_time2);
+			printf("%d | %d | %d | %d | %d | %s\n", message_counter, final_date,
+				   final_time1, final_time2, msg_len, msg);
 #endif
+
+			char out[4];
+			pack_data(message_counter, out);
+			send_request(s, out, true);
+
+			pack_data(final_date, out);
+			send_request(s, out, true);
+
+			pack_data(final_time1, out);
+			send_request(s, out, true);
+
+			pack_data(final_time2, out);
+			send_request(s, out, true);
+
+			pack_data(msg_len, out);
+			send_request(s, out, true);
+
+			send_request(s, msg, false);
 
 			find_sym = false;
 
-			memset(response, 0, len_str);
-			len_str = len_step;
+			printf("%s %d %d\n", response, len_str, buffer_size);
+
+			memset(response, 0, buffer_size);
+
+			message_counter++;
+
+			printf("all ok\n");
 
 			// free(date);
 			// printf("d");
@@ -208,7 +271,7 @@ void create_response(FILE* f)
 			// free(token);
 		}
 
-		if (strlen(response) >= len_str - 1)
+		if (buffer_size >= len_str - 1)
 		{
 			len_str += len_step;
 
@@ -231,11 +294,13 @@ void create_response(FILE* f)
 		if (find_sym)
 		{
 			addChar(response, character);
+			buffer_size++;
 		}
 	}
 
 	free(response);
 	response = NULL;
+	printf("gooooood\n");
 }
 
 int main(int argc, char* argv[])
@@ -268,8 +333,6 @@ int main(int argc, char* argv[])
 
 	f = fopen(filename, "r");
 
-	create_response(f);
-
 	init();
 
 	s = socket(AF_INET, SOCK_STREAM, 0);
@@ -287,7 +350,14 @@ int main(int argc, char* argv[])
 		return sock_err("connect", s);
 	}
 
-	recv_response(s);
+	send_request(s, "p", false);
+	send_request(s, "u", false);
+	send_request(s, "t", false);
+	create_response(s, f);
+
+	printf("all in out\n");
+
+	// recv_response(s);
 	fclose(f);
 
 	s_close(s);
