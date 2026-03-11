@@ -20,8 +20,13 @@ simple_server_udp:
 	./$(BUILD)/simple_server_udp
 
 tcpclient:
-	$(CC) $(SRC)/$(FIRST)/* -o $(BUILD)/tcpclient
+	$(CC) $(SRC)/$(FIRST)/tcpclient.cpp -o $(BUILD)/tcpclient
 	./$(BUILD)/tcpclient 127.0.0.1:9000 file1.txt
+
+tcpserver:
+	$(CC) $(SRC)/$(FIRST)/tcpserver.cpp -o $(BUILD)/tcpserver
+	./$(BUILD)/tcpserver 9000
+
 
 clean:
 	rm -r ./build/*

@@ -13,10 +13,10 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <netinet/in.h>
-#include <stdlib.h>
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define DEBUG 0
@@ -151,7 +151,6 @@ int recv_ok(int s)
 
 void addChar(char* s, char c)
 {
-
 	// Move pointer to the end
 	while (*s++)
 		;
