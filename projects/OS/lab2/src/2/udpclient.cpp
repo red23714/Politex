@@ -2,24 +2,29 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
-#include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/select.h>
 #include <netdb.h>
 #include <errno.h>
-
-#include <arpa/inet.h>
 #include <unistd.h>
+
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
-#define DEBUG 0
+#define DEBUG 1
+
+#define MAX_MSG 100000
+
+int on_server[MAX_MSG];
 
 int init()
 {
@@ -61,11 +66,9 @@ void s_close(int s)
 #endif
 }
 
-int send_request(int s, unsigned char* request, int size)
+void send_request(int s, struct sockaddr_in* addr, unsigned char* datagram,
+				  uint32_t datagram_len)
 {
-	// int size = strlen((const char*)request);
-
-	int sent = 0;
 
 #ifdef _WIN32
 	int flags = 0;
@@ -73,21 +76,63 @@ int send_request(int s, unsigned char* request, int size)
 	int flags = MSG_NOSIGNAL;
 #endif
 
-	while (sent < size)
+	int res = sendto(s, datagram, datagram_len, flags, (struct sockaddr*)addr,
+					 sizeof(struct sockaddr_in));
+	if (res <= 0)
+		sock_err("sendto", s);
+}
+
+unsigned int recv_response(int s)
+{
+	char datagram[1024];
+	struct timeval tv = {0, 100 * 1000}; // 100 msec
+	int res;
+
+	fd_set fds;
+	FD_ZERO(&fds);
+	FD_SET(s, &fds);
+
+	res = select(s + 1, &fds, 0, 0, &tv);
+	if (res > 0)
 	{
-		// Отправка очередного блока данных
-		int res = send(s, request + sent, size - sent, flags);
+		struct sockaddr_in addr;
+		int addrlen = sizeof(addr);
 
-		if (res < 0)
-			return sock_err("send", s);
+		int received = recvfrom(s, datagram, sizeof(datagram), 0,
+								(struct sockaddr*)&addr, (socklen_t*)&addrlen);
 
-		sent += res;
+		uint32_t* nums = (uint32_t*)datagram;
+		int count = received / 4;
+
+		for (int i = 0; i < count; i++)
+		{
+			uint32_t num = ntohl(nums[i]);
 #if DEBUG
-		printf("%d bytes sent. \n", sent);
+			printf("%u ", num);
 #endif
-	}
+			if (num < MAX_MSG)
+				on_server[num] = 1;
+		}
 
-	return 0;
+		printf("\n");
+
+		if (received <= 0)
+		{
+			sock_err("recvfrom", s);
+			return 0;
+		}
+
+		return 1;
+	}
+	else if (res == 0)
+	{
+		return 0;
+	}
+	else
+	{
+		sock_err("select", s);
+		return 0;
+	}
 }
 
 void pack_message_data(uint32_t msg_num, uint32_t date, uint32_t time1,
@@ -124,29 +169,6 @@ void pack_message_data(uint32_t msg_num, uint32_t date, uint32_t time1,
 
 	// 6. Текст сообщения (N байт)
 	memcpy(buffer + offset, message, msg_len);
-}
-
-int recv_ok(int s)
-{
-	char buf[2];
-	int received = 0;
-
-	while (received < 2)
-	{
-		int r = recv(s, buf + received, 2 - received, 0);
-		if (r <= 0)
-			return sock_err("recv", s);
-
-		received += r;
-	}
-
-	if (buf[0] != 'o' || buf[1] != 'k')
-	{
-		printf("Protocol error\n");
-		return -1;
-	}
-
-	return 0;
 }
 
 void addChar(char* s, char c)
@@ -188,7 +210,8 @@ int tok_numbers(char* src, const char* delim, bool is_reverse)
 	return final_date;
 }
 
-unsigned int create_response(int s, FILE* f)
+bool test = false;
+unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 {
 	int len_step = 256;
 
@@ -209,6 +232,13 @@ unsigned int create_response(int s, FILE* f)
 	{
 		if (character == '\n' && find_sym)
 		{
+			if (on_server[message_counter])
+			{
+				printf("%d\n", message_counter);
+				message_counter++;
+				continue;
+			}
+
 			char* date;
 			char* time1;
 			char* time2;
@@ -243,8 +273,8 @@ unsigned int create_response(int s, FILE* f)
 
 			pack_message_data(message_counter, final_date, final_time1,
 							  final_time2, msg, output);
-
-			send_request(s, output, packet_size);
+			if (test || message_counter % 3 == 0)
+				send_request(s, addr, output, packet_size);
 
 			find_sym = false;
 
@@ -316,16 +346,19 @@ int main(int argc, char* argv[])
 #endif
 	}
 
-	int s;
-	struct sockaddr_in addr;
+	memset(on_server, 0, sizeof(on_server));
 
 	FILE* f;
 
 	f = fopen(filename, "r");
 
+	int s;
+	struct sockaddr_in addr;
+	int i;
+
 	init();
 
-	s = socket(AF_INET, SOCK_STREAM, 0);
+	s = socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
 		return sock_err("socket", s);
 
@@ -334,38 +367,39 @@ int main(int argc, char* argv[])
 	addr.sin_port = htons(port);
 	addr.sin_addr.s_addr = inet_addr(address);
 
-	int attempt;
-	for (attempt = 0; attempt < 10; attempt++)
+	int count = create_response(s, &addr, f);
+
+	test = true;
+
+	int confirmed = 0;
+
+	while (1)
 	{
-		if (connect(s, (struct sockaddr*)&addr, sizeof(addr)) == 0)
+		fseek(f, 0, SEEK_SET); // читаем файл снова
+
+		create_response(s, &addr, f);
+
+		while (recv_response(s))
 		{
-			printf("Connected\n");
-			break;
 		}
 
-		printf("Connect attempt %d failed\n", attempt + 1);
-
-		usleep(100000); // 100 ms
-	}
-
-	if (attempt == 10)
-	{
-		printf("Unable to connect after 10 attempts\n");
-		s_close(s);
-		return -1;
-	}
-
-	send_request(s, (unsigned char*)"put", 3);
-
-	unsigned int count = create_response(s, f);
-	if (count < 0)
-	{
-		printf("Error in client\n");
-	}
-
-	for (unsigned int i = 0; i < count; i++)
-	{
-		recv_ok(s);
+		confirmed = 0;
+		for (int i = 0; i < count; i++)
+			if (on_server[i])
+				confirmed++;
+#if DEBUG
+		printf("confirmed | count: %d %d\n", confirmed, count);
+#endif
+		if (count < 20)
+		{
+			if (confirmed >= count)
+				break;
+		}
+		else
+		{
+			if (confirmed >= 20)
+				break;
+		}
 	}
 
 	fclose(f);
