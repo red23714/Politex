@@ -134,6 +134,11 @@ int recv_ok(int s)
 	while (received < 2)
 	{
 		int r = recv(s, buf + received, 2 - received, 0);
+		if (r == 0)
+		{
+			// Сервер закрыл соединение — скорее всего stop
+			return 1; // Не ошибка, просто завершение
+		}
 		if (r <= 0)
 			return sock_err("recv", s);
 
@@ -201,13 +206,15 @@ unsigned int create_response(int s, FILE* f)
 		return -1;
 	}
 
-	int character;
+	int character = '\0';
 	bool find_sym = false;
 	int len_str = len_step;
 	int buffer_size = 0;
-	while ((character = fgetc(f)) != EOF)
+	do
 	{
-		if (character == '\n' && find_sym)
+		character = fgetc(f);
+		// printf("%c", character);
+		if ((character == '\n' || character == EOF) && find_sym)
 		{
 			char* date;
 			char* time1;
@@ -250,11 +257,19 @@ unsigned int create_response(int s, FILE* f)
 
 			memset(response, 0, len_str);
 
-			message_counter++;
+			if (strcmp(msg, "stop") != 0)
+			{
+				printf("stop\n");
+				message_counter++;
+			}
+
 			buffer_size = 0;
 
 			free(msg);
 			free(output);
+
+			if (character == EOF)
+				break;
 		}
 
 		if (buffer_size >= len_str - 1)
@@ -282,10 +297,15 @@ unsigned int create_response(int s, FILE* f)
 			addChar(response, character);
 			buffer_size++;
 		}
-	}
+	} while (1);
 
 	free(response);
 	response = NULL;
+
+#if DEBUG
+	printf("\n");
+	printf("end of function\n");
+#endif
 
 	return message_counter;
 }
@@ -352,7 +372,7 @@ int main(int argc, char* argv[])
 	{
 		printf("Unable to connect after 10 attempts\n");
 		s_close(s);
-		return -1;
+		return 0;
 	}
 
 	send_request(s, (unsigned char*)"put", 3);
@@ -362,6 +382,10 @@ int main(int argc, char* argv[])
 	{
 		printf("Error in client\n");
 	}
+
+#if DEBUG
+	printf("messages count: %d\n", count);
+#endif
 
 	for (unsigned int i = 0; i < count; i++)
 	{

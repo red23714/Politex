@@ -210,7 +210,6 @@ int tok_numbers(char* src, const char* delim, bool is_reverse)
 	return final_date;
 }
 
-bool test = false;
 unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 {
 	int len_step = 256;
@@ -228,9 +227,10 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 	bool find_sym = false;
 	int len_str = len_step;
 	int buffer_size = 0;
-	while ((character = fgetc(f)) != EOF)
+	while (1)
 	{
-		if (character == '\n' && find_sym)
+		character = fgetc(f);
+		if ((character == '\n' || character == EOF) && find_sym)
 		{
 			if (on_server[message_counter])
 			{
@@ -273,8 +273,8 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 
 			pack_message_data(message_counter, final_date, final_time1,
 							  final_time2, msg, output);
-			if (test || message_counter % 3 == 0)
-				send_request(s, addr, output, packet_size);
+
+			send_request(s, addr, output, packet_size);
 
 			find_sym = false;
 
@@ -285,6 +285,9 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 
 			free(msg);
 			free(output);
+
+			if (character == EOF)
+				break;
 		}
 
 		if (buffer_size >= len_str - 1)
@@ -368,8 +371,6 @@ int main(int argc, char* argv[])
 	addr.sin_addr.s_addr = inet_addr(address);
 
 	int count = create_response(s, &addr, f);
-
-	test = true;
 
 	int confirmed = 0;
 

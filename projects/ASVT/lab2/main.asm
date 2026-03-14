@@ -13,6 +13,8 @@
 .equ MODE2 = 5
 .equ STATE_BIT = 6
 .equ ENTER_BUTTON = 7
+.equ EEPROM_ADR_FREQ = 0x10
+.equ EEPROM_ADR_MODE = 0x11
 
 .def NULL = R16
 .def TMP = R17
@@ -25,6 +27,8 @@
 .def FREQ_VAL = R21
 .def MODE_VAL = R22
 .def TMP_CYCLE = R23
+.def EEPROM_VALUE = R24
+.def EEPROM_ADR = R25
 
 reset: 
     ; Настройка стека
@@ -40,8 +44,37 @@ reset:
     LDI PLUS_Y, 0x55
     CLR NUM_D
     CLR STATE
-    CLR FREQ_VAL
-    CLR MODE_VAL
+   
+    LDI EEPROM_ADR, EEPROM_ADR_FREQ
+    CALL EEPROM_read
+    MOV FREQ_VAL, EEPROM_VALUE
+
+    LDI EEPROM_ADR, EEPROM_ADR_MODE
+    CALL EEPROM_read
+    MOV MODE_VAL, EEPROM_VALUE
+
+    ; восстановление частоты
+    SBRS FREQ_VAL,0
+    CBR NUM_D,(1<<FREQ1)
+    SBRC FREQ_VAL,0
+    SBR NUM_D,(1<<FREQ1)
+
+    SBRS FREQ_VAL,1
+    CBR NUM_D,(1<<FREQ2)
+    SBRC FREQ_VAL,1
+    SBR NUM_D,(1<<FREQ2)
+
+    ; восстановление режима
+    SBRS MODE_VAL,0
+    CBR NUM_D,(1<<MODE1)
+    SBRC MODE_VAL,0
+    SBR NUM_D,(1<<MODE1)
+
+    SBRS MODE_VAL,1
+    CBR NUM_D,(1<<MODE2)
+    SBRC MODE_VAL,1
+    SBR NUM_D,(1<<MODE2)
+
     ; настройка портов ввода-вывода
     SER TMP
     OUT DDRA, TMP ; Вывод
@@ -59,10 +92,12 @@ reset:
     OUT GIFR, TMP
     SEI
 
+    CALL update_output
+
 main_loop:
     IN TMP, PIND
     SBIS TMP, ENTER_BUTTON
-    CALL read_y
+    RJMP input_mode
 
     CALL update_leds
     CALL delay_freq
@@ -72,6 +107,16 @@ main_loop:
     EOR NUM_D, TMP 
 
     CALL update_output
+
+    RJMP main_loop
+
+input_mode:
+    CALL read_y
+
+wait_release:
+    IN TMP, PIND
+    SBRS TMP, ENTER_BUTTON
+    RJMP wait_release
 
     RJMP main_loop
 
@@ -111,7 +156,10 @@ out_leds:
 
     RET
 
-ext_int0:
+ext_int1:
+    PUSH TMP
+    PUSH TMP_CYCLE
+
     MOV TMP_CYCLE, FREQ_VAL
     CALL inc_val
     MOV FREQ_VAL, TMP_CYCLE
@@ -126,10 +174,20 @@ ext_int0:
     SBRC FREQ_VAL, 1
     SBR NUM_D, FREQ2
 
+    LDI EEPROM_ADR, EEPROM_ADR_FREQ
+    MOV EEPROM_VALUE, FREQ_VAL
+    CALL EEPROM_write
+
+    POP TMP_CYCLE
+    POP TMP
+
     RETI
 
 
-ext_int1:
+ext_int0:
+    PUSH TMP
+    PUSH TMP_CYCLE
+
     MOV TMP_CYCLE, MODE_VAL
     CALL inc_val
     MOV MODE_VAL, TMP_CYCLE
@@ -144,7 +202,36 @@ ext_int1:
     SBRC MODE_VAL, 1
     SBR NUM_D, MODE2
 
+    LDI EEPROM_ADR, EEPROM_ADR_MODE
+    MOV EEPROM_VALUE, MODE_VAL
+    CALL EEPROM_write
+
+    POP TMP_CYCLE
+    POP TMP
+
     RETI
+
+EEPROM_write:
+    SBIC EECR, EEWE
+    RJMP EEPROM_write
+
+    OUT EEAR, EEPROM_ADR
+    OUT EEDR, EEPROM_VALUE
+
+    SBI EECR, EEMWE ; Master Wirte Enable
+    SBI EECR, EEWE ; Запуск записи
+
+    RET
+
+EEPROM_read:
+    SBIC EECR, EEWE ; проверка на занятость, EECR управляющий регистр EEPROM, EEWE бит проверка на свободность 
+    RJMP EEPROM_read
+
+    OUT EEAR, EEPROM_ADR ; устанавливаем значение регистра для чтения адресом которым хотим прочитать значение
+    SBI EECR, EERE ; Бит EERE говорит что нужно прочитать по нужному адресу, после чего контроллер автоматически записывает в EEDR
+    IN EEPROM_VALUE, EEDR
+
+    RET
 
 inc_val:
     INC TMP_CYCLE        ; увеличить на 1
@@ -157,6 +244,8 @@ ok_inc:
 
 update_output:
     OUT PORTD, NUM_D
+
+    RET
 
 calc_neg_y:    
     ; Для прямого кода: инвертируем старший бит (бит знака)
@@ -183,19 +272,19 @@ delay_freq:
     RJMP delay_05
     RJMP delay_15 
 delay_1:
-    LDI R29, 1
-    LDI R30, 1
-    LDI R31, 1
+    LDI R29, 28
+    LDI R30, 186
+    LDI R31, 250
     RJMP delay_freq_loop
 delay_05:
-    LDI R29, 05
-    LDI R30, 05
-    LDI R31, 05
+    LDI R29, 43
+    LDI R30, 245
+    LDI R31, 250
     RJMP delay_freq_loop
 delay_15:
-    LDI R29, 15
-    LDI R30, 15
-    LDI R31, 15
+    LDI R29, 29
+    LDI R30, 150
+    LDI R31, 200
     RJMP delay_freq_loop
 delay: ; задержка 120 мс
     LDI R31, 5

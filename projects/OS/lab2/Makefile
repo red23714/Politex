@@ -1,8 +1,10 @@
-CC=g++
+CC=gcc
 BUILD=build
 SRC=src
 FIRST=1
 SECOND=2
+
+all: tcpclient tcpserver udpclient udpserver
 
 simple_tcp:
 	$(CC) $(SRC)/simple_tcp.c -o $(BUILD)/simple_tcp
@@ -22,16 +24,15 @@ simple_server_udp:
 
 tcpclient:
 	$(CC) $(SRC)/$(FIRST)/tcpclient.cpp -o $(BUILD)/tcpclient
-	./$(BUILD)/tcpclient 127.0.0.1:9000 file1.txt
 
 tcpserver:
 	$(CC) $(SRC)/$(FIRST)/tcpserver.cpp -o $(BUILD)/tcpserver
-	./$(BUILD)/tcpserver 9000
 
 udpclient:
 	$(CC) $(SRC)/$(SECOND)/udpclient.cpp -o $(BUILD)/udpclient
-	./$(BUILD)/udpclient 127.0.0.1:9000 file1.txt
 
+udpserver:
+	$(CC) $(SRC)/$(SECOND)/udpserver.cpp -o $(BUILD)/udpserver
 
 clean:
 	rm -r ./build/*

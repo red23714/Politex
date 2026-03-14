@@ -10,7 +10,6 @@
 #include <arpa/inet.h>
 #include <sys/poll.h>
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
 #endif
 
