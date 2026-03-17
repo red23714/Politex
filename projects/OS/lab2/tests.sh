@@ -3,7 +3,7 @@
 set -e
 
 ROOT=$(pwd)
-TESTS_DIR="$ROOT/tests"
+TESTS_DIR="$ROOT/ibks"
 LOGS_DIR="$ROOT/logs"
 
 mkdir -p "$LOGS_DIR"
@@ -16,7 +16,7 @@ for folder in "$TESTS_DIR"/folder_*; do
         # Создаём папку для логов конкретной папки
         folder_logs="$LOGS_DIR/$(basename $folder)"
         mkdir -p "$folder_logs"
-
+        
         # Запуск run.rb
         echo "  ruby run.rb ..."
         ruby run.rb

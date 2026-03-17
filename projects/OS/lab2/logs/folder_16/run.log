@@ -1,0 +1,47 @@
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpserver 9950 9957
+Starting clients...
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli1.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli2.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli3.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli4.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli5.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli6.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli7.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli8.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli9.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli10.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli11.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli12.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli13.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli14.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli15.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli16.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli17.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli18.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli19.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli20.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli21.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli22.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli23.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli24.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli25.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli26.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli27.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli28.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli29.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli30.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli31.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli32.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli33.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli34.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli35.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli36.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli37.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli38.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli39.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli40.txt
+Waiting clients...
+Stopping...
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_16/udpclientemul.rb 127.0.0.1:9950 cli41.txt
+Server waiting...
+Server exit code: 0

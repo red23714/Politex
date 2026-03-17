@@ -1,0 +1,10 @@
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/tcpserveremul.rb 9011
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/tcpclient 127.0.0.1:9011 cli1.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/tcpclient 10.0.170.90:9011 cli2.txt
+Clients 1,2 waiting...
+Exception: Interrupt
+/home/red/Documents/Politex/.share/gem/ruby/3.4.0/gems/childprocess-5.1.0/lib/childprocess/process_spawn_process.rb:32:in 'Process.waitpid2'
+/home/red/Documents/Politex/.share/gem/ruby/3.4.0/gems/childprocess-5.1.0/lib/childprocess/process_spawn_process.rb:32:in 'ChildProcess::ProcessSpawnProcess#wait'
+run.rb:13:in 'block in <main>'
+/home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/base.rb:57:in 'Object#testing'
+run.rb:5:in '<main>'

@@ -285,9 +285,6 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 
 			free(msg);
 			free(output);
-
-			if (character == EOF)
-				break;
 		}
 
 		if (buffer_size >= len_str - 1)
