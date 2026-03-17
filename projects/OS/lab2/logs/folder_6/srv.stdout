@@ -1,8 +1,4 @@
-/home/red/Documents/Politex/projects/OS/lab2/ibks/folder_6/tcpserveremul.rb:222:in 'TCPServer#accept': Interrupt
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_6/tcpserveremul.rb:222:in 'block in Object#server'
-	from <internal:kernel>:168:in 'Kernel#loop'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_6/tcpserveremul.rb:221:in 'Object#server'
+/home/red/Documents/Politex/projects/OS/lab2/ibks/folder_6/tcpserveremul.rb:219:in 'TCPServer#initialize': Address already in use - bind(2) for "0.0.0.0" port 9006 (Errno::EADDRINUSE)
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_6/tcpserveremul.rb:219:in 'IO.new'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_6/tcpserveremul.rb:219:in 'Object#server'
 	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_6/tcpserveremul.rb:239:in '<main>'
-Listening TCP port: 9006
-  Peer connected  : 127.0.0.1:40898
-  Peer disconnected: 127.0.0.1:40898

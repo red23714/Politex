@@ -66,13 +66,11 @@ int same_client(struct sockaddr_in* a, struct sockaddr_in* b)
 
 client_t* get_client(client_t* clients, struct sockaddr_in* addr)
 {
-	int i;
-
-	for (i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_CLIENTS; i++)
 		if (clients[i].active && same_client(&clients[i].addr, addr))
 			return &clients[i];
 
-	for (i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_CLIENTS; i++)
 		if (!clients[i].active)
 		{
 			clients[i].active = 1;
@@ -215,7 +213,11 @@ int main(int argc, char* argv[])
 
 				if (20 + mlen <= n)
 				{
-					char msg[4096];
+					// 🔥 ДИНАМИЧЕСКИЙ буфер
+					char* msg = (char*)malloc(mlen + 1);
+					if (!msg)
+						continue;
+
 					memcpy(msg, buf + 20, mlen);
 					msg[mlen] = 0;
 
@@ -225,6 +227,8 @@ int main(int argc, char* argv[])
 
 					if (strcmp(msg, "stop") == 0)
 						stop = 1;
+
+					free(msg);
 				}
 			}
 

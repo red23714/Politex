@@ -1,6 +1,6 @@
 Listening TCP port: 9010
-  Peer connected  : 127.0.0.1:36870
-  Peer disconnected: 127.0.0.1:36870
-  Peer connected  : 127.0.0.1:36882
+  Peer connected  : 127.0.0.1:35286
+  Peer disconnected: 127.0.0.1:35286
+  Peer connected  : 127.0.0.1:35294
 'stop' message arrived. Terminating...
-  Peer disconnected: 127.0.0.1:36882
+  Peer disconnected: 127.0.0.1:35294

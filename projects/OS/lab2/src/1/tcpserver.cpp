@@ -30,9 +30,10 @@ typedef struct
 {
 	socket_t sock;
 	int active;
-	int ready; // получил ли put
-	unsigned char buf[BUFFER_SIZE];
+	int ready;
+	unsigned char* buf; // динамический буфер
 	int len;
+	int capacity;
 	struct sockaddr_in addr;
 } client_t;
 
@@ -182,6 +183,9 @@ int main(int argc, char* argv[])
 						clients[i].sock = cs;
 						clients[i].ready = 0;
 						clients[i].len = 0;
+						clients[i].capacity = BUFFER_SIZE;
+						clients[i].buf =
+							(unsigned char*)malloc(clients[i].capacity);
 						clients[i].addr = caddr;
 
 						pfd[i].fd = cs;
@@ -202,6 +206,7 @@ int main(int argc, char* argv[])
 
 			if (pfd[i].revents & (POLLERR | POLLHUP))
 			{
+				free(clients[i].buf);
 				close_socket(clients[i].sock);
 				clients[i].active = 0;
 				pfd[i].fd = -1;
@@ -211,12 +216,21 @@ int main(int argc, char* argv[])
 			if (pfd[i].revents & POLLIN)
 			{
 
+				// расширяем буфер если заполнен
+				if (clients[i].len == clients[i].capacity)
+				{
+					clients[i].capacity *= 2;
+					clients[i].buf = (unsigned char*)realloc(
+						clients[i].buf, clients[i].capacity);
+				}
+
 				int r = recv(clients[i].sock,
 							 (char*)clients[i].buf + clients[i].len,
-							 BUFFER_SIZE - clients[i].len, 0);
+							 clients[i].capacity - clients[i].len, 0);
 
 				if (r <= 0)
 				{
+					free(clients[i].buf);
 					close_socket(clients[i].sock);
 					clients[i].active = 0;
 					pfd[i].fd = -1;
@@ -231,6 +245,7 @@ int main(int argc, char* argv[])
 					{
 						if (memcmp(clients[i].buf, "put", 3) != 0)
 						{
+							free(clients[i].buf);
 							close_socket(clients[i].sock);
 							clients[i].active = 0;
 							pfd[i].fd = -1;
@@ -244,8 +259,6 @@ int main(int argc, char* argv[])
 					}
 				}
 
-				/* обработка сообщений */
-
 				while (clients[i].ready && clients[i].len >= 20)
 				{
 
@@ -257,10 +270,20 @@ int main(int argc, char* argv[])
 					uint32_t t2 = read_u32(p + 12);
 					uint32_t mlen = read_u32(p + 16);
 
+					// гарантируем что буфер влезет
+					if (clients[i].capacity < 20 + mlen)
+					{
+						while (clients[i].capacity < 20 + mlen)
+							clients[i].capacity *= 2;
+
+						clients[i].buf = (unsigned char*)realloc(
+							clients[i].buf, clients[i].capacity);
+					}
+
 					if (clients[i].len < 20 + mlen)
 						break;
 
-					char msg[4096];
+					char* msg = (char*)malloc(mlen + 1);
 					memcpy(msg, p + 20, mlen);
 					msg[mlen] = 0;
 
@@ -270,6 +293,8 @@ int main(int argc, char* argv[])
 
 					if (strcmp(msg, "stop") == 0)
 						stop = 1;
+
+					free(msg);
 
 					memmove(clients[i].buf, clients[i].buf + 20 + mlen,
 							clients[i].len - (20 + mlen));
@@ -282,7 +307,10 @@ int main(int argc, char* argv[])
 
 	for (i = 0; i < MAX_CLIENTS; i++)
 		if (clients[i].active)
+		{
+			free(clients[i].buf);
 			close_socket(clients[i].sock);
+		}
 
 	close_socket(ls);
 
