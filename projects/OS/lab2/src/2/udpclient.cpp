@@ -2,7 +2,18 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
+
+typedef int socklen_t;
+
+// правильный аналог strtok_r для Windows
+#define strtok_r(str, delim, saveptr) strtok_s((str), (delim), (saveptr))
+
+#define bool int
+#define true 1
+#define false 0
+
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -11,17 +22,17 @@
 #include <netdb.h>
 #include <errno.h>
 #include <unistd.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdbool.h>
 #endif
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define DEBUG 1
-
 #define MAX_MSG 100000
 
 int on_server[MAX_MSG];
@@ -40,8 +51,6 @@ void deinit()
 {
 #ifdef _WIN32
 	WSACleanup();
-#else
-
 #endif
 }
 
@@ -69,15 +78,15 @@ void s_close(int s)
 void send_request(int s, struct sockaddr_in* addr, unsigned char* datagram,
 				  uint32_t datagram_len)
 {
-
 #ifdef _WIN32
 	int flags = 0;
 #else
 	int flags = MSG_NOSIGNAL;
 #endif
 
-	int res = sendto(s, datagram, datagram_len, flags, (struct sockaddr*)addr,
-					 sizeof(struct sockaddr_in));
+	int res = sendto(s, (const char*)datagram, datagram_len, flags,
+					 (struct sockaddr*)addr, sizeof(struct sockaddr_in));
+
 	if (res <= 0)
 		sock_err("sendto", s);
 }
@@ -85,21 +94,21 @@ void send_request(int s, struct sockaddr_in* addr, unsigned char* datagram,
 unsigned int recv_response(int s)
 {
 	char datagram[1024];
-	struct timeval tv = {0, 100 * 1000}; // 100 msec
-	int res;
+	struct timeval tv = {0, 100 * 1000};
 
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(s, &fds);
 
-	res = select(s + 1, &fds, 0, 0, &tv);
+	int res = select(s + 1, &fds, 0, 0, &tv);
+
 	if (res > 0)
 	{
 		struct sockaddr_in addr;
-		int addrlen = sizeof(addr);
+		socklen_t addrlen = sizeof(addr);
 
 		int received = recvfrom(s, datagram, sizeof(datagram), 0,
-								(struct sockaddr*)&addr, (socklen_t*)&addrlen);
+								(struct sockaddr*)&addr, &addrlen);
 
 		uint32_t* nums = (uint32_t*)datagram;
 		int count = received / 4;
@@ -141,46 +150,36 @@ void pack_message_data(uint32_t msg_num, uint32_t date, uint32_t time1,
 	int offset = 0;
 	uint32_t net_value;
 
-	// 1. Номер сообщения (4 байта)
 	net_value = htonl(msg_num);
 	memcpy(buffer + offset, &net_value, 4);
 	offset += 4;
 
-	// 2. Дата (4 байта)
 	net_value = htonl(date);
 	memcpy(buffer + offset, &net_value, 4);
 	offset += 4;
 
-	// 3. Первое время (4 байта)
 	net_value = htonl(time1);
 	memcpy(buffer + offset, &net_value, 4);
 	offset += 4;
 
-	// 4. Второе время (4 байта)
 	net_value = htonl(time2);
 	memcpy(buffer + offset, &net_value, 4);
 	offset += 4;
 
-	// 5. Длина сообщения (4 байта)
 	uint32_t msg_len = strlen(message);
 	net_value = htonl(msg_len);
 	memcpy(buffer + offset, &net_value, 4);
 	offset += 4;
 
-	// 6. Текст сообщения (N байт)
 	memcpy(buffer + offset, message, msg_len);
 }
 
 void addChar(char* s, char c)
 {
-	// Move pointer to the end
 	while (*s++)
 		;
 
-	// Append the new character
 	*(s - 1) = c;
-
-	// Add null terminator to mark new end
 	*s = '\0';
 }
 
@@ -213,28 +212,25 @@ int tok_numbers(char* src, const char* delim, bool is_reverse)
 unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 {
 	int len_step = 256;
-
 	unsigned int message_counter = 0;
 
 	char* response = (char*)calloc(len_step, sizeof(char));
 	if (!response)
-	{
-		printf("Memory allocation failed\n");
 		return -1;
-	}
 
 	int character;
 	bool find_sym = false;
 	int len_str = len_step;
 	int buffer_size = 0;
+
 	while (1)
 	{
 		character = fgetc(f);
+
 		if ((character == '\n' || character == EOF) && find_sym)
 		{
 			if (on_server[message_counter])
 			{
-				printf("%d\n", message_counter);
 				message_counter++;
 				continue;
 			}
@@ -242,8 +238,6 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 			char* date;
 			char* time1;
 			char* time2;
-
-			/* strncpy(msg, response + 29, strlen(response) - 29); */
 
 			size_t resp_len = strlen(response);
 			unsigned int msg_len = resp_len - 29;
@@ -268,7 +262,6 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 #endif
 
 			uint32_t packet_size = 20 + msg_len;
-
 			unsigned char* output = (unsigned char*)malloc(packet_size);
 
 			pack_message_data(message_counter, final_date, final_time1,
@@ -277,7 +270,6 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 			send_request(s, addr, output, packet_size);
 
 			find_sym = false;
-
 			memset(response, 0, len_str);
 
 			message_counter++;
@@ -285,27 +277,25 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 
 			free(msg);
 			free(output);
+
+			if (character == EOF)
+				break;
 		}
 
 		if (buffer_size >= len_str - 1)
 		{
 			len_str += len_step;
-
-			char* tmp_str = (char*)realloc(response, len_str * sizeof(char));
-			if (tmp_str == NULL)
+			char* tmp = (char*)realloc(response, len_str);
+			if (!tmp)
 			{
-				printf("Memory reallocation failed\n");
 				free(response);
 				return -1;
 			}
-
-			response = tmp_str;
+			response = tmp;
 		}
 
 		if (!find_sym && character >= '0' && character <= '9')
-		{
 			find_sym = true;
-		}
 
 		if (find_sym)
 		{
@@ -315,8 +305,6 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 	}
 
 	free(response);
-	response = NULL;
-
 	return message_counter;
 }
 
@@ -325,15 +313,13 @@ int main(int argc, char* argv[])
 	const char* address;
 	char filename[255];
 	int port;
+
 	if (argv[1])
 	{
 		char* token = strtok(argv[1], ":");
 		address = token;
 		token = strtok(NULL, ":");
 		port = atoi(token);
-#if DEBUG
-		printf("%s %d\n", address, port);
-#endif
 	}
 
 	if (argv[2])
@@ -341,20 +327,14 @@ int main(int argc, char* argv[])
 		int len = strlen(argv[2]);
 		strncpy(filename, argv[2], len);
 		filename[len] = '\0';
-#if DEBUG
-		printf("%s\n", filename);
-#endif
 	}
 
 	memset(on_server, 0, sizeof(on_server));
 
-	FILE* f;
-
-	f = fopen(filename, "r");
+	FILE* f = fopen(filename, "r");
 
 	int s;
 	struct sockaddr_in addr;
-	int i;
 
 	init();
 
@@ -373,7 +353,7 @@ int main(int argc, char* argv[])
 
 	while (1)
 	{
-		fseek(f, 0, SEEK_SET); // читаем файл снова
+		fseek(f, 0, SEEK_SET);
 
 		create_response(s, &addr, f);
 
@@ -385,9 +365,7 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < count; i++)
 			if (on_server[i])
 				confirmed++;
-#if DEBUG
-		printf("confirmed | count: %d %d\n", confirmed, count);
-#endif
+
 		if (count < 20)
 		{
 			if (confirmed >= count)
@@ -401,9 +379,7 @@ int main(int argc, char* argv[])
 	}
 
 	fclose(f);
-
 	s_close(s);
-
 	deinit();
 
 	return 0;

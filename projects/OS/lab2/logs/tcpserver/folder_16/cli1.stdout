@@ -1,0 +1,9 @@
+/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb:125:in 'block in Object#upload_msg': Disconnected: cndrop=105. (RuntimeError)
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb:120:in 'Integer#upto'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb:120:in 'Object#upload_msg'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb:199:in 'block in Object#client'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb:193:in 'IO.open'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb:193:in 'Object#client'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb:212:in '<main>'
+Connecting to: 127.0.0.1:9116
+Connected.

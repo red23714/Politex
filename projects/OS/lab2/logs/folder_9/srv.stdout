@@ -1,8 +1,4 @@
-/home/red/Documents/Politex/projects/OS/lab2/ibks/folder_9/tcpserveremul.rb:222:in 'TCPServer#accept': Interrupt
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_9/tcpserveremul.rb:222:in 'block in Object#server'
-	from <internal:kernel>:168:in 'Kernel#loop'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_9/tcpserveremul.rb:221:in 'Object#server'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_9/tcpserveremul.rb:239:in '<main>'
 Listening TCP port: 9009
-  Peer connected  : 127.0.0.1:35110
-  Peer disconnected: 127.0.0.1:35110
+  Peer connected  : 127.0.0.1:45118
+'stop' message arrived. Terminating...
+  Peer disconnected: 127.0.0.1:45118

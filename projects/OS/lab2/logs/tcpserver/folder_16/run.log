@@ -1,0 +1,9 @@
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpserver 9116
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb 127.0.0.1:9116 cli1.txt --cndrop=105
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb 127.0.0.1:9116 cli2.txt --cndrop=110
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb 127.0.0.1:9116 cli3.txt --cndrop=115
+Clients waiting...
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_16/tcpclientemul.rb 127.0.0.1:9116 cli4.txt
+Client waiting...
+Server waiting...
+Server exit code: 0

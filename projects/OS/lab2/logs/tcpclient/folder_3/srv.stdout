@@ -1,0 +1,4 @@
+Listening TCP port: 9003
+  Peer connected  : 127.0.0.1:38230
+'stop' message arrived. Terminating...
+  Peer disconnected: 127.0.0.1:38230

@@ -1,106 +1,89 @@
 #!/bin/bash
 
+# =========================================
 # Конфигурация
-SOURCE_DIR="./build"  # Директория с исходными файлами (корневая папка)
-TARGET_DIR="./ibks"  # Директория, где искать папки folder_*
-TARGET_PATTERN="folder_*"  # Шаблон для поиска папок
-FILES=("tcpclient" "tcpserver" "udpclient" "udpserver")  # Файлы для копирования
+# =========================================
+SOURCE_DIR="./build"   # Папка с бинарниками (4 файла)
+TARGET_DIR="./ibks"    # Папка с глобальными поддиректориями (tcpclient, udpclient, ...)
+BINS=("tcpclient" "tcpserver" "udpclient" "udpserver")  # Бинарники
 
-# Цвета для вывода
+# Цвета
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Функция вывода с цветом
 print_status() {
     local color=$1
     local message=$2
     echo -e "${color}${message}${NC}"
 }
 
-# Функция логирования
 log_action() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> copy_log.txt
 }
 
-# Проверка существования папки tests
-if [ ! -d "$TARGET_DIR" ]; then
-    print_status "$RED" "Ошибка: Папка '$TARGET_DIR' не найдена!"
-    exit 1
-fi
+# =========================================
+# Удаление всех бинарников из ibks рекурсивно
+# =========================================
+print_status "$YELLOW" "Удаляем старые бинарники из $TARGET_DIR..."
+for bin in "${BINS[@]}"; do
+    find "$TARGET_DIR" -type f -name "$bin" -exec rm -f {} \;
+done
+print_status "$GREEN" "Старые бинарники удалены"
 
-# Проверка исходных файлов
-print_status "$YELLOW" "Проверка исходных файлов..."
+# =========================================
+# Проверка бинарников
+# =========================================
+print_status "$YELLOW" "Проверка бинарников в $SOURCE_DIR..."
 missing_files=0
-for file in "${FILES[@]}"; do
-    if [ -f "$SOURCE_DIR/$file" ]; then
-        print_status "$GREEN" "  ✓ Найден: $file"
-    else
-        print_status "$RED" "  ✗ Отсутствует: $file"
+for bin in "${BINS[@]}"; do
+    if [ ! -f "$SOURCE_DIR/$bin" ]; then
+        print_status "$RED" "  ✗ Отсутствует: $bin"
         ((missing_files++))
+    else
+        print_status "$GREEN" "  ✓ Найден: $bin"
     fi
 done
 
 if [ $missing_files -gt 0 ]; then
-    print_status "$RED" "Ошибка: Отсутствует $missing_files файл(ов)"
+    print_status "$RED" "Ошибка: отсутствует $missing_files бинарник(ов)!"
     exit 1
 fi
 
-# Поиск целевых папок в ./tests/
-print_status "$YELLOW" "\nПоиск папок по шаблону '$TARGET_DIR/$TARGET_PATTERN'..."
-mapfile -t folders < <(find "$TARGET_DIR" -maxdepth 1 -type d -name "$TARGET_PATTERN" 2>/dev/null | sort)
+# =========================================
+# Копирование бинарников
+# =========================================
+print_status "$YELLOW" "\nКопирование бинарников по категориям..."
 
-if [ ${#folders[@]} -eq 0 ]; then
-    print_status "$RED" "Папки не найдены в директории $TARGET_DIR!"
-    print_status "$YELLOW" "Содержимое папки tests:"
-    ls -la "$TARGET_DIR"
-    exit 0
-fi
+# Находим глобальные папки (tcpclient, udpclient, tcpserver, udpserver)
+for global_folder in "$TARGET_DIR"/*; do
+    if [ -d "$global_folder" ]; then
+        global_name=$(basename "$global_folder")
 
-print_status "$GREEN" "Найдено папок: ${#folders[@]}"
-for folder in "${folders[@]}"; do
-    echo "  - $(basename "$folder")"
-done
-
-# Запрос подтверждения
-echo
-read -p "Продолжить копирование? (y/n): " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    print_status "$YELLOW" "Операция отменена"
-    exit 0
-fi
-
-# Копирование файлов
-print_status "$YELLOW" "\nКопирование файлов..."
-total_success=0
-total_failed=0
-
-for folder in "${folders[@]}"; do
-    print_status "$YELLOW" "\n📁 $(basename "$folder")"
-    
-    for file in "${FILES[@]}"; do
-        if cp "$SOURCE_DIR/$file" "$folder/" 2>/dev/null; then
-            print_status "$GREEN" "  ✓ $file"
-            log_action "COPIED: $file -> $(basename "$folder")/"
-            ((total_success++))
-        else
-            print_status "$RED" "  ✗ $file (ошибка копирования)"
-            log_action "FAILED: $file -> $(basename "$folder")/ - Ошибка копирования"
-            ((total_failed++))
+        # Проверяем, есть ли бинарник с таким же именем
+        if [[ ! " ${BINS[@]} " =~ " ${global_name} " ]]; then
+            print_status "$YELLOW" "Пропускаем папку $global_name — нет соответствующего бинарника"
+            continue
         fi
-    done
+
+        bin_to_copy="$SOURCE_DIR/$global_name"
+        print_status "$YELLOW" "📁 Копируем в $global_name/*"
+
+        # Копируем бинарник во все folder_*
+        mapfile -t folders < <(find "$global_folder" -type d -name "folder_*" | sort)
+
+        for folder in "${folders[@]}"; do
+            if cp "$bin_to_copy" "$folder/"; then
+                print_status "$GREEN" "  ✓ $global_name -> $(basename "$folder")"
+                log_action "COPIED: $global_name -> $(basename "$folder")/"
+            else
+                print_status "$RED" "  ✗ $global_name -> $(basename "$folder") (ошибка)"
+                log_action "FAILED: $global_name -> $(basename "$folder")/"
+            fi
+        done
+    fi
 done
 
-# Итоговый отчет
 print_status "$GREEN" "\n✅ Копирование завершено!"
-echo "Успешно скопировано: $total_success"
-echo "Ошибок: $total_failed"
-echo "Лог сохранен в: copy_log.txt"
-
-if [ $total_failed -eq 0 ]; then
-    print_status "$GREEN" "Все файлы успешно скопированы во все папки!"
-else
-    print_status "$RED" "Некоторые файлы не скопировались. Проверьте лог."
-fi
+echo "Лог сохранен в copy_log.txt"

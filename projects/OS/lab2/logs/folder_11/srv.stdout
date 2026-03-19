@@ -4,9 +4,9 @@
 	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/tcpserveremul.rb:221:in 'Object#server'
 	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/tcpserveremul.rb:239:in '<main>'
 Listening TCP port: 9011
-  Peer connected  : 127.0.0.1:32816
-  Peer Exception   : 127.0.0.1:32816: 'undefined method 'size' for nil'
+  Peer connected  : 127.0.0.1:41394
+  Peer Exception   : 127.0.0.1:41394: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_11/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:32816
+  Peer disconnected: 127.0.0.1:41394

@@ -253,6 +253,8 @@ unsigned int create_response(int s, FILE* f)
 
 			send_request(s, output, packet_size);
 
+			recv_ok(s);
+
 			find_sym = false;
 
 			memset(response, 0, len_str);
@@ -387,10 +389,10 @@ int main(int argc, char* argv[])
 	printf("messages count: %d\n", count);
 #endif
 
-	for (unsigned int i = 0; i < count; i++)
-	{
-		recv_ok(s);
-	}
+	// for (unsigned int i = 0; i < count; i++)
+	// {
+	// 	recv_ok(s);
+	// }
 
 	fclose(f);
 

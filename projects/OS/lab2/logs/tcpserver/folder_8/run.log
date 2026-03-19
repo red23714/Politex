@@ -1,0 +1,36 @@
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpserver 9108
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli1.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli2.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli3.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli4.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli5.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli6.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli7.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli8.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli9.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli10.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli11.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli12.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli13.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli14.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli15.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli16.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli17.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli18.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli19.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli20.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli21.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli22.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli23.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli24.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli25.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli26.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli27.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli28.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli29.txt
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli30.txt
+Clients waiting...
+Stopping server...
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_8/tcpclientemul.rb 127.0.0.1:9108 cli31.txt
+Server waiting...
+Server exit code: 0

@@ -5,30 +5,42 @@ set -e
 ROOT=$(pwd)
 TESTS_DIR="$ROOT/ibks"
 LOGS_DIR="$ROOT/logs"
+TIMEOUT_SEC=60  # ограничение времени выполнения run.rb
 
 mkdir -p "$LOGS_DIR"
 
-for folder in "$TESTS_DIR"/folder_*; do
-    if [ -d "$folder" ]; then
-        echo "=== Запуск тестов в $(basename $folder) ==="
-        cd "$folder"
+# перебираем подпапки tcpclient, tcpserver, udpclient, udpserver и т.д.
+for group_folder in "$TESTS_DIR"/*; do
+    if [ -d "$group_folder" ]; then
+        group_name=$(basename "$group_folder")
+        echo "=== Обработка группы $group_name ==="
 
-        # Создаём папку для логов конкретной папки
-        folder_logs="$LOGS_DIR/$(basename $folder)"
-        mkdir -p "$folder_logs"
-        
-        # Запуск run.rb
-        echo "  ruby run.rb ..."
-        ruby run.rb
+        for folder in "$group_folder"/folder_*; do
+            if [ -d "$folder" ]; then
+                folder_name=$(basename "$folder")
+                echo "=== Запуск тестов в $folder_name ($group_name) ==="
+                cd "$folder"
 
-        # Перемещаем stdout и логи
-        mv *.stdout "$folder_logs/" 2>/dev/null || true
-        mv run.log "$folder_logs/" 2>/dev/null || true
-        mv msg.txt "$folder_logs/" 2>/dev/null || true
+                # создаём папку для логов конкретной папки
+                folder_logs="$LOGS_DIR/$group_name/$folder_name"
+                mkdir -p "$folder_logs"
 
-        echo "  Логи сохранены в $folder_logs"
+                # Запуск run.rb с таймаутом
+                echo "  ruby run.rb ..."
+                if ! timeout "$TIMEOUT_SEC"s ruby run.rb; then
+                    echo "  Внимание: run.rb превысил $TIMEOUT_SEC секунд, прерываем."
+                fi
 
-        cd "$ROOT"
+                # Перемещаем stdout и логи
+                mv *.stdout "$folder_logs/" 2>/dev/null || true
+                mv run.log "$folder_logs/" 2>/dev/null || true
+                mv msg.txt "$folder_logs/" 2>/dev/null || true
+
+                echo "  Логи сохранены в $folder_logs"
+
+                cd "$ROOT"
+            fi
+        done
     fi
 done
 

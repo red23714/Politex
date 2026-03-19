@@ -1,0 +1,7 @@
+Listening TCP port: 9011
+  Peer connected  : 127.0.0.1:48866
+  Peer Exception   : 127.0.0.1:48866: 'undefined method 'size' for nil'
+/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:176:in 'block in Object#dispatch'
+<internal:kernel>:168:in 'Kernel#loop'
+/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:174:in 'Object#dispatch'
+  Peer disconnected: 127.0.0.1:48866
