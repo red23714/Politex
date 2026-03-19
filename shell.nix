@@ -13,7 +13,8 @@ pkgs.mkShell {
     llvmPackages_latest.clang
     llvmPackages_latest.clang-tools
     libgcc
-    gccMultiStdenv
+    cmake
+    ninja
     binutils
     gdb
 
