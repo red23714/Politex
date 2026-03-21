@@ -1,8 +1,8 @@
 [
 {
   "directory": "/home/red/Documents/Politex/projects/templates/cpp_proj/build",
-  "command": "/nix/store/6n5r46icm0bl55s9p5z2zgcv93m39r5l-clang-wrapper-21.1.8/bin/clang++ -std=gnu++20 -o CMakeFiles/my_app.dir/src/main.cpp.o -c /home/red/Documents/Politex/projects/templates/cpp_proj/src/main.cpp",
+  "command": "/usr/bin/clang++ -std=gnu++20 -o CMakeFiles/main.dir/src/main.cpp.o -c /home/red/Documents/Politex/projects/templates/cpp_proj/src/main.cpp",
   "file": "/home/red/Documents/Politex/projects/templates/cpp_proj/src/main.cpp",
-  "output": "/home/red/Documents/Politex/projects/templates/cpp_proj/build/CMakeFiles/my_app.dir/src/main.cpp.o"
+  "output": "/home/red/Documents/Politex/projects/templates/cpp_proj/build/CMakeFiles/main.dir/src/main.cpp.o"
 }
 ]

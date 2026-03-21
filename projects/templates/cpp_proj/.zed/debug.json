@@ -1,0 +1,12 @@
+[
+  {
+    "label": "Debug native binary",
+    "build": {
+      "command": "ninja",
+      "cwd": "$ZED_WORKTREE_ROOT/build/",
+    },
+    "program": "$ZED_WORKTREE_ROOT/build/main",
+    "request": "launch",
+    "adapter": "CodeLLDB",
+  },
+]

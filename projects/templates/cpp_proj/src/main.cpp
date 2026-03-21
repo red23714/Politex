@@ -1,5 +1,4 @@
 #include <iostream>
-#include <ostream>
 
 int sum(int k)
 {
