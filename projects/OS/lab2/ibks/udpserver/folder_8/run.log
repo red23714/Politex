@@ -1,0 +1,43 @@
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpserver 9980 9989
+Starting clients...
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9981 cli1.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9982 cli2.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9983 cli3.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9984 cli4.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9985 cli5.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9986 cli6.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9987 cli7.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9988 cli8.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9989 cli9.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9980 cli10.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9981 cli11.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9982 cli12.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9983 cli13.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9984 cli14.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9985 cli15.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9986 cli16.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9987 cli17.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9988 cli18.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9989 cli19.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9980 cli20.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9981 cli21.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9982 cli22.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9983 cli23.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9984 cli24.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9985 cli25.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9986 cli26.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9987 cli27.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9988 cli28.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9989 cli29.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9980 cli30.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9981 cli31.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9982 cli32.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9983 cli33.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9984 cli34.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9985 cli35.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9986 cli36.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9987 cli37.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9988 cli38.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 10.0.170.90:9989 cli39.txt --brokeidx=13015052
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_8/udpclientemul.rb 127.0.0.1:9980 cli40.txt --brokeidx=13015052
+Waiting clients...

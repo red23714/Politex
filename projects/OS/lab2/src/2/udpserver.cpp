@@ -213,7 +213,6 @@ int main(int argc, char* argv[])
 
 				if (20 + mlen <= n)
 				{
-					// 🔥 ДИНАМИЧЕСКИЙ буфер
 					char* msg = (char*)malloc(mlen + 1);
 					if (!msg)
 						continue;

@@ -2,9 +2,4 @@ Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/t
 Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/tcpclientemul.rb 127.0.0.1:9106 cli1.txt
 Client waiting...
 Server waiting...
-Exception: #<SignalException: SIGTERM>
-/home/red/Documents/Politex/.share/gem/ruby/3.4.0/gems/childprocess-5.1.0/lib/childprocess/process_spawn_process.rb:32:in 'Process.waitpid2'
-/home/red/Documents/Politex/.share/gem/ruby/3.4.0/gems/childprocess-5.1.0/lib/childprocess/process_spawn_process.rb:32:in 'ChildProcess::ProcessSpawnProcess#wait'
-run.rb:13:in 'block in <main>'
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/base.rb:57:in 'Object#testing'
-run.rb:5:in '<main>'
+Server exit code: 0

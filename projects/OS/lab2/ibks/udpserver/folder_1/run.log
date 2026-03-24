@@ -1,0 +1,9 @@
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_1/udpserver 9910 9910
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_1/udpclientemul.rb 127.0.0.1:9910 cli1.txt
+Client waiting...
+Exception: #<SignalException: SIGTERM>
+/home/red/Documents/Politex/.share/gem/ruby/3.4.0/gems/childprocess-5.1.0/lib/childprocess/process_spawn_process.rb:32:in 'Process.waitpid2'
+/home/red/Documents/Politex/.share/gem/ruby/3.4.0/gems/childprocess-5.1.0/lib/childprocess/process_spawn_process.rb:32:in 'ChildProcess::ProcessSpawnProcess#wait'
+run.rb:10:in 'block in <main>'
+/home/red/Documents/Politex/projects/OS/lab2/ibks/udpserver/folder_1/base.rb:63:in 'Object#testing'
+run.rb:5:in '<main>'

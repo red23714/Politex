@@ -1,304 +1,303 @@
 Listening TCP port: 9007
-  Peer connected  : 127.0.0.1:43006
-  Peer connected  : 127.0.0.1:43012
-  Peer connected  : 127.0.0.1:43028
-  Peer Exception   : 127.0.0.1:43006: 'undefined method 'size' for nil'
+  Peer connected  : 127.0.0.1:57124
+  Peer connected  : 127.0.0.1:57134
+  Peer Exception   : 127.0.0.1:57124: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43006
-  Peer Exception   : 127.0.0.1:43012: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57124
+  Peer Exception   : 127.0.0.1:57134: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43012
-  Peer Exception   : 127.0.0.1:43028: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57134
+  Peer connected  : 127.0.0.1:57144
+  Peer connected  : 127.0.0.1:57148
+  Peer connected  : 127.0.0.1:57150
+  Peer Exception   : 127.0.0.1:57148: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43028
-  Peer connected  : 127.0.0.1:43034
-  Peer Exception   : 127.0.0.1:43034: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57148
+  Peer Exception   : 127.0.0.1:57144: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43034
-  Peer connected  : 127.0.0.1:43048
-  Peer Exception   : 127.0.0.1:43048: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57144
+  Peer connected  : 127.0.0.1:57156
+  Peer Exception   : 127.0.0.1:57150: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43048
-  Peer connected  : 127.0.0.1:43062
-  Peer Exception   : 127.0.0.1:43062: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57150
+  Peer connected  : 127.0.0.1:57160
+  Peer Exception   : 127.0.0.1:57156: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43062
-  Peer connected  : 127.0.0.1:43070
-  Peer connected  : 127.0.0.1:43072
-  Peer Exception   : 127.0.0.1:43070: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57156
+  Peer connected  : 127.0.0.1:57164
+  Peer connected  : 127.0.0.1:57178
+  Peer Exception   : 127.0.0.1:57160: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43070
-  Peer Exception   : 127.0.0.1:43072: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57160
+  Peer connected  : 127.0.0.1:57192
+  Peer Exception   : 127.0.0.1:57164: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43072
-  Peer connected  : 127.0.0.1:43076
-  Peer Exception   : 127.0.0.1:43076: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57164
+  Peer connected  : 127.0.0.1:57194
+  Peer Exception   : 127.0.0.1:57178: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43076
-  Peer connected  : 127.0.0.1:43086
-  Peer Exception   : 127.0.0.1:43086: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57178
+  Peer Exception   : 127.0.0.1:57192: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43086
-  Peer connected  : 127.0.0.1:43098
-  Peer connected  : 127.0.0.1:43102
-  Peer Exception   : 127.0.0.1:43098: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57192
+  Peer connected  : 127.0.0.1:57196
+  Peer connected  : 127.0.0.1:57208
+  Peer connected  : 127.0.0.1:57210
+  Peer Exception   : 127.0.0.1:57194: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43098
-  Peer connected  : 127.0.0.1:43108
-  Peer Exception   : 127.0.0.1:43102: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57194
+  Peer connected  : 127.0.0.1:57212
+  Peer connected  : 127.0.0.1:57226
+  Peer connected  : 127.0.0.1:57230
+  Peer Exception   : 127.0.0.1:57196: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43102
-  Peer Exception   : 127.0.0.1:43108: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57196
+  Peer connected  : 127.0.0.1:57232
+  Peer Exception   : 127.0.0.1:57208: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43108
-  Peer connected  : 127.0.0.1:43120
-  Peer connected  : 127.0.0.1:43122
-  Peer Exception   : 127.0.0.1:43120: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57208
+  Peer connected  : 127.0.0.1:57246
+  Peer connected  : 127.0.0.1:57260
+  Peer connected  : 127.0.0.1:57262
+  Peer Exception   : 127.0.0.1:57210: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43120
-  Peer connected  : 127.0.0.1:43132
-  Peer Exception   : 127.0.0.1:43122: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57210
+  Peer connected  : 127.0.0.1:57274
+  Peer Exception   : 127.0.0.1:57212: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43122
-  Peer connected  : 127.0.0.1:43136
-  Peer connected  : 127.0.0.1:43140
-  Peer connected  : 127.0.0.1:43142
-  Peer connected  : 127.0.0.1:43158
-  Peer Exception   : 127.0.0.1:43132: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57212
+  Peer Exception   : 127.0.0.1:57226: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43132
-  Peer Exception   : 127.0.0.1:43136: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57226
+  Peer Exception   : 127.0.0.1:57230: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43136
-  Peer Exception   : 127.0.0.1:43140: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57230
+  Peer Exception   : 127.0.0.1:57232: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43140
-  Peer Exception   : 127.0.0.1:43142: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57232
+  Peer Exception   : 127.0.0.1:57246: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43142
-  Peer Exception   : 127.0.0.1:43158: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57246
+  Peer Exception   : 127.0.0.1:57260: 'undefined method 'size' for nil'
+/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
+<internal:kernel>:168:in 'Kernel#loop'
+/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'S/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
+  Peer disconnected: 127.0.0.1:57260
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43158
-  Peer connected  : 127.0.0.1:43164
-  Peer Exception   : 127.0.0.1:43164: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57262
+  Peer Exception   : 127.0.0.1:57274: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43164
-  Peer connected  : 127.0.0.1:43176
-  Peer Exception   : 127.0.0.1:43176: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57274
+  Peer connected  : 127.0.0.1:57288
+  Peer Exception   : 127.0.0.1:57288: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43176
-  Peer connected  : 127.0.0.1:43180
-  Peer Exception   : 127.0.0.1:43180: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57288
+  Peer connected  : 127.0.0.1:57298
+  Peer Exception   : 127.0.0.1:57298: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43180
-  Peer connected  : 127.0.0.1:43182
-  Peer Exception   : 127.0.0.1:43182: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57298
+  Peer connected  : 127.0.0.1:57306
+  Peer Exception   : 127.0.0.1:57306: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43182
-  Peer connected  : 127.0.0.1:43194
-  Peer connected  : 127.0.0.1:43202
-  Peer Exception   : 127.0.0.1:43194: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57306
+  Peer connected  : 127.0.0.1:57312
+  Peer Exception   : 127.0.0.1:57312: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43194
-  Peer Exception   : 127.0.0.1:43202: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57312
+  Peer connected  : 127.0.0.1:57328
+  Peer Exception   : 127.0.0.1:57328: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43202
-  Peer connected  : 127.0.0.1:43208
-  Peer Exception   : 127.0.0.1:43208: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57328
+  Peer connected  : 127.0.0.1:57344
+  Peer connected  : 127.0.0.1:57354
+  Peer connected  : 127.0.0.1:57368
+  Peer Exception   : 127.0.0.1:57344: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43208
-  Peer connected  : 127.0.0.1:43212
-  Peer Exception   : 127.0.0.1:43212: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57344
+  Peer connected  : 127.0.0.1:57376
+  Peer Exception   : 127.0.0.1:57354: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43212
-  Peer connected  : 127.0.0.1:43228
-  Peer Exception   : 127.0.0.1:43228: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57354
+  Peer Exception   : 127.0.0.1:57368: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43228
-  Peer connected  : 127.0.0.1:43240
-  Peer connected  : 127.0.0.1:43254
-  Peer connected  : 127.0.0.1:43256
-  Peer Exception   : 127.0.0.1:43240: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57368
+  Peer connected  : 127.0.0.1:57388
+  Peer connected  : 127.0.0.1:57402
+  Peer connected  : 127.0.0.1:57404
+  Peer Exception   : 127.0.0.1:57376: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43240
-  Peer connected  : 127.0.0.1:43260
-  Peer Exception   : 127.0.0.1:43254: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57376
+  Peer connected  : 127.0.0.1:57410
+  Peer connected  : 127.0.0.1:57416
+  Peer connected  : 127.0.0.1:57420
+  Peer connected  : 127.0.0.1:57426
+  Peer connected  : 127.0.0.1:57440
+  Peer connected  : 127.0.0.1:57444
+  Peer Exception   : 127.0.0.1:57388: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43254
-  Peer Exception   : 127.0.0.1:43256: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57388
+  Peer connected  : 127.0.0.1:57446
+  Peer Exception   : 127.0.0.1:57402: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43256
-  Peer connected  : 127.0.0.1:43262
-  Peer Exception   : 127.0.0.1:43260: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57402
+  Peer Exception   : 127.0.0.1:57404: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43260
-  Peer connected  : 127.0.0.1:43278
-  Peer Exception   : 127.0.0.1:43262: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57404
+  Peer Exception   : 127.0.0.1:57410: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43262
-  Peer Exception   : 127.0.0.1:43278: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57410
+  Peer connected  : 127.0.0.1:57462
+  Peer Exception   : 127.0.0.1:57416: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43278
-  Peer connected  : 127.0.0.1:43284
-  Peer Exception   : 127.0.0.1:43284: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57416
+  Peer connected  : 127.0.0.1:57468
+  Peer Exception   : 127.0.0.1:57420: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43284
-  Peer connected  : 127.0.0.1:43290
-  Peer Exception   : 127.0.0.1:43290: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57420
+  Peer Exception   : 127.0.0.1:57426: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43290
-  Peer connected  : 127.0.0.1:43298
-  Peer connected  : 127.0.0.1:43310
-  Peer connected  : 127.0.0.1:43316
-  Peer connected  : 127.0.0.1:43326
-  Peer connected  : 127.0.0.1:43342
-  Peer connected  : 127.0.0.1:43352
-  Peer Exception   : 127.0.0.1:43298: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57426
+  Peer Exception   : 127.0.0.1:57440: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43298
-  Peer Exception   : 127.0.0.1:43310: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57440
+  Peer connected  : 127.0.0.1:57476
+  Peer connected  : 127.0.0.1:57490
+  Peer Exception   : 127.0.0.1:57444: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43310
-  Peer Exception   : 127.0.0.1:43316: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57444
+  Peer Exception   : 127.0.0.1:57446: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43316
-  Peer Exception   : 127.0.0.1:43342: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57446
+  Peer connected  : 127.0.0.1:57498
+  Peer Exception   : 127.0.0.1:57462: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43342
-  Peer Exception   : 127.0.0.1:43326: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57462
+  Peer Exception   : 127.0.0.1:57468: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43326
-  Peer Exception   : 127.0.0.1:43352: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57468
+  Peer connected  : 127.0.0.1:57510
+  Peer connected  : 127.0.0.1:57514
+  Peer Exception   : 127.0.0.1:57476: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43352
-  Peer connected  : 127.0.0.1:43362
-  Peer Exception   : 127.0.0.1:43362: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57476
+  Peer Exception   : 127.0.0.1:57490: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43362
-  Peer connected  : 127.0.0.1:43368
-  Peer Exception   : 127.0.0.1:43368: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57490
+  Peer Exception   : 127.0.0.1:57498: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43368
-  Peer connected  : 127.0.0.1:43370
-  Peer Exception   : 127.0.0.1:43370: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57498
+  Peer connected  : 127.0.0.1:57518
+  Peer Exception   : 127.0.0.1:57510: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43370
-  Peer connected  : 127.0.0.1:43374
-  Peer Exception   : 127.0.0.1:43374: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57510
+  Peer Exception   : 127.0.0.1:57514: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43374
-  Peer connected  : 127.0.0.1:43390
-  Peer Exception   : 127.0.0.1:43390: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57514
+  Peer Exception   : 127.0.0.1:57518: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43390
-  Peer connected  : 127.0.0.1:43400
-  Peer Exception   : 127.0.0.1:43400: 'undefined method 'size' for nil'
+  Peer disconnected: 127.0.0.1:57518
+  Peer connected  : 127.0.0.1:57528
+  Peer Exception   : 127.0.0.1:57528: 'undefined method 'size' for nil'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
 <internal:kernel>:168:in 'Kernel#loop'
 /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43400
-  Peer connected  : 127.0.0.1:43402
-  Peer Exception   : 127.0.0.1:43402: 'undefined method 'size' for nil'
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:176:in 'block in Object#dispatch'
-<internal:kernel>:168:in 'Kernel#loop'
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_7/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:43402
-  Peer connected  : 127.0.0.1:43410
+  Peer disconnected: 127.0.0.1:57528
+  Peer connected  : 127.0.0.1:57544
 'stop' message arrived. Terminating...
-  Peer disconnected: 127.0.0.1:43410
+  Peer disconnected: 127.0.0.1:57544

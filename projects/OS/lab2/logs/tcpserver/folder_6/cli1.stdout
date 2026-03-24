@@ -1,8 +1,3 @@
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/tcpclientemul.rb:133:in 'BasicSocket#recv': Connection reset by peer - recvfrom(2) (Errno::ECONNRESET)
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/tcpclientemul.rb:133:in 'Object#wait_confirm'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/tcpclientemul.rb:200:in 'block in Object#client'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/tcpclientemul.rb:193:in 'IO.open'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/tcpclientemul.rb:193:in 'Object#client'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_6/tcpclientemul.rb:212:in '<main>'
 Connecting to: 127.0.0.1:9106
 Connected.
+2 message(s) has been sent.
