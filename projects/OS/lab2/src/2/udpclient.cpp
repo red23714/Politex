@@ -228,6 +228,9 @@ unsigned int create_response(int s, struct sockaddr_in* addr, FILE* f)
 	{
 		character = fgetc(f);
 
+		if (character == '\r')
+			continue;
+
 		if ((character == '\n' || character == EOF) && find_sym)
 		{
 			if (on_server[message_counter])

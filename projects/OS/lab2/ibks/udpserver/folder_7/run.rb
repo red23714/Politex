@@ -4,7 +4,7 @@ require './base.rb'
 
 testing do 
   srv = server(UDPSRVBIN, "9970", "9979")
-  myip = "10.0.170.90"
+  myip = "127.0.0.1" #fix ip
 
   log "Starting clients..."
 

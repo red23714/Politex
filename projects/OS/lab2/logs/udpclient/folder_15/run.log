@@ -1,0 +1,17 @@
+Starting: ruby /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpserveremul.rb 9150 9150
+Starting clients...
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli1.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli2.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli3.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli4.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli5.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli6.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli7.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli8.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli9.txt
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli10.txt
+Waiting clients...
+Stopping server...
+Starting: /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpclient 127.0.0.1:9150 cli11.txt
+Server waiting...
+Server exit code: 0

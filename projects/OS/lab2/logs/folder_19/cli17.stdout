@@ -1,8 +1,0 @@
-/home/red/Documents/Politex/projects/OS/lab2/ibks/folder_19/udpclientemul.rb:175:in 'IO.select': Interrupt
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_19/udpclientemul.rb:175:in 'block in Object#client'
-	from <internal:kernel>:168:in 'Kernel#loop'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_19/udpclientemul.rb:163:in 'Object#client'
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/folder_19/udpclientemul.rb:192:in '<main>'
-Server address: 10.0.170.90:9987
-$brokeidx=13015052
-20 msg(s) left in queue.

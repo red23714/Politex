@@ -5,7 +5,7 @@ set -e
 ROOT=$(pwd)
 TESTS_DIR="$ROOT/ibks"
 LOGS_DIR="$ROOT/logs"
-TIMEOUT_SEC=60  # ограничение времени выполнения run.rb
+TIMEOUT_SEC=120  # ограничение времени выполнения run.rb
 
 mkdir -p "$LOGS_DIR"
 

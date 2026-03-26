@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 int init()
 {
@@ -213,6 +213,10 @@ unsigned int create_response(int s, FILE* f)
 	do
 	{
 		character = fgetc(f);
+
+		if (character == '\r')
+			continue;
+
 		// printf("%c", character);
 		if ((character == '\n' || character == EOF) && find_sym)
 		{
@@ -261,7 +265,9 @@ unsigned int create_response(int s, FILE* f)
 
 			if (strcmp(msg, "stop") != 0)
 			{
+#if DEBUG
 				printf("stop\n");
+#endif
 				message_counter++;
 			}
 
