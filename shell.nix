@@ -56,6 +56,12 @@ pkgs.mkShell {
     export XDG_CACHE_HOME="$IDE_ROOT/.cache"
     export XDG_DATA_HOME="$IDE_ROOT/.share"
 
+    export ZELLIJ_CONFIG_DIR="$PWD/.zellij"
+    export ZELLIJ_SESSIONS_DIR="$ZELLIJ_CONFIG_DIR/sessions"
+    
+    # Создаем директории если их нет
+    mkdir -p "$ZELLIJ_SESSIONS_DIR"
+
     export _ZO_DATA_DIR="$XDG_DATA_HOME/zoxide"
 
     export NPM_CONFIG_CACHE="$XDG_CACHE_HOME/npm"

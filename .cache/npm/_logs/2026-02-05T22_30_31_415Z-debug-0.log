@@ -1,0 +1,18 @@
+0 verbose cli /nix/store/mcy5n3l8z7dbvaic7kgh80b86xj7smkn-nodejs-20.20.0/bin/node /nix/store/mcy5n3l8z7dbvaic7kgh80b86xj7smkn-nodejs-20.20.0/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.20.0
+3 silly config load:file:/nix/store/mcy5n3l8z7dbvaic7kgh80b86xj7smkn-nodejs-20.20.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/home/red/Documents/Politex/projects/SD/cursach/final/.npmrc
+5 silly config load:file:/home/red/.npmrc
+6 silly config load:file:/nix/store/mcy5n3l8z7dbvaic7kgh80b86xj7smkn-nodejs-20.20.0/etc/npmrc
+7 verbose title npm version
+8 verbose argv "version" "--json"
+9 verbose logfile logs-max:10 dir:/home/red/Documents/Politex/.cache/npm/_logs/2026-02-05T22_30_31_415Z-
+10 verbose logfile /home/red/Documents/Politex/.cache/npm/_logs/2026-02-05T22_30_31_415Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose cwd /home/red/Documents/Politex/projects/SD/cursach/final
+13 verbose os Linux 6.18.7-arch1-1
+14 verbose node v20.20.0
+15 verbose npm  v10.8.2
+16 verbose exit 0
+17 info ok

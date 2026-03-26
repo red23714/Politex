@@ -5,14 +5,8 @@
 *.exe
 build
 .vscode
-.tar
-.cache
+.zed
 .share
-.config
-!.config/nvim
-!.config/zellij
-!.config/fish
-!.config/mimeapps.list
 *.tar
 
 !Makefile
