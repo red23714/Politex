@@ -27,6 +27,7 @@ vim.opt.langmap = vim.fn.join({
 	escape(ru_shift) .. ";" .. escape(en_shift),
 	escape(ru) .. ";" .. escape(en),
 }, ",")
+
 -- ===========================
 --         АВТОУСТАНОВКА LAZY.NVIM
 -- ===========================
@@ -52,6 +53,11 @@ require("lazy").setup({
 		config = function()
 			require("mason").setup()
 		end,
+	},
+
+	{
+		"WhoIsSethDaniel/mason-tool-installer.nvim",
+		dependencies = { "williamboman/mason.nvim" },
 	},
 
 	-- ======== TELESCOPE ========
@@ -276,6 +282,15 @@ require("lazy").setup({
 				},
 				preselect = cmp.PreselectMode.Item,
 			})
+
+			vim.keymap.set("i", "<Esc>", function()
+				if cmp.visible() then
+					cmp.close() -- закрываем автоподсказки
+				else
+					-- если меню не открыто, просто делаем стандартный Esc
+					vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", true)
+				end
+			end, { noremap = true, silent = true })
 		end,
 	},
 
@@ -291,7 +306,22 @@ require("lazy").setup({
 			-- Настройка Mason
 			require("mason").setup()
 			require("mason-lspconfig").setup({
+				ensure_installed = {
+					"zls",
+					"tinymist",
+					"pyright",
+					"clangd",
+					"lua_ls",
+					"ruff",
+				},
 				automatic_installation = true,
+			})
+			require("mason-tool-installer").setup({
+				ensure_installed = {
+					"stylua",
+					"clang-format",
+				},
+				run_on_start = true,
 			})
 
 			local capabilities = require("cmp_nvim_lsp").default_capabilities()
@@ -333,6 +363,13 @@ require("lazy").setup({
 						},
 					},
 				},
+				tinymist = {
+					capabilities = capabilities,
+				},
+
+				ruff = {
+					capabilities = capabilities,
+				},
 			}
 
 			-- Включаем Inlay Hints если сервер поддерживает
@@ -349,18 +386,20 @@ require("lazy").setup({
 
 			-- Автоматический запуск LSP серверов при открытии файлов
 			vim.api.nvim_create_autocmd("FileType", {
-				pattern = { "c", "cpp", "python", "lua", "zig" },
+				pattern = "*",
 				callback = function(args)
 					local bufnr = args.buf
 					local ft = vim.bo[bufnr].filetype
 
 					-- Соответствие типов файлов и LSP серверов
+
 					local servers_by_ft = {
 						c = "clangd",
 						cpp = "clangd",
 						python = "pyright",
 						lua = "lua_ls",
 						zig = "zls",
+						typst = "tinymist",
 					}
 
 					local server_name = servers_by_ft[ft]
@@ -391,12 +430,14 @@ require("lazy").setup({
 					for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
 						if vim.api.nvim_buf_is_loaded(bufnr) then
 							local ft = vim.api.nvim_buf_get_option(bufnr, "filetype")
+
 							local servers_by_ft = {
 								c = "clangd",
 								cpp = "clangd",
 								python = "pyright",
 								lua = "lua_ls",
 								zig = "zls",
+								typst = "tinymist",
 							}
 
 							local server_name = servers_by_ft[ft]
@@ -450,56 +491,6 @@ require("lazy").setup({
 		end,
 	},
 
-	{
-		"mfussenegger/nvim-dap",
-		config = function()
-			local dap = require("dap")
-
-			dap.adapters.lldb = {
-				type = "executable",
-				command = "lldb-dap", -- иногда просто "lldb"
-				name = "lldb",
-			}
-
-			vim.fn.sign_define("DapBreakpoint", { text = "🔴", texthl = "DapBreakpoint", linehl = "", numhl = "" })
-
-			dap.configurations.cpp = {
-				{
-					name = "Launch",
-					type = "lldb",
-					request = "launch",
-					program = function()
-						return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/build/my_app", "file")
-					end,
-					cwd = "${workspaceFolder}",
-					stopOnEntry = false,
-				},
-			}
-
-			dap.configurations.c = dap.configurations.cpp -- Для C используем те же настройки
-		end,
-	},
-	{
-		"rcarriga/nvim-dap-ui",
-		dependencies = {
-			"mfussenegger/nvim-dap",
-			"nvim-neotest/nvim-nio",
-		},
-		config = function()
-			local dap, dapui = require("dap"), require("dapui")
-			dapui.setup()
-			dap.listeners.after.event_initialized["dapui_config"] = function()
-				dapui.open()
-			end
-			dap.listeners.before.event_terminated["dapui_config"] = function()
-				dapui.close()
-			end
-			dap.listeners.before.event_exited["dapui_config"] = function()
-				dapui.close()
-			end
-		end,
-	},
-
 	-- ======== ФОРМАТИРОВАНИЕ ========
 	{
 		"stevearc/conform.nvim",
@@ -508,7 +499,7 @@ require("lazy").setup({
 				formatters_by_ft = {
 					c = { "clang-format" },
 					cpp = { "clang-format" },
-					python = { "black" },
+					python = { "ruff_format" },
 					lua = { "stylua" },
 					zig = { "zig fmt" },
 				},
@@ -525,7 +516,7 @@ require("lazy").setup({
 		config = function()
 			require("bufferline").setup({})
 			vim.keymap.set("n", "<Tab>", ":BufferLineCycleNext<CR>", { noremap = true, silent = true })
-			vim.keymap.set("n", "<C-Tab>", ":BufferLineCyclePrev<CR>", { noremap = true, silent = true })
+			vim.keymap.set("n", "<S-Tab>", ":BufferLineCyclePrev<CR>", { noremap = true, silent = true })
 			vim.keymap.set(
 				"n",
 				"<leader>x",
@@ -660,15 +651,6 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 -- ===========================
 --         ДОПОЛНИТЕЛЬНО
 -- ===========================
-
-local dap = require("dap")
-
-vim.keymap.set("n", "<F9>", dap.toggle_breakpoint, { desc = "Toggle breakpoint" })
-vim.keymap.set("n", "<F5>", dap.continue, { desc = "Start/Continue" })
-vim.keymap.set("n", "<F10>", dap.step_over, { desc = "Step over" })
-vim.keymap.set("n", "<F11>", dap.step_into, { desc = "Step into" })
-vim.keymap.set("n", "<F12>", dap.step_out, { desc = "Step out" })
-
 -- Форматирование Ctrl + s
 vim.keymap.set("n", "<C-s>", function()
 	require("conform").format({ async = true })
