@@ -674,6 +674,8 @@ vim.keymap.set("n", "<C-s>", function()
 	require("conform").format({ async = true })
 end, { desc = "Форматировать код" })
 
+vim.api.nvim_set_keymap("i", "jk", "<Esc>", { noremap = false })
+
 -- Очищать подсветку поиска по нажатию Escape в нормальном режиме
 vim.keymap.set("n", "<Esc>", function()
 	if vim.fn.getreg("/") ~= "" then -- если есть активный поиск

@@ -1,0 +1,4 @@
+
+
+[INFO] 2026-03-19 17:17:18 dap/session.lua:1996	"Session closed due to disconnect"
+[INFO] 2026-03-19 17:17:18 dap/session.lua:1601	"Process exit"	"lldb-dap"	0	37469
