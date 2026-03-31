@@ -267,6 +267,85 @@ UDP-сервер при запуске создаёт один или неско
   caption: [Функция программы UDP-сервера]
 )
 
+Так же ниже на рисунках @tcptime и @udptime приведены временные диаграммы работы сервера и клиента, и их взаимодействия.
+
+#figure(
+  image("./time_diag_tcp.png"),
+  caption: [Временная диаграмма работы tcpserver и tcpclient]
+)<tcptime>
+
+
+#figure(
+  image("./time_diag_udp.png"),
+  caption: [Временная диаграмма работы udpserver и udpclient]
+)<udptime>
+
+#pagebreak()
+
+= Тестирование
+
+Результаты тестирования приведены на рисунках ниже(@tcpclient - @udpserver), взяты первые три теста с учебной платформы ibks на программу. Изначальные тесты не работли и были исправлены.
+
+#figure(
+  image("./tcpclient_1.jpg"),
+  caption: [Результат теста cli1.txt для программы tcpclient]
+)<tcpclient>
+
+#figure(
+  image("./tcpclient_2.jpg"),
+  caption: [Результат теста cli2.txt для программы tcpclient]
+)
+
+#figure(
+  image("./tcpclient_3.jpg"),
+  caption: [Результат теста cli3.txt для программы tcpclient]
+)
+
+#figure(
+  image("./tcpserver_1.jpg"),
+  caption: [Результат теста cli1.txt для программы tcpserver]
+)
+
+#figure(
+  image("./tcpserver_2.jpg"),
+  caption: [Результат теста cli2.txt для программы tcpserver]
+)
+
+#figure(
+  image("./tcpserver_3.jpg"),
+  caption: [Результат теста cli3.txt для программы tcpserver]
+)
+
+#figure(
+  image("./udpclient_1.jpg"),
+  caption: [Результат теста cli1.txt для программы udpclient]
+)
+
+#figure(
+  image("./udpclient_2.jpg"),
+  caption: [Результат теста cli2.txt для программы udpclient]
+)
+
+#figure(
+  image("./udpclient_3.jpg"),
+  caption: [Результат теста cli3.txt для программы udpclient]
+)
+
+#figure(
+  image("./udpserver_1.jpg"),
+  caption: [Результат теста cli1.txt для программы udpserver]
+)
+
+#figure(
+  image("./udpserver_2.jpg"),
+  caption: [Результат теста cli2.txt для программы udpserver]
+)
+
+#figure(
+  image("./udpserver_3.jpg"),
+  caption: [Результат теста cli3.txt для программы udpserver]
+)<udpserver>
+
 #pagebreak()
 
 = Выводы

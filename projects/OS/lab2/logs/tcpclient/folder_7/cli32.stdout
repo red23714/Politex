@@ -1,3 +1,13 @@
+127.0.0.1 9007
+cli32.txt
 Connected
+3 bytes sent. 
+0 | 20091021 | 40541 | 142601 | 5 | msg32
+25 bytes sent. 
 stop
+1 | 20201214 | 45916 | 211634 | 6 | msg_32
+26 bytes sent. 
 stop
+
+end of function
+messages count: 2

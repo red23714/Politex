@@ -1,3 +1,13 @@
+127.0.0.1 9011
+cli1.txt
 Connected
+3 bytes sent. 
+0 | 20030217 | 34323 | 210037 | 101 | msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1 msg 1
+121 bytes sent. 
 stop
+1 | 20161225 | 71452 | 123427 | 101 | msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2 msg 2
+121 bytes sent. 
 stop
+
+end of function
+messages count: 2

@@ -1,3 +1,13 @@
+127.0.0.1 9007
+cli34.txt
 Connected
+3 bytes sent. 
+0 | 20190102 | 24550 | 20518 | 5 | msg34
+25 bytes sent. 
 stop
+1 | 20130712 | 121448 | 152519 | 6 | msg_34
+26 bytes sent. 
 stop
+
+end of function
+messages count: 2

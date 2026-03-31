@@ -1,3 +1,13 @@
+127.0.0.1 9007
+cli38.txt
 Connected
+3 bytes sent. 
+0 | 20050829 | 180423 | 153301 | 5 | msg38
+25 bytes sent. 
 stop
+1 | 20060311 | 144016 | 70835 | 6 | msg_38
+26 bytes sent. 
 stop
+
+end of function
+messages count: 2

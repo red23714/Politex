@@ -1,16 +1,4 @@
-Listening TCP port: 9011
-  Peer connected  : 127.0.0.1:48634
-  Peer connected  : 127.0.0.1:48648
-  Peer Exception   : 127.0.0.1:48634: 'undefined method 'size' for nil'
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:176:in 'block in Object#dispatch'
-<internal:kernel>:168:in 'Kernel#loop'
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:48634
-  Peer Exception   : 127.0.0.1:48648: 'undefined method 'size' for nil'
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:176:in 'block in Object#dispatch'
-<internal:kernel>:168:in 'Kernel#loop'
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:174:in 'Object#dispatch'
-  Peer disconnected: 127.0.0.1:48648
-  Peer connected  : 127.0.0.1:48656
-'stop' message arrived. Terminating...
-  Peer disconnected: 127.0.0.1:48656
+/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:219:in 'TCPServer#initialize': Address already in use - bind(2) for "0.0.0.0" port 9011 (Errno::EADDRINUSE)
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:219:in 'IO.new'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:219:in 'Object#server'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpclient/folder_11/tcpserveremul.rb:239:in '<main>'

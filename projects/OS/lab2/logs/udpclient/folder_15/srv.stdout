@@ -1,13 +1,6 @@
+/home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpserveremul.rb:224:in 'UDPSocket#bind': Address already in use - bind(2) for "0.0.0.0" port 9150 (Errno::EADDRINUSE)
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpserveremul.rb:224:in 'block in Object#server'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpserveremul.rb:222:in 'Array#collect'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpserveremul.rb:222:in 'Object#server'
+	from /home/red/Documents/Politex/projects/OS/lab2/ibks/udpclient/folder_15/udpserveremul.rb:247:in '<main>'
 Listening on: 9150
-New client detected: 127.0.0.1:49917
-New client detected: 127.0.0.1:60158
-New client detected: 127.0.0.1:50233
-New client detected: 127.0.0.1:34183
-New client detected: 127.0.0.1:36519
-New client detected: 127.0.0.1:36721
-New client detected: 127.0.0.1:45276
-New client detected: 127.0.0.1:56302
-New client detected: 127.0.0.1:33188
-New client detected: 127.0.0.1:51792
-New client detected: 127.0.0.1:40503
-'stop' message arrived. Terminating...

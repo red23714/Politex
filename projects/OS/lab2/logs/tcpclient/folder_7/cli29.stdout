@@ -1,3 +1,13 @@
+127.0.0.1 9007
+cli29.txt
 Connected
+3 bytes sent. 
+0 | 20110831 | 84615 | 25635 | 5 | msg29
+25 bytes sent. 
 stop
+1 | 20121030 | 55912 | 135505 | 6 | msg_29
+26 bytes sent. 
 stop
+
+end of function
+messages count: 2

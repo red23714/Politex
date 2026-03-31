@@ -1,3 +1,13 @@
+127.0.0.1 9007
+cli4.txt
 Connected
+3 bytes sent. 
+0 | 20180708 | 33853 | 91401 | 4 | msg4
+24 bytes sent. 
 stop
+1 | 20100614 | 144946 | 100324 | 5 | msg_4
+25 bytes sent. 
 stop
+
+end of function
+messages count: 2

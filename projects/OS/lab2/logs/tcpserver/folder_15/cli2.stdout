@@ -1,13 +1,3 @@
-/home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_15/tcpclientemul.rb:156:in 'Object#client': Failed connect (RuntimeError)
-	from /home/red/Documents/Politex/projects/OS/lab2/ibks/tcpserver/folder_15/tcpclientemul.rb:212:in '<main>'
 Connecting to: 127.0.0.1:9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
-Connection refused - connect(2) for "127.0.0.1" port 9115
+Connected.
+2 message(s) has been sent.
