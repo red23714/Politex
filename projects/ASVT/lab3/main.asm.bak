@@ -61,11 +61,12 @@ soft_reset:
     CLR CURRENT_NUMBER
     CLR CURRENT_READ_NUMBER
     CLR START_NEW
+    OUT PORTA, TMP
 
 main_loop:
     RCALL read_number
 
-    CP CURRENT_CELL, 4
+    CPI CURRENT_CELL, 4
     BREQ check_correct
 
     RJMP main_loop
@@ -139,7 +140,8 @@ check_correct:
 incorrect:
     INC ATTEMPT_COUNT
     CPI ATTEMPT_COUNT, 0x03
-    BRNE lose
+    BRSH lose
+
     LDI  TMP, (1<<PA6)
     OUT PORTA, TMP
     RJMP soft_reset
