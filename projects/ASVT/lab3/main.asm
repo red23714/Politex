@@ -13,6 +13,9 @@
     BLINK_STATE:  .byte 1
 .cseg
 
+; PORTA 0 1 2 3 дисплей
+; PORTC номер индикатора
+
 SEG_TABLE:
 .db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
 
@@ -205,7 +208,7 @@ apply_digit:
     RJMP AD_LO
 
     SWAP TMP
-    ANDI TMP, 0xF0
+    
     CPI  CURRENT_CELL, 3
     BRSH AD_PIN2_HI
     ANDI CURRENT_PIN1, 0x0F
@@ -391,7 +394,7 @@ DISPLAY_REFRESH:
 
     ; выключить все разряды PA0-PA3
     IN   TMP, PORTA
-    ANDI TMP, 0xF0
+    
     OUT  PORTA, TMP
 
     LDS  TMP2, DISP_POS     ; текущий разряд 0..3
@@ -405,20 +408,20 @@ DISPLAY_REFRESH:
     ; разряд 3 = hi nibble PIN2
     MOV  R30, CURRENT_PIN2
     SWAP R30
-    ANDI R30, 0x0F
+    
     RJMP DR_GOT
 DR_DIG2:
     MOV  R30, CURRENT_PIN2
-    ANDI R30, 0x0F
+    
     RJMP DR_GOT
 DR_DIG1:
     MOV  R30, CURRENT_PIN1
     SWAP R30
-    ANDI R30, 0x0F
+    
     RJMP DR_GOT
 DR_DIG0:
     MOV  R30, CURRENT_PIN1
-    ANDI R30, 0x0F
+    
 
 DR_GOT:
     ; мигание текущей ячейки
