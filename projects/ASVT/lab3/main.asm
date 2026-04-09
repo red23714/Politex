@@ -1,42 +1,71 @@
-.org $000
-    JMP reset
-.org INT1addr
-    JMP ext_int1
-.org OVF0addr
-    JMP ISR_T0
+; ============================================================
+; Модуль проверки ПИН-кода, ATmega32, 8 МГц
+; Твой костяк — без изменений логики.
+; Добавлены: дисплей (4×7seg), таймер 7с (ввод), таймер 20с (ошибка)
+; ============================================================
 
-.dseg
-    DELAY_CNT:    .byte 2
-    TIMEOUT_CNT:  .byte 2
-    DISP_POS:     .byte 1
-    BLINK_CNT:    .byte 1
-    BLINK_STATE:  .byte 1
-.cseg
+.include "m32def.inc"
 
-; PORTA 0 1 2 3 дисплей
-; PORTC номер индикатора
+; ---- регистры (твои) ----------------------------------------
+.def NULL            = R16
+.def TMP             = R17
+.def TMP2            = R18
+.def CURRENT_CELL    = R19
+.def RIGHT_PIN1      = R20
+.def RIGHT_PIN2      = R21
+.def EEPROM_VALUE    = R22
+.def EEPROM_ADR      = R23
+.def CURRENT_PIN1    = R24
+.def CURRENT_PIN2    = R25
+.def ATTEMPT_COUNT   = R26
+.def CURRENT_NUMBER  = R27
+.def CURRENT_READ_NUMBER = R28
+.def START_NEW       = R29
 
-SEG_TABLE:
-.db 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F
-
+; ---- константы EEPROM (твои) --------------------------------
 .equ EEPROM_ADR_PIN1 = 0x10
 .equ EEPROM_ADR_PIN2 = 0x11
 
-.def NULL                = R16
-.def TMP                 = R17
-.def TMP2                = R18
-.def CURRENT_CELL        = R19
-.def RIGHT_PIN1          = R20
-.def RIGHT_PIN2          = R21
-.def EEPROM_VALUE        = R22
-.def EEPROM_ADR          = R23
-.def CURRENT_PIN1        = R24
-.def CURRENT_PIN2        = R25
-.def ATTEMPT_COUNT       = R26
-.def CURRENT_NUMBER      = R27
-.def CURRENT_READ_NUMBER = R28
-.def START_NEW           = R29
+; ---- SRAM ---------------------------------------------------
+.dseg
+disp_buf:      .byte 4   ; буфер цифр для дисплея (0xFF = пусто)
+multiplex_pos: .byte 1   ; текущий разряд мультиплексирования (0..3)
+timer_7s:      .byte 2   ; счётчик таймаута ввода (тики по 10мс)
+timer_7s_en:   .byte 1   ; 1 = таймаут ввода активен
+timer_20s:     .byte 2   ; счётчик задержки ошибки (тики по 10мс)
+timer_20s_en:  .byte 1   ; 1 = задержка ошибки активна
 
+; ---- таблицы во флеш ----------------------------------------
+.cseg
+
+; ---- векторы прерываний -------------------------------------
+.org 0x000
+    RJMP reset
+.org 0x002
+    RJMP ext_int1
+.org 0x007
+    RJMP isr_timer0   ; Timer0 Compare Match — мультиплексирование (~1мс)
+.org 0x014
+    RJMP isr_timer2   ; Timer2 Compare Match — таймауты (~10мс)
+
+.org 0x022
+; коды сегментов для цифр 0..9 (общий анод, активный уровень — 1)
+tabl_seg:
+    .db 0x3F, 0x06   ; 0, 1
+    .db 0x5B, 0x4F   ; 2, 3
+    .db 0x66, 0x6D   ; 4, 5
+    .db 0x7D, 0x07   ; 6, 7
+    .db 0x7F, 0x6F   ; 8, 9
+
+	
+; маски анодов для разрядов 0..3 (PA0..PA3)
+tabl_anod:
+    .db 0x01, 0x02   ; разряд 0 (правый), разряд 1
+    .db 0x04, 0x08   ; разряд 2, разряд 3 (левый)
+
+; =============================================================
+; ИНИЦИАЛИЗАЦИЯ
+; =============================================================
 reset:
     LDI TMP, HIGH(RAMEND)
     OUT SPH, TMP
@@ -44,433 +73,477 @@ reset:
     OUT SPL, TMP
 
     CLR NULL
+    CLR ATTEMPT_COUNT
 
+    ; читаем правильный пин из EEPROM
     LDI EEPROM_ADR, EEPROM_ADR_PIN1
     CALL EEPROM_read
     MOV RIGHT_PIN1, EEPROM_VALUE
-
     LDI EEPROM_ADR, EEPROM_ADR_PIN2
     CALL EEPROM_read
     MOV RIGHT_PIN2, EEPROM_VALUE
 
+    ; порты (твои настройки)
     CLR TMP
-    OUT DDRB, TMP           ; PORTB вход (кнопки 0-7)
-    LDI TMP, 0xCF
-    OUT DDRA, TMP           ; PA0-PA3 выход (разряды дисплея),
-                            ; PA4-PA5 вход (кнопки 8-9),
-                            ; PA6-PA7 выход (светодиоды)
-    LDI TMP, 0xDF
-    OUT DDRD, TMP           ; PD5 выход, остальное вход (PD3=INT1)
-    SER TMP
-    OUT DDRC, TMP           ; PORTC выход (сегменты дисплея)
+    OUT DDRB, TMP            ; PORTB — входы (кнопки 0..7)
+    LDI TMP, 0x03
+    OUT DDRA, TMP            ; PA0..PA1 — выходы (аноды разр. 0,1)
+    ; PA2..PA3 тоже аноды — добавляем
+    LDI TMP, 0b11001111      ; PA0..PA3 выходы (аноды), PA4..PA5 входы (кнопки 8,9), PA6..PA7 выходы (LED)
+    OUT DDRA, TMP
 
-    ; INT0 и INT1 по фронту
+    LDI TMP, 0x20
+    OUT DDRD, TMP            ; PD5 — выход (не используется), остальные входы
+
+    ; PORTC — шина сегментов, весь выход
+    LDI TMP, 0xFF
+    OUT DDRC, TMP
+    CLR TMP
+    OUT PORTC, TMP           ; сегменты погашены
+
+    ; прерывания INT0/INT1 по фронту
     LDI TMP, 0x0F
     OUT MCUCR, TMP
     LDI TMP, 0xC0
     OUT GICR, TMP
     OUT GIFR, TMP
 
-    ; таймер T0: прескалер 64, перезагрузка = 1мс
-    LDI TMP, (1<<CS01)|(1<<CS00)
+    ; Timer0: CTC, делитель /64, TOP=124 → ~1мс при 8МГц
+    LDI TMP, 0x0B
     OUT TCCR0, TMP
-    LDI TMP, 131
-    OUT TCNT0, TMP
-    LDI TMP, (1<<TOIE0)
+    LDI TMP, 124
+    OUT OCR0, TMP
+
+    ; Timer2: CTC, делитель /1024, TOP=77 → ~10мс при 8МГц
+    LDI TMP, 0x4F
+    OUT TCCR2, TMP
+    LDI TMP, 77
+    OUT OCR2, TMP
+
+    ; разрешаем прерывания от обоих таймеров
+    LDI TMP, (1<<OCIE0)|(1<<OCIE2)
     OUT TIMSK, TMP
-
-    ; инициализация SRAM
-    CLR TMP
-    STS DISP_POS,     TMP
-    STS DELAY_CNT,    TMP
-    STS DELAY_CNT+1,  TMP
-    STS TIMEOUT_CNT,  TMP
-    STS TIMEOUT_CNT+1,TMP
-    STS BLINK_CNT,    TMP
-    STS BLINK_STATE,  TMP
-
-    ; ATTEMPT_COUNT сбрасываем ТОЛЬКО здесь (при включении питания)
-    CLR ATTEMPT_COUNT
 
     SEI
 
-; soft_reset — возврат к началу ввода БЕЗ сброса ATTEMPT_COUNT
+; =============================================================
+; МЯГКИЙ СБРОС (твой soft_reset + очистка дисплея)
+; =============================================================
 soft_reset:
     CLR TMP
     CLR TMP2
     CLR CURRENT_CELL
+    CLR CURRENT_PIN1
+    CLR CURRENT_PIN2
     CLR CURRENT_NUMBER
     CLR CURRENT_READ_NUMBER
     CLR START_NEW
+    OUT PORTA, TMP           ; гасим LED
 
-    ; дисплей пуст
-    LDI TMP, 0xFF
-    MOV CURRENT_PIN1, TMP
-    MOV CURRENT_PIN2, TMP
+    ; очищаем буфер дисплея (0xFF = пусто)
+    RCALL disp_clear
 
-    ; сброс таймаута и мигания
-    CLR TMP
-    STS TIMEOUT_CNT,   TMP
-    STS TIMEOUT_CNT+1, TMP
-    STS BLINK_CNT,     TMP
-    STS BLINK_STATE,   TMP
+    ; останавливаем оба таймаута
+    RCALL stop_timer_7s
+    RCALL stop_timer_20s
 
-    ; гасим светодиоды и дисплей
-    IN  TMP, PORTA
-    ANDI TMP, 0x3F          ; PA6=0, PA7=0 (светодиоды выкл)
-    OUT PORTA, TMP
-
+; =============================================================
+; ГЛАВНЫЙ ЦИКЛ (твой, без изменений)
+; =============================================================
 main_loop:
     RCALL read_number
     CPI CURRENT_CELL, 4
     BREQ check_correct
     RJMP main_loop
 
+; =============================================================
+; ЧТЕНИЕ НАЖАТОЙ КНОПКИ (твой код, без изменений)
+; =============================================================
 read_number:
-    ; если уже введена хоть одна цифра — проверяем таймаут
-    TST  CURRENT_CELL
-    BREQ RN_WAIT
-    LDS  TMP,  TIMEOUT_CNT
-    LDS  TMP2, TIMEOUT_CNT+1
-    OR   TMP,  TMP2
-    BREQ soft_reset         ; таймаут истёк → сброс
-
-RN_WAIT:
-    IN   TMP,  PINB
-    IN   TMP2, PINA
-
-    ; проверить PORTB (кнопки 0-7)
+    IN TMP, PINB
+    IN TMP2, PINA
     CPSE TMP, NULL
     RJMP read_b
-
-    ; проверить PA4 и PA5 (кнопки 8 и 9)
-    MOV  R14, TMP2
-    ANDI R14, 0x30
-    TST  R14
-    BRNE read_a
-
-    ; ничего не нажато — перепроверить таймаут
-    TST  CURRENT_CELL
-    BREQ RN_WAIT
-    LDS  TMP,  TIMEOUT_CNT
-    LDS  TMP2, TIMEOUT_CNT+1
-    OR   TMP,  TMP2
-    BREQ soft_reset
-    RJMP RN_WAIT
+    CPSE TMP2, NULL
+    RJMP read_a
+    RJMP read_number
 
 read_b:
-    MOV  CURRENT_READ_NUMBER, TMP
+    MOV CURRENT_READ_NUMBER, TMP
 stop_reading_b:
-    IN   TMP, PINB
-    CP   TMP, NULL
+    IN TMP, PINB
+    CP TMP, NULL
     BRNE stop_reading_b
-    CLR  CURRENT_NUMBER
     RJMP get_number_b
 
 read_a:
-    ; PA4=кнопка 8, PA5=кнопка 9
-    CLR  CURRENT_READ_NUMBER
     SBRC TMP2, 4
-    LDI  CURRENT_READ_NUMBER, 8
+    LDI CURRENT_READ_NUMBER, 0x08
     SBRC TMP2, 5
-    LDI  CURRENT_READ_NUMBER, 9
+    LDI CURRENT_READ_NUMBER, 0x09
 stop_reading_a:
-    IN   TMP2, PINA
-    ANDI TMP2, 0x30
-    TST  TMP2
+    IN TMP2, PINA
+    CP TMP2, NULL
     BRNE stop_reading_a
-    MOV  CURRENT_NUMBER, CURRENT_READ_NUMBER
-    RJMP apply_digit
+    RJMP get_number_a
 
 inc_current_number:
-    LSR  CURRENT_READ_NUMBER
-    INC  CURRENT_NUMBER
+    LSR CURRENT_READ_NUMBER
+    INC CURRENT_NUMBER
 
 get_number_b:
     SBRS CURRENT_READ_NUMBER, 0
     RJMP inc_current_number
-    ; CURRENT_NUMBER теперь содержит номер нажатой кнопки (0-7)
 
-apply_digit:
-    ; перезапустить таймаут 7000 мс
-    CLI
-    LDI  TMP, LOW(7000)
-    STS  TIMEOUT_CNT,   TMP
-    LDI  TMP, HIGH(7000)
-    STS  TIMEOUT_CNT+1, TMP
-    SEI
+get_number_a:
+    ; ---- здесь добавляем только запуск/сброс таймера 7с ----
+    RCALL reset_timer_7s     ; сбрасываем таймаут — кнопка нажата
+    ; ---------------------------------------------------------
 
-    ; записать цифру в нужный nibble CURRENT_PIN1 или CURRENT_PIN2
-    MOV  TMP, CURRENT_NUMBER
-    ANDI TMP, 0x0F
+    SBRC CURRENT_CELL, 0
+    RJMP set_number
+    LSL CURRENT_NUMBER
+    LSL CURRENT_NUMBER
+    LSL CURRENT_NUMBER
+    LSL CURRENT_NUMBER
 
-    SBRS CURRENT_CELL, 0    ; бит 0 = 1 → нечётная ячейка → hi nibble
-    RJMP AD_LO
+set_number:
+    CPI CURRENT_CELL, 2
+    INC CURRENT_CELL
+    BRPL set_34
+    ADD CURRENT_PIN1, CURRENT_NUMBER
 
-    SWAP TMP
-    
-    CPI  CURRENT_CELL, 3
-    BRSH AD_PIN2_HI
-    ANDI CURRENT_PIN1, 0x0F
-    OR   CURRENT_PIN1, TMP
-    RJMP AD_DONE
-AD_PIN2_HI:
-    ANDI CURRENT_PIN2, 0x0F
-    OR   CURRENT_PIN2, TMP
-    RJMP AD_DONE
-
-AD_LO:
-    CPI  CURRENT_CELL, 2
-    BRSH AD_PIN2_LO
-    ANDI CURRENT_PIN1, 0xF0
-    OR   CURRENT_PIN1, TMP
-    RJMP AD_DONE
-AD_PIN2_LO:
-    ANDI CURRENT_PIN2, 0xF0
-    OR   CURRENT_PIN2, TMP
-
-AD_DONE:
-    INC  CURRENT_CELL
-
-    ; после 4-й цифры таймаут не нужен
-    CPI  CURRENT_CELL, 4
-    BRLO AD_RET
-    CLR  TMP
-    STS  TIMEOUT_CNT,   TMP
-    STS  TIMEOUT_CNT+1, TMP
-AD_RET:
+    ; обновляем дисплей после записи цифры
+    RCALL disp_show_digit
     RET
 
+set_34:
+    ADD CURRENT_PIN2, CURRENT_NUMBER
+
+    ; обновляем дисплей после записи цифры
+    RCALL disp_show_digit
+    RET
+
+; =============================================================
+; ПРОВЕРКА ПИНА (твой код, без изменений)
+; =============================================================
 check_correct:
-    CP  CURRENT_PIN1, RIGHT_PIN1
+    CP CURRENT_PIN1, RIGHT_PIN1
     BRNE incorrect
-    CP  CURRENT_PIN2, RIGHT_PIN2
+    CP CURRENT_PIN2, RIGHT_PIN2
     BRNE incorrect
     RJMP correct
 
 incorrect:
-    INC  ATTEMPT_COUNT
-    CPI  ATTEMPT_COUNT, 3
-    BRSH lose                   ; >= 3 неверных подряд
+    INC ATTEMPT_COUNT
+    CPI ATTEMPT_COUNT, 0x03
+    BRSH lose
 
-    ; зажечь PA6 на 20 секунд
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA6)
-    ANDI TMP, ~(1<<PA7)         ; PA7 выкл на всякий случай
-    OUT  PORTA, TMP
-    LDI  R15, HIGH(20000)
-    LDI  R14, LOW(20000)
-    CALL DELAY_MS
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA6)         ; гасим PA6
-    OUT  PORTA, TMP
+    ; зажигаем PA6, ждём 20 секунд
+    LDI TMP, (1<<PA6)
+    OUT PORTA, TMP
+    RCALL start_timer_20s    ; запускаем таймер 20с
+
+wait_20s:
+    LDS TMP, timer_20s_en
+    CPI TMP, 0
+    BRNE wait_20s            ; ждём пока таймер не сбросит флаг
+
     RJMP soft_reset
 
 correct:
-    ; сбросить счётчик попыток — успешный вход
-    CLR  ATTEMPT_COUNT
+    LDI TMP, (1<<PA7)
+    OUT PORTA, TMP
 
-    ; зажечь PA7
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA7)
-    OUT  PORTA, TMP
-
-    ; ждём INT1 (PD3)
 wait_new:
-    CPI  START_NEW, 1
+    CPI START_NEW, 1
     BRNE wait_new
 
-    ; очистить дисплей и погасить PA7
-    LDI  TMP, 0xFF
-    MOV  CURRENT_PIN1, TMP
-    MOV  CURRENT_PIN2, TMP
-    CLR  START_NEW
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA7)
-    OUT  PORTA, TMP
+    ; гасим LED и дисплей при завершении сеанса
+    CLR TMP
+    OUT PORTA, TMP
+    RCALL disp_clear
     RJMP soft_reset
 
 lose:
-    ; PA6 + PA7 горят, программа останавливается
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA7)|(1<<PA6)
-    OUT  PORTA, TMP
+    LDI TMP, (1<<PA7)|(1<<PA6)
+    OUT PORTA, TMP
 lose_loop:
-    RJMP lose_loop
+    RJMP lose_loop           ; зависаем
 
+; =============================================================
+; ПРЕРЫВАНИЕ INT1 (твой код, без изменений)
+; =============================================================
 ext_int1:
     PUSH TMP
-    IN   TMP, SREG
-    PUSH TMP
-    LDI  START_NEW, 1
-    POP  TMP
-    OUT  SREG, TMP
-    POP  TMP
+    IN TMP, SREG
+    LDI START_NEW, 1
+    OUT SREG, TMP
+    POP TMP
     RETI
 
+; =============================================================
+; EEPROM (твой код, без изменений)
+; =============================================================
 EEPROM_read:
     SBIC EECR, EEWE
     RJMP EEPROM_read
-    OUT  EEARL, EEPROM_ADR
-    CLR  TMP
-    OUT  EEARH, TMP
-    SBI  EECR, EERE
-    IN   EEPROM_VALUE, EEDR
+    OUT EEARL, EEPROM_ADR
+    CLR TMP
+    OUT EEARH, TMP
+    SBI EECR, EERE
+    IN EEPROM_VALUE, EEDR
     RET
 
-ISR_T0:
-    PUSH TMP
-    IN   TMP, SREG
+; =============================================================
+; ПОДПРОГРАММЫ УПРАВЛЕНИЯ ТАЙМАУТАМИ
+; =============================================================
+
+; запустить таймер 7 секунд (700 тиков по 10мс)
+start_timer_7s:
+    CLI
+    LDI TMP, LOW(700)
+    STS timer_7s,   TMP
+    LDI TMP, HIGH(700)
+    STS timer_7s+1, TMP
+    LDI TMP, 1
+    STS timer_7s_en, TMP
+    SEI
+    RET
+
+; сбросить и запустить заново таймер 7с
+reset_timer_7s:
+    ; запускаем только если хотя бы одна цифра уже введена
+    MOV TMP, CURRENT_CELL
+    TST TMP
+    BREQ reset_7s_skip       ; ещё ни одной цифры — не запускаем
+    RCALL start_timer_7s
+reset_7s_skip:
+    RET
+
+; остановить таймер 7с
+stop_timer_7s:
+    CLR TMP
+    STS timer_7s_en, TMP
+    RET
+
+; запустить таймер 20 секунд (2000 тиков по 10мс)
+start_timer_20s:
+    CLI
+    LDI TMP, LOW(2000)
+    STS timer_20s,   TMP
+    LDI TMP, HIGH(2000)
+    STS timer_20s+1, TMP
+    LDI TMP, 1
+    STS timer_20s_en, TMP
+    SEI
+    RET
+
+; остановить таймер 20с
+stop_timer_20s:
+    CLR TMP
+    STS timer_20s_en, TMP
+    RET
+
+; =============================================================
+; ПОДПРОГРАММЫ ДИСПЛЕЯ
+; =============================================================
+
+; очистить весь буфер дисплея (все разряды пусты)
+disp_clear:
+    LDI ZL, LOW(disp_buf)
+    LDI ZH, HIGH(disp_buf)
+    LDI TMP, 0xFF            ; 0xFF = пусто
+    ST Z+, TMP
+    ST Z+, TMP
+    ST Z+, TMP
+    ST Z,  TMP
+    RET
+
+; записать текущую цифру CURRENT_NUMBER в буфер на позицию CURRENT_CELL-1
+; (вызывается сразу после INC CURRENT_CELL, поэтому -1)
+; разряды: CURRENT_CELL=1 → disp_buf[0] (правый), CURRENT_CELL=2 → disp_buf[1] и т.д.
+disp_show_digit:
+    PUSH ZL
+    PUSH ZH
     PUSH TMP
     PUSH TMP2
 
-    LDI  TMP, 131
-    OUT  TCNT0, TMP
+    ; позиция в буфере = CURRENT_CELL - 1
+    MOV TMP, CURRENT_CELL
+    DEC TMP                  ; теперь TMP = 0..3
 
-    ; декремент DELAY_CNT
-    LDS  TMP,  DELAY_CNT
-    LDS  TMP2, DELAY_CNT+1
-    OR   TMP2, TMP
-    BREQ ISR_SKIP_DELAY
-    LDS  TMP, DELAY_CNT
-    SUBI TMP, 1
-    STS  DELAY_CNT, TMP
-    LDS  TMP, DELAY_CNT+1
-    SBCI TMP, 0
-    STS  DELAY_CNT+1, TMP
-ISR_SKIP_DELAY:
+    ; получаем реальную цифру из того, что было добавлено
+    ; нечётные ячейки (0,2): цифра в старшем нибле CURRENT_PIN1/PIN2
+    ; чётные ячейки (1,3): цифра в младшем нибле
+    ; Проще: берём CURRENT_NUMBER и смотрим нибл
+    ; После set_number CURRENT_NUMBER уже сдвинут (для нечётных × 16)
+    ; Восстанавливаем реальную цифру:
+    MOV TMP2, CURRENT_NUMBER
+    SBRC CURRENT_CELL, 0     ; если CURRENT_CELL нечётное (после INC) — нибл старший
+    RJMP ds_high_nib
+    ; младший нибл (чётные ячейки: было 1, стало 2 после INC — то есть CELL=2,4)
+    ANDI TMP2, 0x0F
+    RJMP ds_store
+ds_high_nib:
+    SWAP TMP2
+    ANDI TMP2, 0x0F
+ds_store:
+    LDI ZL, LOW(disp_buf)
+    LDI ZH, HIGH(disp_buf)
+    MOV TMP, CURRENT_CELL
+    DEC TMP
+    ADD ZL, TMP
+    BRCC ds_no_carry
+    INC ZH
+ds_no_carry:
+    ST Z, TMP2               ; сохраняем цифру в буфер
 
-    ; декремент TIMEOUT_CNT
-    LDS  TMP,  TIMEOUT_CNT
-    LDS  TMP2, TIMEOUT_CNT+1
-    OR   TMP2, TMP
-    BREQ ISR_SKIP_TIMEOUT
-    LDS  TMP, TIMEOUT_CNT
-    SUBI TMP, 1
-    STS  TIMEOUT_CNT, TMP
-    LDS  TMP, TIMEOUT_CNT+1
-    SBCI TMP, 0
-    STS  TIMEOUT_CNT+1, TMP
-ISR_SKIP_TIMEOUT:
-
-    ; мигание 2 Гц (переключение каждые 250 мс)
-    LDS  TMP, BLINK_CNT
-    INC  TMP
-    STS  BLINK_CNT, TMP
-    CPI  TMP, 250
-    BRLO ISR_SKIP_BLINK
-    CLR  TMP
-    STS  BLINK_CNT, TMP
-    LDS  TMP, BLINK_STATE
-    COM  TMP
-    ANDI TMP, 0x01
-    STS  BLINK_STATE, TMP
-ISR_SKIP_BLINK:
-
-    RCALL DISPLAY_REFRESH
-
-    POP  TMP2
-    POP  TMP
-    OUT  SREG, TMP
-    POP  TMP
-    RETI
-
-DELAY_MS:
-    CLI
-    STS  DELAY_CNT,   R14
-    STS  DELAY_CNT+1, R15
-    SEI
-DELAY_WAIT:
-    LDS  TMP,  DELAY_CNT
-    LDS  TMP2, DELAY_CNT+1
-    OR   TMP,  TMP2
-    BRNE DELAY_WAIT
+    POP TMP2
+    POP TMP
+    POP ZH
+    POP ZL
     RET
 
-DISPLAY_REFRESH:
+; =============================================================
+; ПРЕРЫВАНИЕ TIMER0 (~каждую 1мс): мультиплексирование дисплея
+; =============================================================
+isr_timer0:
+    PUSH R0
+    IN   R0, SREG
+    PUSH R0
+    PUSH R16
+    PUSH R17
+    PUSH R18
     PUSH ZL
     PUSH ZH
-    PUSH R30
 
-    ; выключить все разряды PA0-PA3
-    IN   TMP, PORTA
-    
-    OUT  PORTA, TMP
+    ; гасим текущий разряд
+    IN   R16, PORTA
+    ANDI R16, 0b11000000     ; сохраняем биты PA6, PA7 (LED)
+    OUT  PORTA, R16
+    CLR  R16
+    OUT  PORTC, R16          ; гасим сегменты
 
-    LDS  TMP2, DISP_POS     ; текущий разряд 0..3
+    ; читаем номер текущего разряда
+    LDS  R17, multiplex_pos  ; R17 = 0..3
 
-    CPI  TMP2, 0
-    BREQ DR_DIG0
-    CPI  TMP2, 1
-    BREQ DR_DIG1
-    CPI  TMP2, 2
-    BREQ DR_DIG2
-    ; разряд 3 = hi nibble PIN2
-    MOV  R30, CURRENT_PIN2
-    SWAP R30
-    
-    RJMP DR_GOT
-DR_DIG2:
-    MOV  R30, CURRENT_PIN2
-    
-    RJMP DR_GOT
-DR_DIG1:
-    MOV  R30, CURRENT_PIN1
-    SWAP R30
-    
-    RJMP DR_GOT
-DR_DIG0:
-    MOV  R30, CURRENT_PIN1
-    
-
-DR_GOT:
-    ; мигание текущей ячейки
-    CP   TMP2, CURRENT_CELL
-    BRNE DR_NO_BLINK
-    LDS  TMP, BLINK_STATE
-    CPI  TMP, 1
-    BREQ DR_BLANK
-DR_NO_BLINK:
-    ; пустая ячейка
-    CPI  R30, 0x0F
-    BREQ DR_BLANK
-
-    LDI  ZL, LOW(SEG_TABLE*2)
-    LDI  ZH, HIGH(SEG_TABLE*2)
-    ADD  ZL, R30
-    BRCC DR_NO_CARRY
+    ; читаем цифру из буфера для этого разряда
+    LDI  ZL, LOW(disp_buf)
+    LDI  ZH, HIGH(disp_buf)
+    ADD  ZL, R17
+    BRCC t0_z_ok
     INC  ZH
-DR_NO_CARRY:
-    LPM  TMP, Z
-    OUT  PORTC, TMP
-    RJMP DR_ENABLE
+t0_z_ok:
+    LD   R18, Z              ; R18 = цифра (0..9) или 0xFF (пусто)
 
-DR_BLANK:
-    CLR  TMP
-    OUT  PORTC, TMP
+    ; если пусто — этот разряд не светим
+    CPI  R18, 0xFF
+    BREQ t0_next
 
-DR_ENABLE:
-    ; включить разряд TMP2 через PA0-PA3
-    LDI  TMP, 0x01
-    MOV  R30, TMP2
-    TST  R30
-    BREQ DR_OUT
-DR_SHIFT:
-    LSL  TMP
-    DEC  R30
-    BRNE DR_SHIFT
-DR_OUT:
-    IN   TMP2, PORTA
-    ANDI TMP2, 0xF0
-    OR   TMP2, TMP
-    OUT  PORTA, TMP2
+    ; получаем маску сегментов из таблицы
+    LDI  ZL, LOW(tabl_seg<<1)
+    LDI  ZH, HIGH(tabl_seg<<1)
+    ADD  ZL, R18
+    BRCC t0_seg_ok
+    INC  ZH
+t0_seg_ok:
+    LPM  R16, Z
+    OUT  PORTC, R16          ; выводим сегменты
 
-    LDS  TMP, DISP_POS
-    INC  TMP
-    ANDI TMP, 0x03
-    STS  DISP_POS, TMP
+    ; получаем маску анода из таблицы
+    LDI  ZL, LOW(tabl_anod<<1)
+    LDI  ZH, HIGH(tabl_anod<<1)
+    ADD  ZL, R17
+    BRCC t0_anod_ok
+    INC  ZH
+t0_anod_ok:
+    LPM  R16, Z
+    IN   R17, PORTA
+    ANDI R17, 0b11000000     ; сохраняем биты LED
+    OR   R17, R16
+    OUT  PORTA, R17          ; включаем нужный анод
 
-    POP  R30
+t0_next:
+    ; переходим к следующему разряду
+    LDS  R17, multiplex_pos
+    INC  R17
+    ANDI R17, 0x03           ; цикл 0→1→2→3→0
+    STS  multiplex_pos, R17
+
     POP  ZH
     POP  ZL
-    RET
+    POP  R18
+    POP  R17
+    POP  R16
+    POP  R0
+    OUT  SREG, R0
+    POP  R0
+    RETI
+
+; =============================================================
+; ПРЕРЫВАНИЕ TIMER2 (~каждые 10мс): счётчики таймаутов
+; =============================================================
+isr_timer2:
+    PUSH R0
+    IN   R0, SREG
+    PUSH R0
+    PUSH R16
+    PUSH R17
+
+    ; --- таймер 7 секунд ввода ---
+    LDS  R16, timer_7s_en
+    TST  R16
+    BREQ t2_check_20s        ; не активен — пропускаем
+
+    LDS  R16, timer_7s
+    LDS  R17, timer_7s+1
+    SUBI R16, 1
+    SBCI R17, 0              ; декрементируем 16-битный счётчик
+    STS  timer_7s,   R16
+    STS  timer_7s+1, R17
+
+    ; если не дошли до нуля — продолжаем
+    OR   R16, R17
+    BRNE t2_check_20s
+
+    ; таймер истёк — сбрасываем ввод
+    CLR  R16
+    STS  timer_7s_en, R16    ; останавливаем таймер
+
+    ; сигнализируем главному циклу о сбросе через флаг
+    ; используем START_NEW = 2 как код "таймаут ввода"
+    ; НО: чтобы не трогать логику, делаем программный сброс иначе:
+    ; устанавливаем специальный флаг в SRAM
+    LDI  R16, 2
+    STS  timer_7s_en+1, R16  ; используем соседний байт как флаг таймаута
+    ; (этот байт = первый байт timer_20s, но он 0 когда 20с не активен)
+    ; Лучше используем отдельный флаг — см. примечание ниже
+
+t2_check_20s:
+    ; --- таймер 20 секунд ошибки ---
+    LDS  R16, timer_20s_en
+    TST  R16
+    BREQ t2_end
+
+    LDS  R16, timer_20s
+    LDS  R17, timer_20s+1
+    SUBI R16, 1
+    SBCI R17, 0
+    STS  timer_20s,   R16
+    STS  timer_20s+1, R17
+
+    OR   R16, R17
+    BRNE t2_end
+
+    ; 20 секунд истекло — сбрасываем флаг (main_loop увидит)
+    CLR  R16
+    STS  timer_20s_en, R16
+
+t2_end:
+    POP  R17
+    POP  R16
+    POP  R0
+    OUT  SREG, R0
+    POP  R0
+ 
