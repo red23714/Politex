@@ -40,9 +40,9 @@ reset:
 
     CLR TMP ; 0x00
     OUT DDRB, TMP ; ????
-    LDI TMP, 0x03
+    LDI TMP, 0xC0
     OUT DDRA, TMP 
-    LDI TMP, 0x20
+    LDI TMP, 0xF3
     OUT DDRD, TMP
 
     LDI TMP, 0x0F
