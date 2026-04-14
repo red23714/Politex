@@ -53,10 +53,6 @@ typedef struct queue_t
 
 } queue_t;
 
-//////////////////////////////////////////////////////////////
-// INIT
-//////////////////////////////////////////////////////////////
-
 int queue_init(queue_t* q)
 {
 	if (!q)
@@ -89,10 +85,6 @@ int queue_init(queue_t* q)
 	return 0;
 }
 
-//////////////////////////////////////////////////////////////
-// DESTROY
-//////////////////////////////////////////////////////////////
-
 void queue_destroy(queue_t* q)
 {
 #ifdef _WIN32
@@ -119,10 +111,6 @@ void queue_destroy(queue_t* q)
 	sem_destroy(&q->semaphore);
 #endif
 }
-
-//////////////////////////////////////////////////////////////
-// POP
-//////////////////////////////////////////////////////////////
 
 task_t queue_pop(queue_t* q)
 {
@@ -163,10 +151,6 @@ task_t queue_pop(queue_t* q)
 
 	return t;
 }
-
-//////////////////////////////////////////////////////////////
-// PUSH
-//////////////////////////////////////////////////////////////
 
 void queue_push(queue_t* q, task_func_t func, void* arg)
 {
@@ -213,10 +197,6 @@ void queue_push(queue_t* q, task_func_t func, void* arg)
 	sem_post(&q->semaphore);
 #endif
 }
-
-//////////////////////////////////////////////////////////////
-// WORKER
-//////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
 DWORD WINAPI worker(LPVOID arg)
@@ -287,10 +267,6 @@ void* worker(void* arg)
 #endif
 }
 
-//////////////////////////////////////////////////////////////
-// STOP
-//////////////////////////////////////////////////////////////
-
 void queue_stop_and_wait(queue_t* q)
 {
 #ifdef _WIN32
@@ -347,12 +323,8 @@ struct task_data
 	queue_t* q;
 };
 
-// счетчик задач
 atomic<int> tasks_in_progress(0);
 
-//////////////////////////////////////////////////////////////
-// Обычный quicksort (для маленьких кусков)
-//////////////////////////////////////////////////////////////
 void quicksort_serial(int* arr, int left, int right)
 {
 	if (left >= right)
@@ -382,9 +354,6 @@ void quicksort_serial(int* arr, int left, int right)
 		quicksort_serial(arr, i, right);
 }
 
-//////////////////////////////////////////////////////////////
-// Задача для пула
-//////////////////////////////////////////////////////////////
 void quicksort_task(void* arg)
 {
 	task_data* data = (task_data*)arg;
@@ -401,7 +370,6 @@ void quicksort_task(void* arg)
 		return;
 	}
 
-	// маленький массив — сортируем локально
 	if (right - left <= THRESHOLD)
 	{
 		quicksort_serial(arr, left, right);
@@ -428,7 +396,6 @@ void quicksort_task(void* arg)
 		}
 	}
 
-	// создаем подзадачи
 	if (left < j)
 	{
 		task_data* left_task = new task_data{arr, left, j, q};
@@ -447,9 +414,6 @@ void quicksort_task(void* arg)
 	tasks_in_progress--;
 }
 
-//////////////////////////////////////////////////////////////
-// MAIN
-//////////////////////////////////////////////////////////////
 int main()
 {
 	ifstream fin("input.txt");
@@ -466,9 +430,6 @@ int main()
 	for (int i = 0; i < N; i++)
 		fin >> arr[i];
 
-	//////////////////////////////////////////////////////////////
-	// Инициализация очереди
-	//////////////////////////////////////////////////////////////
 	queue_t queue;
 	queue_init(&queue);
 
@@ -480,7 +441,6 @@ int main()
 
 	vector<thread_t> threads(num_threads);
 
-	// создаем пул потоков
 	for (int i = 0; i < num_threads; i++)
 	{
 #ifdef _WIN32
@@ -490,16 +450,12 @@ int main()
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////
-	// Запуск сортировки (замер времени)
-	//////////////////////////////////////////////////////////////
 	auto start = chrono::high_resolution_clock::now();
 
 	task_data* initial = new task_data{arr.data(), 0, N - 1, &queue};
 	tasks_in_progress = 1;
 	queue_push(&queue, quicksort_task, initial);
 
-	// ждем завершения всех задач
 	while (tasks_in_progress > 0)
 	{
 		this_thread::yield();
@@ -507,9 +463,6 @@ int main()
 
 	auto end = chrono::high_resolution_clock::now();
 
-	//////////////////////////////////////////////////////////////
-	// Остановка потоков
-	//////////////////////////////////////////////////////////////
 	queue_stop_and_wait(&queue);
 
 	for (int i = 0; i < num_threads; i++)
@@ -522,9 +475,6 @@ int main()
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////
-	// Запись результатов
-	//////////////////////////////////////////////////////////////
 	fout << num_threads << "\n";
 	fout << N << "\n";
 

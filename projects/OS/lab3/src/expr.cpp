@@ -96,10 +96,6 @@ int queue_init(queue_t* q)
 	return 0;
 }
 
-//////////////////////////////////////////////////////////////
-// DESTROY
-//////////////////////////////////////////////////////////////
-
 void queue_destroy(queue_t* q)
 {
 #ifdef _WIN32
@@ -126,10 +122,6 @@ void queue_destroy(queue_t* q)
 	sem_destroy(&q->semaphore);
 #endif
 }
-
-//////////////////////////////////////////////////////////////
-// POP
-//////////////////////////////////////////////////////////////
 
 task_t queue_pop(queue_t* q)
 {
@@ -170,10 +162,6 @@ task_t queue_pop(queue_t* q)
 
 	return t;
 }
-
-//////////////////////////////////////////////////////////////
-// PUSH
-//////////////////////////////////////////////////////////////
 
 void queue_push(queue_t* q, task_func_t func, void* arg)
 {
@@ -220,10 +208,6 @@ void queue_push(queue_t* q, task_func_t func, void* arg)
 	sem_post(&q->semaphore);
 #endif
 }
-
-//////////////////////////////////////////////////////////////
-// WORKER
-//////////////////////////////////////////////////////////////
 
 #ifdef _WIN32
 DWORD WINAPI worker(LPVOID arg)
@@ -294,10 +278,6 @@ void* worker(void* arg)
 #endif
 }
 
-//////////////////////////////////////////////////////////////
-// STOP
-//////////////////////////////////////////////////////////////
-
 void queue_stop_and_wait(queue_t* q)
 {
 #ifdef _WIN32
@@ -337,10 +317,6 @@ void queue_stop_and_wait(queue_t* q)
 
 #endif
 
-// =========================
-// GLOBALS
-// =========================
-
 volatile int variants_count = 0;
 
 #ifdef _WIN32
@@ -348,10 +324,6 @@ CRITICAL_SECTION count_mutex;
 #else
 pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
-
-// =========================
-// UTILS
-// =========================
 
 void clean_array(int* array, int target, int right_num)
 {
@@ -391,10 +363,6 @@ void write_variant(int* buf, int target)
 	pthread_mutex_unlock(&count_mutex);
 #endif
 }
-
-// =========================
-// TASK
-// =========================
 
 typedef struct
 {
@@ -460,10 +428,6 @@ void count_variants(void* arg)
 			val_pos++;
 	}
 }
-
-// =========================
-// MAIN
-// =========================
 
 int main()
 {

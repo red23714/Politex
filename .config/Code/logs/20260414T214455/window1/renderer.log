@@ -1,0 +1,12 @@
+2026-04-14 21:44:57.051 [info] ChatSessionStore: Migrating 0 chat sessions from storage service to file system
+2026-04-14 21:44:57.257 [info] Started local extension host with pid 17377.
+2026-04-14 21:44:57.538 [error] Extension 'ms-python.vscode-python-envs' appears in product.json but enables LESS API proposals than the extension wants.
+package.json (LOSES): terminalShellEnv, terminalDataWriteEvent
+product.json (WINS): terminalShellEnv
+2026-04-14 21:44:58.257 [info] MCP Registry configured: https://api.mcp.github.com/2025-09-15
+2026-04-14 21:44:58.492 [info] Settings Sync: Account status changed from uninitialized to unavailable
+2026-04-14 21:45:00.332 [info] [perf] Render performance baseline is 48ms
+2026-04-14 21:45:01.285 [info] Auto updating outdated extensions. ms-python.python, ms-python.vscode-pylance, ms-vscode.cmake-tools, ms-vscode.cpptools, ms-vscode.cpptools-extension-pack
+2026-04-14 21:45:02.712 [error] Extension 'ms-python.vscode-python-envs' appears in product.json but enables LESS API proposals than the extension wants.
+package.json (LOSES): terminalShellEnv, terminalDataWriteEvent
+product.json (WINS): terminalShellEnv

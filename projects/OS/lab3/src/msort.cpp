@@ -1,162 +1,80 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <algorithm>
-#include <chrono>
-#include <atomic>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "queue_win.h"
-
-using namespace std;
-
-static vector<int> arr;
-static vector<int> temp;
-
-const int THRESHOLD = 1000;
-
-queue_t q;
-
-// ---------------- TASK ----------------
-struct Task
+void merge(int arr[], int l, int m, int r)
 {
-	int l, r;
-	Task* parent;
-	int remaining; // atomic-like usage (safe via queue execution order)
-};
+	int i, j, k;
+	int n1 = m - l + 1;
+	int n2 = r - m;
 
-// ---------------- MERGE ----------------
-void merge(int l, int m, int r)
-{
-	int i = l, j = m + 1, k = l;
+	int L[n1], R[n2];
 
-	while (i <= m && j <= r)
+	for (i = 0; i < n1; i++)
 	{
-		if (arr[i] <= arr[j])
-			temp[k++] = arr[i++];
+		L[i] = arr[l + i];
+	}
+	for (j = 0; j < n2; j++)
+	{
+		R[j] = arr[m + 1 + j];
+	}
+
+	i = 0;
+	j = 0;
+	k = l;
+	while (i < n1 && j < n2)
+	{
+		if (L[i] <= R[j])
+		{
+			arr[k] = L[i];
+			i++;
+		}
 		else
-			temp[k++] = arr[j++];
-	}
-
-	while (i <= m)
-		temp[k++] = arr[i++];
-	while (j <= r)
-		temp[k++] = arr[j++];
-
-	for (int x = l; x <= r; x++)
-		arr[x] = temp[x];
-}
-
-// ---------------- TASK FUNCTION ----------------
-void mergesort_task(void* arg)
-{
-	Task* t = (Task*)arg;
-	int l = t->l;
-	int r = t->r;
-	Task* parent = t->parent;
-
-	delete t;
-
-	if (l >= r)
-	{
-		if (parent)
 		{
-			if (--parent->remaining == 0)
-			{
-				queue_push(&q, mergesort_task, parent);
-			}
+			arr[k] = R[j];
+			j++;
 		}
-		return;
+		k++;
 	}
 
-	if (r - l <= THRESHOLD)
+	while (i < n1)
 	{
-		sort(arr.begin() + l, arr.begin() + r + 1);
-
-		if (parent)
-		{
-			if (--parent->remaining == 0)
-			{
-				queue_push(&q, mergesort_task, parent);
-			}
-		}
-		return;
+		arr[k] = L[i];
+		i++;
+		k++;
 	}
 
-	int m = (l + r) / 2;
-
-	Task* current = new Task{l, r, parent, 2};
-
-	Task* left = new Task{l, m, current, 0};
-	Task* right = new Task{m + 1, r, current, 0};
-
-	queue_push(&q, mergesort_task, left);
-	queue_push(&q, mergesort_task, right);
+	while (j < n2)
+	{
+		arr[k] = R[j];
+		j++;
+		k++;
+	}
 }
 
-// ---------------- ROOT WRAPPER ----------------
-void root_task(void* arg)
+void merge_sort(int arr[], int l, int r)
 {
-	Task* t = (Task*)arg;
+	if (l < r)
+	{
+		int m = l + (r - l) / 2;
 
-	mergesort_task(t);
+		merge_sort(arr, l, m);
+		merge_sort(arr, m + 1, r);
+
+		merge(arr, l, m, r);
+	}
 }
 
-// ---------------- MAIN ----------------
 int main()
 {
-	ifstream fin("input.txt");
-	ofstream fout("output.txt");
-	ofstream ft("time.txt");
 
-	int threads, n;
-	fin >> threads >> n;
+	int arr[] = {38, 27, 43, 10};
+	int arr_size = sizeof(arr) / sizeof(arr[0]);
 
-	arr.resize(n);
-	temp.resize(n);
-
-	for (int i = 0; i < n; i++)
-		fin >> arr[i];
-
-	queue_init(&q);
-
-	pthread_t* th = new pthread_t[threads];
-
-	for (int i = 0; i < threads; i++)
-	{
-		pthread_create(&th[i], nullptr, worker, &q);
-	}
-
-	Task* root = new Task{0, n - 1, nullptr, 0};
-
-	auto start = chrono::high_resolution_clock::now();
-
-	queue_push(&q, mergesort_task, root);
-
-	queue_stop_and_wait(&q);
-
-	auto end = chrono::high_resolution_clock::now();
-
-	long long ms =
-		chrono::duration_cast<chrono::milliseconds>(end - start).count();
-
-	for (int i = 0; i < threads; i++)
-		pthread_join(th[i], nullptr);
-
-	fout << threads << "\n";
-	fout << n << "\n";
-
-	for (int i = 0; i < n; i++)
-	{
-		fout << arr[i];
-		if (i + 1 < n)
-			fout << " ";
-	}
-
-	ft << ms << "\n";
-
-	queue_destroy(&q);
-
-	delete[] th;
+	merge_sort(arr, 0, arr_size - 1);
+	int i;
+	for (i = 0; i < arr_size; i++)
+		printf("%d ", arr[i]);
+	printf("\n");
 
 	return 0;
 }

@@ -1,29 +1,4 @@
 
-[INFO] 2026-04-10 21:02:57 dap/session.lua:1601	"Process exit"	"lldb-dap"	0	26859
-[INFO] 2026-04-10 21:03:13 dap/session.lua:1002	"Breakpoint unverified"	{
-  column = 27,
-  id = 1,
-  instructionReference = "0xFFFFFFFFFFFFFFFF",
-  line = 53,
-  source = {
-    name = "expr.cpp",
-    path = "/home/red/Documents/Politex/projects/OS/lab3/src/expr.cpp"
-  },
-  verified = false
-}
 
-[INFO] 2026-04-10 21:03:31 dap/session.lua:1601	"Process exit"	"lldb-dap"	0	27053
-[INFO] 2026-04-10 21:04:27 dap/session.lua:1002	"Breakpoint unverified"	{
-  column = 27,
-  id = 1,
-  instructionReference = "0xFFFFFFFFFFFFFFFF",
-  line = 53,
-  source = {
-    name = "expr.cpp",
-    path = "/home/red/Documents/Politex/projects/OS/lab3/src/expr.cpp"
-  },
-  verified = false
-}
-
-
-[INFO] 2026-04-10 21:06:39 dap/session.lua:1996	"Session closed due to disconnect"
+[INFO] 2026-04-14 23:29:50 dap/session.lua:1996	"Session closed due to disconnect"
+[INFO] 2026-04-14 23:29:50 dap/session.lua:1601	"Process exit"	"lldb-dap"	0	47672

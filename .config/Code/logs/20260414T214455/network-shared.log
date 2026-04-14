@@ -1,0 +1,3 @@
+2026-04-14 21:45:12.487 [error] #12: https://ms-python.gallery.vsassets.io/_apis/public/gallery/publisher/ms-python/extension/vscode-pylance/2025.10.4/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage?redirect=true&update=true - error GET Request timeout after 10000ms
+2026-04-14 21:45:12.555 [error] #13: https://ms-vscode.gallerycdn.vsassets.io/extensions/ms-vscode/cpp-devtools/0.4.6/1773857721548/Microsoft.VisualStudio.Code.Manifest - error GET Request timeout after 10000ms
+2026-04-14 21:45:12.580 [error] #15: https://ms-vscode.gallery.vsassets.io/_apis/public/gallery/publisher/ms-vscode/extension/cmake-tools/1.22.28/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage?redirect=true&update=true - error GET Request timeout after 10000ms
