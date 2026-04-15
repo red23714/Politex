@@ -1,0 +1,158 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <fstream>
+#include <chrono>
+#include <vector>
+
+#include "queue.h"
+
+#define TRESHOLD 1000
+
+typedef struct
+{
+	int l;
+	int r;
+	int m;
+	int arr[];
+} merge_sort_arg_t;
+
+void merge(int arr[], int l, int m, int r)
+{
+	int i, j, k;
+	int n1 = m - l + 1;
+	int n2 = r - m;
+
+	int L[n1], R[n2];
+
+	for (i = 0; i < n1; i++)
+	{
+		L[i] = arr[l + i];
+	}
+	for (j = 0; j < n2; j++)
+	{
+		R[j] = arr[m + 1 + j];
+	}
+
+	i = 0;
+	j = 0;
+	k = l;
+	while (i < n1 && j < n2)
+	{
+		if (L[i] <= R[j])
+		{
+			arr[k] = L[i];
+			i++;
+		}
+		else
+		{
+			arr[k] = R[j];
+			j++;
+		}
+		k++;
+	}
+
+	while (i < n1)
+	{
+		arr[k] = L[i];
+		i++;
+		k++;
+	}
+
+	while (j < n2)
+	{
+		arr[k] = R[j];
+		j++;
+		k++;
+	}
+}
+
+void merge_sort(int arr[], int l, int r)
+{
+	if (l < r)
+	{
+		int m = l + (r - l) / 2;
+
+		merge_sort(arr, l, m);
+		merge_sort(arr, m + 1, r);
+
+		merge(arr, l, m, r);
+	}
+}
+
+void merge_sort_task(void* arg)
+{
+	merge_sort_arg_t* args = (merge_sort_arg_t*)arg;
+	if (args->l - args->r > TRESHOLD)
+	{
+		args->m = args->l + (args->r - args->l) / 2;
+
+		merge_sort_task(args);
+		merge_sort_task(args);
+	}
+
+	int new_size = args->l - args->r;
+	int arr[new_size];
+	int k = args->l;
+	for (int i = 0; i < new_size; i++)
+	{
+		arr[i] = args->arr[k];
+		k++;
+	}
+	merge_sort(arr, args->l, args->r);
+}
+
+int main()
+{
+	std::ifstream fin("input.txt");
+	std::ofstream fout("output.txt");
+	std::ofstream ftime("time.txt");
+
+	int target;
+	int threads_count;
+
+	fin >> threads_count;
+	fin >> target;
+
+	queue_t q;
+	queue_init(&q);
+
+	std::vector<pthread_t> threads(threads_count);
+
+	for (int i = 0; i < threads_count; i++)
+	{
+		pthread_create(&threads[i], NULL, worker, &q);
+	}
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+	for (int i = 1; i < target; i++)
+	{
+		count_variants_args_t* args =
+			(count_variants_args_t*)malloc(sizeof(count_variants_args_t));
+
+		args->target = target;
+		args->right_num = i;
+
+		queue_push(&q, count_variants, args);
+	}
+
+	queue_stop_and_wait(&q);
+
+	auto end = std::chrono::high_resolution_clock::now();
+
+	for (int i = 0; i < threads_count; i++)
+	{
+		pthread_join(threads[i], NULL);
+	}
+
+	queue_destroy(&q);
+
+	fout << threads_count << "\n";
+	fout << target << "\n";
+
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+				  .count();
+	ftime << ms;
+
+	return 0;
+}

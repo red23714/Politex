@@ -454,9 +454,6 @@ int main()
 	std::vector<pthread_t> threads(threads_count);
 #endif
 
-	// =========================
-	// START THREADS
-	// =========================
 	for (int i = 0; i < threads_count; i++)
 	{
 #ifdef _WIN32
@@ -466,14 +463,8 @@ int main()
 #endif
 	}
 
-	// =========================
-	// TIME START (ТОЛЬКО АЛГОРИТМ)
-	// =========================
 	auto start = std::chrono::high_resolution_clock::now();
 
-	// =========================
-	// TASKS (НЕ ТРОГАЕМ ЛОГИКУ)
-	// =========================
 	for (int i = 1; i < target; i++)
 	{
 		count_variants_args_t* args =
@@ -489,9 +480,6 @@ int main()
 
 	auto end = std::chrono::high_resolution_clock::now();
 
-	// =========================
-	// JOIN THREADS
-	// =========================
 	for (int i = 0; i < threads_count; i++)
 	{
 #ifdef _WIN32
@@ -508,9 +496,6 @@ int main()
 	DeleteCriticalSection(&count_mutex);
 #endif
 
-	// =========================
-	// OUTPUT FILES
-	// =========================
 	fout << threads_count << "\n";
 	fout << target << "\n";
 	fout << variants_count << "\n";
