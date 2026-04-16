@@ -1,56 +1,14 @@
 .include "m32def.inc"
 
-.def  rA = r16                 ; рабочий регистр A
-.def  rB = r17                 ; рабочий регистр B
-.def  rC = r18                 ; рабочий регистр C
-
-.dseg
-pin_cifry:      .byte 4        ; 4 цифры пин-кода
-tekush_poz:     .byte 1        ; на какой цифре сейчас стоим (0..3)
-mig_schetchik:  .byte 1        ; считаем тики до следующего моргания
-mig_sostoyanie: .byte 1        ; 0 = курсор виден, 1 = курсор скрыт
-taymaut_ml:     .byte 1        ; младший байт счётчика таймаута
-taymaut_st:     .byte 1        ; старший байт счётчика таймаута
-taymaut_vkl:    .byte 1        ; 1 = таймаут идёт, 0 = не идёт
-multipleks:     .byte 1        ; какой разряд дисплея сейчас светится
-prev_portB:     .byte 1        ; состояние порта B на прошлом шаге
-prev_portA:     .byte 1        ; состояние порта A на прошлом шаге
-prev_portD:     .byte 1        ; состояние порта D на прошлом шаге
-
-.cseg
-
-.org 0x0000
-    JMP reset
-.org INT1addr
-    JMP ext_int1
-.org OC2addr
-    RJMP  prervanie_taimer2    ; прерывание таймера 2 — мигание и таймаут
-.org OC0addr
-    RJMP  prervanie_taimer0    ; прерывание таймера 0 — обновление дисплея
-
-; сбрасываем счётчик мигания и гасим курсор
-sbros_miganiya:
-    CLR   rA
-    STS   mig_schetchik,  rA   ; счётчик в ноль
-    STS   mig_sostoyanie, rA   ; курсор показываем
-    RET
-
-; останавливаем таймаут и сбрасываем его счётчик
-sbros_taymaut:
-    CLR   rA
-    STS   taymaut_ml,  rA      ; младший байт в ноль
-    STS   taymaut_st,  rA      ; старший байт в ноль
-    STS   taymaut_vkl, rA      ; выключаем таймаут
-    RET
-
-
-
 .equ EEPROM_ADR_PIN1 = 0x10
 .equ EEPROM_ADR_PIN2 = 0x11
 
-.def NULL = R28
-.def TMP = R29
-.def TMP2 = R30
+.def FLAG_TIMER_20 = R13
+.def FLAG_TIMER_7 = R14
+.def START_NEW = R15
+.def NULL = R16
+.def TMP = R17
+.def TMP2 = R18
 .def CURRENT_CELL = R19
 .def RIGHT_PIN1 = R20
 .def RIGHT_PIN2 = R21
@@ -61,7 +19,16 @@ sbros_taymaut:
 .def ATTEMPT_COUNT = R26
 .def CURRENT_NUMBER = R27
 .def CURRENT_READ_NUMBER = R28
-.def START_NEW = R29
+.def COUNTER = R29
+.def SECONDS = R30
+
+.org $000
+    JMP reset
+.org INT1addr
+    JMP ext_int1
+.org OVF0addr
+    RJMP TIMER0_OVF
+
 
 reset: 
     LDI TMP, HIGH(RAMEND)
@@ -86,29 +53,16 @@ reset:
     OUT DDRA, TMP 
     LDI TMP, 0xF3
     OUT DDRD, TMP
-    
-    CLR TMP
-    STS   tekush_poz,     TMP
-    STS   mig_schetchik,  TMP
-    STS   mig_sostoyanie, TMP
-    STS   taymaut_ml,     TMP
-    STS   taymaut_st,     TMP
-    STS   taymaut_vkl,    TMP
-    STS   multipleks,     TMP
 
-    LDI   TMP, 0x0B
-    OUT   TCCR0, TMP            ; таймер 0: режим CTC, делитель /64
-    LDI   TMP, 124
-    OUT   OCR0, TMP             ; TOP=124, при 8МГц даёт прерывание каждую мс
+    ; Предделитель /1024 — исправлено
+    ldi TMP, (1<<CS02)|(1<<CS00)
+    out TCCR0, TMP
 
-    LDI   TMP, 0x4F
-    OUT   TCCR2, TMP            ; таймер 2: режим CTC, делитель /1024
-    LDI   TMP, 77
-    OUT   OCR2, TMP             ; TOP=77, даёт ~100 прерываний в секунду
+    CLR COUNTER
 
-    LDI   TMP, (1<<OCIE2)|(1<<OCIE0)
-    OUT   TIMSK, TMP            ; разрешаем прерывания от обоих таймеров
- 
+    IN TMP, TIMSK
+    ORI TMP, (1<<TOIE0)
+    OUT TIMSK, TMP
 
     LDI TMP, 0x0F
     OUT MCUCR, TMP ; ????????? ?????????? int0 ? int1 ?? ??????? 0/1
@@ -149,6 +103,11 @@ read_number:
     RJMP read_number
 
 read_b:
+    CALL delay
+
+    CP TMP, NULL 
+    BREQ read_number
+
     MOV CURRENT_READ_NUMBER, TMP
 stop_reading_b:
     IN TMP, PINB
@@ -157,6 +116,11 @@ stop_reading_b:
     RJMP get_number_b
 
 read_a:
+    CALL delay
+
+    CP TMP2, NULL 
+    BREQ read_number
+
     SBRC TMP2, 4
     LDI CURRENT_READ_NUMBER, 0x08
     SBRC TMP2, 5
@@ -194,37 +158,6 @@ set_34:
     ADD CURRENT_PIN2, CURRENT_NUMBER
     RET
 
-; записываем цифру rC на текущую позицию пин-кода
-vvod_cifry:
-    LDS   rA, tekush_poz       ; берём текущую позицию
-    LDI   ZL, LOW(pin_cifry)
-    LDI   ZH, HIGH(pin_cifry)
-    ADD   ZL, rA               ; смещаем указатель Z на нужный элемент
-    BRCC  vc_ok
-    INC   ZH                   ; был перенос — поправляем старший байт
-vc_ok:
-    ST    Z, rC                ; сохраняем цифру
-
-    CLR   rA
-    STS   taymaut_ml, rA       ; сбрасываем счётчик таймаута
-    STS   taymaut_st, rA       ; пользователь только что нажал кнопку
-
-    LDS   rA, tekush_poz
-    CPI   rA, 3                ; это была 4-я (последняя) цифра?
-    BRNE  vc_ne_poslednyaya
-    RCALL sohranit_pin         ; да — сохраняем пин в EEPROM
-    RJMP  zavershenie          ; и завершаем ввод
-
-vc_ne_poslednyaya:
-    INC   rA
-    STS   tekush_poz, rA       ; переходим к следующей цифре
-    RCALL sbros_miganiya       ; сбрасываем мигание для нового разряда
-    LDI   rA, 1
-    STS   taymaut_vkl, rA      ; запускаем таймаут — ждём следующую цифру
-    RET
-
-
-
 check_correct:
     CP CURRENT_PIN1, RIGHT_PIN1
     BRNE incorrect
@@ -238,15 +171,29 @@ incorrect:
     CPI ATTEMPT_COUNT, 0x03
     BRSH lose
 
+    CLR FLAG_TIMER_20
+    LDI TMP, 0
+    OUT TCNT0, TMP
+    CLR SECONDS
+
+incorrect_loop:
     LDI  TMP, (1<<PA6)
     OUT PORTA, TMP
+    
+	MOV TMP, FLAG_TIMER_20
+    CPI TMP, 1
+    BRNE incorrect_loop
+
+    CLR FLAG_TIMER_20
+
     RJMP soft_reset
 
 correct:
     LDI TMP, (1 << PA7)
     OUT PORTA, TMP
 wait_new:
-    CPI START_NEW, 1
+	MOV TMP, START_NEW
+    CPI TMP, 1
     BRNE wait_new
     RJMP soft_reset
 
@@ -254,10 +201,40 @@ ext_int1:
     PUSH TMP
     IN TMP, SREG
     
-    LDI START_NEW, 1
+    INC START_NEW
 
     OUT SREG, TMP
     POP TMP
+    RETI
+
+TIMER0_OVF:
+    INC COUNTER
+    CPI COUNTER, 30
+    BRNE OVF_EXIT
+    
+    INC SECONDS
+
+	OUT PORTC, SECONDS
+
+    CPI SECONDS, 7
+    BREQ set_flag_7
+
+    CPI SECONDS, 20
+    BREQ set_flag_20
+
+    CLR COUNTER 
+
+    RJMP OVF_EXIT
+
+set_flag_7:
+    INC FLAG_TIMER_7
+    RJMP OVF_EXIT
+
+set_flag_20:
+    INC FLAG_TIMER_20
+    RJMP OVF_EXIT
+
+OVF_EXIT:
     RETI
 
 EEPROM_read:
@@ -278,3 +255,19 @@ lose:
 
     OUT PORTA, TMP
     RJMP lose
+
+delay: ; ???????? 120 ??
+    LDI R31, 5
+    LDI R30, 223
+    LDI R29, 188
+
+delay_freq_loop:
+    DEC R29
+    BRNE delay_freq_loop
+    DEC R30
+    BRNE delay_freq_loop
+    DEC R31
+    BRNE delay_freq_loop
+    NOP
+    NOP
+    RET
