@@ -28,8 +28,10 @@
     JMP reset
 .org INT1addr
     JMP ext_int1
-.org OVF0addr
-    RJMP TIMER0_OVF
+.org OVF1addr
+    RJMP TIMER1_OVF
+.org OC0addr
+	RJMP TIMER0_COMP
 
 SEG_TABLE:
     .db 0b00111111, 0b00000110   ; 0, 1
@@ -66,12 +68,18 @@ reset:
     OUT DDRD, TMP
 
     ; ???????????? /1024
-    ldi TMP, (1<<CS02)|(1<<CS00)
-    out TCCR0, TMP
+    LDI TMP, (1<<CS11)|(1<<CS10)
+    OUT TCCR1B, TMP
 
-    IN TMP, TIMSK
-    ORI TMP, (1<<TOIE0)
+    ;IN TMP, TIMSK
+    LDI TMP, (1<<TOIE1)|(1<<OCIE0)
     OUT TIMSK, TMP
+
+	LDI TMP, (1<<WGM01)|(1<<CS01)|(1<<CS00) ; CTC, /64
+	OUT TCCR0, TMP
+
+	LDI TMP, 124
+	OUT OCR0, TMP
 
     LDI TMP, 0x0F
     OUT MCUCR, TMP 
@@ -125,8 +133,9 @@ incorrect:
     BRSH lose
 
     CLR FLAG_TIMER_20
-    LDI TMP, 0
-    OUT TCNT0, TMP
+    CLR TMP
+	OUT TCNT1H, TMP
+	OUT TCNT1L, TMP
     CLR SECONDS_20
 	CLR COUNTER
 
@@ -186,9 +195,9 @@ read_number:
 
 read_b:
     NOP
-	NOP
-	NOP
-	NOP
+    NOP
+    NOP
+    NOP
 
 	IN TMP, PINB
     CP TMP, NULL 
@@ -207,9 +216,9 @@ stop_reading_b:
 
 read_a:
     NOP
-	NOP
-	NOP
-	NOP
+    NOP
+    NOP
+    NOP
 
 	IN TMP2, PINA
     CP TMP2, NULL 
@@ -275,9 +284,9 @@ ext_int1:
     POP TMP
     RETI
 
-TIMER0_OVF:
+TIMER1_OVF:
     INC COUNTER
-    CPI COUNTER, 31
+    CPI COUNTER, 2
     BRNE OVF_EXIT
 
     CLR COUNTER 
@@ -312,6 +321,18 @@ set_flag_20:
 OVF_EXIT:
     RETI
 
+TIMER0_COMP:
+    PUSH TMP
+    IN TMP, SREG
+    PUSH TMP
+
+    RCALL display_update
+
+    POP TMP
+    OUT SREG, TMP
+    POP TMP
+    RETI
+
 display_update:
     PUSH TMP
     PUSH TMP2
@@ -336,7 +357,7 @@ display_update:
     IN   TMP, PORTA
     ORI  TMP, (1<<PA0)
     OUT  PORTA, TMP
-    CALL display_pause
+	CALL display_pause
     IN   TMP, PORTA
     ANDI TMP, ~(1<<PA0)
     OUT  PORTA, TMP
@@ -355,7 +376,7 @@ display_update:
     IN   TMP, PORTA
     ORI  TMP, (1<<PA1)
     OUT  PORTA, TMP
-    CALL display_pause
+	CALL display_pause
     IN   TMP, PORTA
     ANDI TMP, ~(1<<PA1)
     OUT  PORTA, TMP
@@ -365,13 +386,13 @@ display_update:
     BRLO DISP_DONE
 
     MOV  TMP2, CURRENT_PIN2
-    ANDI TMP2, 0x0F
+	ANDI TMP2, 0x0F
     CALL display_show_digit
 
     IN   TMP, PORTA
     ORI  TMP, (1<<PA2)
     OUT  PORTA, TMP
-    CALL display_pause
+	CALL display_pause
     IN   TMP, PORTA
     ANDI TMP, ~(1<<PA2)
     OUT  PORTA, TMP
@@ -421,10 +442,6 @@ DSH_NO_CARRY:
     OUT  PORTC, TMP
     RET
 
-
-; ============================================================
-; display_pause — ~1 ?? ??? 8 ???
-; ============================================================
 display_pause:
     PUSH R26
     PUSH R27
@@ -436,6 +453,7 @@ DP_LOOP:
     POP  R27
     POP  R26
     RET
+
 
 EEPROM_read:
     SBIC EECR, EEWE  

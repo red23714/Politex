@@ -31,16 +31,6 @@
 .org OVF0addr
     RJMP TIMER0_OVF
 
-SEG_TABLE:
-    .db 0b00111111, 0b00000110   ; 0, 1
-    .db 0b01011011, 0b01001111   ; 2, 3
-    .db 0b01100110, 0b01101101   ; 4, 5
-    .db 0b01111101, 0b00000111   ; 6, 7
-    .db 0b01111111, 0b01101111   ; 8, 9
-    .db 0b01110111, 0b01111100   ; A, b
-    .db 0b00111001, 0b01011110   ; C, d
-    .db 0b01111001, 0b01110001   ; E, F
-
 reset: 
     LDI TMP, HIGH(RAMEND)
     OUT SPH, TMP
@@ -60,12 +50,12 @@ reset:
 
     CLR TMP ; 0x00
     OUT DDRB, TMP 
-    LDI TMP, 0xCF
+    LDI TMP, 0xC0
     OUT DDRA, TMP 
     LDI TMP, 0xF3
     OUT DDRD, TMP
 
-    ; ???????????? /1024
+    ; Предделитель /1024
     ldi TMP, (1<<CS02)|(1<<CS00)
     out TCCR0, TMP
 
@@ -97,10 +87,12 @@ soft_reset:
     CLR START_NEW
     OUT PORTA, TMP
 
-	IN   TMP, PORTA
-    ANDI TMP, 0b11000000    ; PA0-PA3 = LOW, PA6/PA7 ?? ???????
-    OUT  PORTA, TMP
-    OUT  PORTC, NULL
+	LDI TMP, 0b10000000
+	OUT PORTC, TMP
+	CALL delay
+	LDI TMP, 0b00000000
+	OUT PORTC, TMP
+	CLR TMP
 
 main_loop:
     RCALL read_number
@@ -133,8 +125,6 @@ incorrect:
 incorrect_loop:
     LDI  TMP, (1<<PA6)
     OUT PORTA, TMP
-
-	;CALL display_update
     
 	MOV TMP, FLAG_TIMER_20
     CPI TMP, 1
@@ -174,8 +164,6 @@ read_number:
     IN TMP, PINB
     IN TMP2, PINA
 
-    CALL display_update
-
     CPSE TMP, NULL 
     RJMP read_b
 
@@ -185,12 +173,8 @@ read_number:
     RJMP check_7sec
 
 read_b:
-    NOP
-	NOP
-	NOP
-	NOP
+    CALL delay
 
-	IN TMP, PINB
     CP TMP, NULL 
     BREQ read_number
     
@@ -202,16 +186,11 @@ stop_reading_b:
     IN TMP, PINB
     CP TMP, NULL
     BRNE stop_reading_b
-    CLR CURRENT_NUMBER
     RJMP get_number_b
 
 read_a:
-    NOP
-	NOP
-	NOP
-	NOP
+    CALL delay
 
-	IN TMP2, PINA
     CP TMP2, NULL 
     BREQ read_number
 
@@ -219,14 +198,14 @@ read_a:
 	CLR COUNTER
 
     SBRC TMP2, 4
-    LDI CURRENT_NUMBER, 0x08
+    LDI CURRENT_READ_NUMBER, 0x08
     SBRC TMP2, 5
-    LDI CURRENT_NUMBER, 0x09
+    LDI CURRENT_READ_NUMBER, 0x09
 stop_reading_a:
     IN TMP2, PINA
     CP TMP2, NULL
     BRNE stop_reading_a
-    RJMP set_number
+    RJMP get_number_a
 
 inc_current_number:
     LSR CURRENT_READ_NUMBER
@@ -235,35 +214,25 @@ inc_current_number:
 get_number_b:
     SBRS CURRENT_READ_NUMBER, 0
     RJMP inc_current_number
-set_number:
-    INC CURRENT_CELL
-    CPI CURRENT_CELL, 3
-    BRPL set_34
-	
-	CPI CURRENT_CELL, 2
-	BREQ shift_number
+get_number_a:
+    SBRC CURRENT_CELL, 0
+    RJMP set_number
+    LSL CURRENT_NUMBER
+    LSL CURRENT_NUMBER
+    LSL CURRENT_NUMBER
+    LSL CURRENT_NUMBER
 
-write_12:
-    OR CURRENT_PIN1, CURRENT_NUMBER
+set_number: 
+    INC CURRENT_CELL
+    CPI CURRENT_CELL, 2
+    BRPL set_34
+
+    ADD CURRENT_PIN1, CURRENT_NUMBER
+
     RET
 set_34: 
-    CPI CURRENT_CELL, 4
-	BREQ shift_number
-
-write_34:
-    OR CURRENT_PIN2, CURRENT_NUMBER
+    ADD CURRENT_PIN2, CURRENT_NUMBER
     RET
-
-shift_number:
-    LSL CURRENT_NUMBER
-    LSL CURRENT_NUMBER
-    LSL CURRENT_NUMBER
-    LSL CURRENT_NUMBER
-
-	CPI CURRENT_CELL, 3
-    BRPL write_34
-
-	RJMP write_12
 
 ext_int1:
     PUSH TMP
@@ -288,7 +257,6 @@ TIMER0_OVF:
     CPI SECONDS_7, 7
     BREQ set_flag_7
 
-check_20:
     CPI SECONDS_20, 20
     BREQ set_flag_20
 
@@ -299,7 +267,7 @@ set_flag_7:
     BRNE cur_cel_0
     CLR SECONDS_7
 
-	RJMP check_20
+	RJMP OVF_EXIT
 
 cur_cel_0:
 	INC FLAG_TIMER_7
@@ -312,131 +280,6 @@ set_flag_20:
 OVF_EXIT:
     RETI
 
-display_update:
-    PUSH TMP
-    PUSH TMP2
-    PUSH ZL
-    PUSH ZH
-    IN   TMP, SREG
-    PUSH TMP
-
-    IN   TMP, PORTA
-    ANDI TMP, 0b11000000
-    OUT  PORTA, TMP
-    OUT  PORTC, NULL
-
-    ; === Дисплей 1 — младший полубайт CURRENT_PIN1 ===
-    CPI  CURRENT_CELL, 1
-    BRLO DISP_DONE
-
-    MOV  TMP2, CURRENT_PIN1
-    ANDI TMP2, 0x0F
-    CALL display_show_digit
-
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA0)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA0)
-    OUT  PORTA, TMP
-
-    ; === Дисплей 2 — старший полубайт CURRENT_PIN1 ===
-    CPI  CURRENT_CELL, 2
-    BRLO DISP_DONE
-
-    MOV  TMP2, CURRENT_PIN1
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    CALL display_show_digit
-
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA1)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA1)
-    OUT  PORTA, TMP
-
-    ; === Дисплей 3 — младший полубайт CURRENT_PIN2 ===
-    CPI  CURRENT_CELL, 3
-    BRLO DISP_DONE
-
-    MOV  TMP2, CURRENT_PIN2
-    ANDI TMP2, 0x0F
-    CALL display_show_digit
-
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA2)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA2)
-    OUT  PORTA, TMP
-
-    ; === Дисплей 4 — старший полубайт CURRENT_PIN2 ===
-    CPI  CURRENT_CELL, 4
-    BRLO DISP_DONE
-
-    MOV  TMP2, CURRENT_PIN2
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    CALL display_show_digit
-
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA3)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA3)
-    OUT  PORTA, TMP
-
-DISP_DONE:
-    OUT  PORTC, NULL
-
-    POP  TMP
-    OUT  SREG, TMP
-    POP  ZH
-    POP  ZL
-    POP  TMP2
-    POP  TMP
-    RET
-; ============================================================
-; display_show_digit
-; ????: TMP2 = ????? 0..15
-; ?????: ????? ???????? ? PORTC
-; ============================================================
-display_show_digit:
-    LDI  ZL, low(SEG_TABLE*2)
-    LDI  ZH, high(SEG_TABLE*2)
-    ADD  ZL, TMP2
-    BRCC DSH_NO_CARRY
-    INC  ZH
-DSH_NO_CARRY:
-    LPM  TMP, Z
-    OUT  PORTC, TMP
-    RET
-
-
-; ============================================================
-; display_pause — ~1 ?? ??? 8 ???
-; ============================================================
-display_pause:
-    PUSH R26
-    PUSH R27
-    LDI  R27, high(2667)
-    LDI  R26, low(2667)
-DP_LOOP:
-    SBIW R26, 1
-    BRNE DP_LOOP
-    POP  R27
-    POP  R26
-    RET
-
 EEPROM_read:
     SBIC EECR, EEWE  
     RJMP EEPROM_read
@@ -447,4 +290,20 @@ EEPROM_read:
     SBI EECR, EERE 
     IN EEPROM_VALUE, EEDR
 
+    RET
+
+delay: ; ???????? 120 ??
+    LDI R31, 5
+    LDI R30, 223
+    LDI R29, 188
+
+delay_freq_loop:
+    DEC R29
+    BRNE delay_freq_loop
+    DEC R30
+    BRNE delay_freq_loop
+    DEC R31
+    BRNE delay_freq_loop
+    NOP
+    NOP
     RET
