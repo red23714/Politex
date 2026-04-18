@@ -13,8 +13,8 @@
 .def CURRENT_CELL = R19
 .def RIGHT_PIN1 = R20
 .def RIGHT_PIN2 = R21
-.def EEPROM_VALUE = R22
-.def EEPROM_ADR = R23
+.def TIMER_TMP = R22
+.def DISP_CELL = R23
 .def CURRENT_PIN1 = R24
 .def CURRENT_PIN2 = R25
 .def CURRENT_NUMBER = R26
@@ -22,14 +22,15 @@
 .def COUNTER = R28
 .def SECONDS_7 = R29
 .def SECONDS_20 = R30
-.def CUURENT_CELL_DISP = R31
 
 .org $000
     JMP reset
 .org INT1addr
     JMP ext_int1
-.org OVF0addr
-    RJMP TIMER0_OVF
+.org OVF1addr
+    RJMP TIMER1_OVF
+.org OC0addr
+	RJMP TIMER0_COMP
 
 SEG_TABLE:
     .db 0b00111111, 0b00000110   ; 0, 1
@@ -49,14 +50,14 @@ reset:
 
     CLR NULL ; 0x00
     CLR ATTEMPT_COUNT
-   
-    LDI EEPROM_ADR, EEPROM_ADR_PIN1
+	
+    LDI TMP, EEPROM_ADR_PIN1
     CALL EEPROM_read
-    MOV RIGHT_PIN1, EEPROM_VALUE
+    MOV RIGHT_PIN1, TMP2
 
-    LDI EEPROM_ADR, EEPROM_ADR_PIN2
+    LDI TMP, EEPROM_ADR_PIN2
     CALL EEPROM_read
-    MOV RIGHT_PIN2, EEPROM_VALUE
+    MOV RIGHT_PIN2, TMP2
 
     CLR TMP ; 0x00
     OUT DDRB, TMP 
@@ -66,12 +67,18 @@ reset:
     OUT DDRD, TMP
 
     ; ???????????? /1024
-    ldi TMP, (1<<CS02)|(1<<CS00)
-    out TCCR0, TMP
+    LDI TMP, (1<<CS11)|(1<<CS10)
+    OUT TCCR1B, TMP
 
-    IN TMP, TIMSK
-    ORI TMP, (1<<TOIE0)
+    ;IN TMP, TIMSK
+    LDI TMP, (1<<TOIE1)|(1<<OCIE0)
     OUT TIMSK, TMP
+
+	LDI TMP, (1<<WGM01)|(1<<CS01)|(1<<CS00) ; CTC, /64
+	OUT TCCR0, TMP
+
+	LDI TMP, 124
+	OUT OCR0, TMP
 
     LDI TMP, 0x0F
     OUT MCUCR, TMP 
@@ -101,14 +108,7 @@ soft_reset:
     ANDI TMP, 0b11000000    ; PA0-PA3 = LOW, PA6/PA7 ?? ???????
     OUT  PORTA, TMP
     OUT  PORTC, NULL
-
-main_loop:
-    RCALL read_number
-	
-    CPI CURRENT_CELL, 4
-    BREQ check_correct
-
-    RJMP main_loop
+    RJMP read_number
 
 check_correct:
     CP CURRENT_PIN1, RIGHT_PIN1
@@ -125,17 +125,17 @@ incorrect:
     BRSH lose
 
     CLR FLAG_TIMER_20
-    LDI TMP, 0
-    OUT TCNT0, TMP
+    CLR TMP
+	OUT TCNT1H, TMP
+	OUT TCNT1L, TMP
     CLR SECONDS_20
 	CLR COUNTER
 
-incorrect_loop:
-    LDI  TMP, (1<<PA6)
+	IN TMP, PORTA
+    ORI  TMP, (1<<PA6)
     OUT PORTA, TMP
 
-	;CALL display_update
-    
+incorrect_loop:
 	MOV TMP, FLAG_TIMER_20
     CPI TMP, 1
     BRNE incorrect_loop
@@ -171,10 +171,12 @@ rjmp_soft_reset:
 	RJMP soft_reset
 
 read_number:
+	CPI CURRENT_CELL, 4
+    BREQ check_correct
+
     IN TMP, PINB
     IN TMP2, PINA
-
-    CALL display_update
+	ANDI TMP2, 0b00110000
 
     CPSE TMP, NULL 
     RJMP read_b
@@ -186,9 +188,9 @@ read_number:
 
 read_b:
     NOP
-	NOP
-	NOP
-	NOP
+    NOP
+    NOP
+    NOP
 
 	IN TMP, PINB
     CP TMP, NULL 
@@ -207,11 +209,12 @@ stop_reading_b:
 
 read_a:
     NOP
-	NOP
-	NOP
-	NOP
+    NOP
+    NOP
+    NOP
 
 	IN TMP2, PINA
+	ANDI TMP2, 0b00110000
     CP TMP2, NULL 
     BREQ read_number
 
@@ -224,6 +227,7 @@ read_a:
     LDI CURRENT_NUMBER, 0x09
 stop_reading_a:
     IN TMP2, PINA
+	ANDI TMP2, 0b00110000
     CP TMP2, NULL
     BRNE stop_reading_a
     RJMP set_number
@@ -233,6 +237,7 @@ inc_current_number:
     INC CURRENT_NUMBER
 
 get_number_b:
+	OUT PORTC, CURRENT_READ_NUMBER
     SBRS CURRENT_READ_NUMBER, 0
     RJMP inc_current_number
 set_number:
@@ -245,14 +250,14 @@ set_number:
 
 write_12:
     OR CURRENT_PIN1, CURRENT_NUMBER
-    RET
+    RJMP read_number
 set_34: 
     CPI CURRENT_CELL, 4
 	BREQ shift_number
 
 write_34:
     OR CURRENT_PIN2, CURRENT_NUMBER
-    RET
+    RJMP read_number
 
 shift_number:
     LSL CURRENT_NUMBER
@@ -275,9 +280,9 @@ ext_int1:
     POP TMP
     RETI
 
-TIMER0_OVF:
+TIMER1_OVF:
     INC COUNTER
-    CPI COUNTER, 31
+    CPI COUNTER, 2
     BRNE OVF_EXIT
 
     CLR COUNTER 
@@ -312,139 +317,102 @@ set_flag_20:
 OVF_EXIT:
     RETI
 
-display_update:
-    PUSH TMP
-    PUSH TMP2
-    PUSH ZL
-    PUSH ZH
-    IN   TMP, SREG
-    PUSH TMP
+TIMER0_COMP:
+	PUSH  TIMER_TMP
+    IN    TIMER_TMP, SREG             ; сохраняем флаги
+    PUSH  TIMER_TMP
+    PUSH  ZL
+    PUSH  ZH
 
-    IN   TMP, PORTA
-    ANDI TMP, 0b11000000
-    OUT  PORTA, TMP
+    IN   TIMER_TMP, PORTA
+    ANDI TIMER_TMP, 0b11000000
+    OUT  PORTA, TIMER_TMP
     OUT  PORTC, NULL
 
-    ; === Дисплей 1 — младший полубайт CURRENT_PIN1 ===
-    CPI  CURRENT_CELL, 1
-    BRLO DISP_DONE
+    CPI  DISP_CELL, 0
+    BREQ d1
+	CPI  DISP_CELL, 1
+    BREQ d2
+	CPI  DISP_CELL, 2
+    BREQ d3
+	CPI  DISP_CELL, 3
+    BREQ d4
 
-    MOV  TMP2, CURRENT_PIN1
-    ANDI TMP2, 0x0F
-    CALL display_show_digit
+	RJMP OC0_EXIT
 
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA0)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA0)
-    OUT  PORTA, TMP
+d1:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA3)
+    OUT  PORTA, TIMER_TMP
 
-    ; === Дисплей 2 — старший полубайт CURRENT_PIN1 ===
-    CPI  CURRENT_CELL, 2
-    BRLO DISP_DONE
+    MOV  TIMER_TMP, CURRENT_PIN1
+    ANDI TIMER_TMP, 0x0F
+    RJMP display_show_digit
 
-    MOV  TMP2, CURRENT_PIN1
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    CALL display_show_digit
+d2:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA2)
+    OUT  PORTA, TIMER_TMP
 
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA1)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA1)
-    OUT  PORTA, TMP
+    MOV  TIMER_TMP, CURRENT_PIN1
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    RJMP display_show_digit
 
-    ; === Дисплей 3 — младший полубайт CURRENT_PIN2 ===
-    CPI  CURRENT_CELL, 3
-    BRLO DISP_DONE
+d3:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA1)
+    OUT  PORTA, TIMER_TMP
 
-    MOV  TMP2, CURRENT_PIN2
-    ANDI TMP2, 0x0F
-    CALL display_show_digit
+    MOV  TIMER_TMP, CURRENT_PIN2
+    ANDI TIMER_TMP, 0x0F
+    RJMP display_show_digit
 
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA2)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA2)
-    OUT  PORTA, TMP
+d4:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA0)
+    OUT  PORTA, TIMER_TMP
 
-    ; === Дисплей 4 — старший полубайт CURRENT_PIN2 ===
-    CPI  CURRENT_CELL, 4
-    BRLO DISP_DONE
+    MOV  TIMER_TMP, CURRENT_PIN2
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    RJMP display_show_digit
 
-    MOV  TMP2, CURRENT_PIN2
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    LSR  TMP2
-    CALL display_show_digit
-
-    IN   TMP, PORTA
-    ORI  TMP, (1<<PA3)
-    OUT  PORTA, TMP
-    CALL display_pause
-    IN   TMP, PORTA
-    ANDI TMP, ~(1<<PA3)
-    OUT  PORTA, TMP
-
-DISP_DONE:
-    OUT  PORTC, NULL
-
-    POP  TMP
-    OUT  SREG, TMP
-    POP  ZH
-    POP  ZL
-    POP  TMP2
-    POP  TMP
-    RET
-; ============================================================
-; display_show_digit
-; ????: TMP2 = ????? 0..15
-; ?????: ????? ???????? ? PORTC
-; ============================================================
 display_show_digit:
     LDI  ZL, low(SEG_TABLE*2)
     LDI  ZH, high(SEG_TABLE*2)
-    ADD  ZL, TMP2
+    ADD  ZL, TIMER_TMP
     BRCC DSH_NO_CARRY
     INC  ZH
 DSH_NO_CARRY:
-    LPM  TMP, Z
-    OUT  PORTC, TMP
-    RET
+    LPM  TIMER_TMP, Z
+    OUT  PORTC, TIMER_TMP
+    RJMP OC0_EXIT
 
+OC0_EXIT:
+	INC DISP_CELL
+	ANDI DISP_CELL, 0x03
 
-; ============================================================
-; display_pause — ~1 ?? ??? 8 ???
-; ============================================================
-display_pause:
-    PUSH R26
-    PUSH R27
-    LDI  R27, high(2667)
-    LDI  R26, low(2667)
-DP_LOOP:
-    SBIW R26, 1
-    BRNE DP_LOOP
-    POP  R27
-    POP  R26
-    RET
+	POP   ZH
+    POP   ZL
+    POP   TIMER_TMP
+    OUT   SREG, TIMER_TMP             ; восстанавливаем флаги
+    POP   TIMER_TMP
+
+	RETI
+
 
 EEPROM_read:
     SBIC EECR, EEWE  
     RJMP EEPROM_read
 
-    OUT EEARL, EEPROM_ADR
-    CLR TMP
-    OUT EEARH, TMP 
+    OUT EEARL, TMP
+    OUT EEARH, NULL 
     SBI EECR, EERE 
-    IN EEPROM_VALUE, EEDR
+    IN TMP2, EEDR
 
     RET

@@ -3,10 +3,6 @@
 .equ EEPROM_ADR_PIN1 = 0x10
 .equ EEPROM_ADR_PIN2 = 0x11
 
-.dseg
-disp_buf:   .byte 4   ; 4 цифры для отображения (0..15)
-disp_mux:   .byte 1   ; текущий активный разряд (0..3)
-
 .def ATTEMPT_COUNT = R12
 .def FLAG_TIMER_20 = R13
 .def FLAG_TIMER_7 = R14
@@ -17,8 +13,8 @@ disp_mux:   .byte 1   ; текущий активный разряд (0..3)
 .def CURRENT_CELL = R19
 .def RIGHT_PIN1 = R20
 .def RIGHT_PIN2 = R21
-.def EEPROM_VALUE = R22
-.def EEPROM_ADR = R23
+.def TIMER_TMP = R22
+.def DISP_CELL = R23
 .def CURRENT_PIN1 = R24
 .def CURRENT_PIN2 = R25
 .def CURRENT_NUMBER = R26
@@ -26,9 +22,7 @@ disp_mux:   .byte 1   ; текущий активный разряд (0..3)
 .def COUNTER = R28
 .def SECONDS_7 = R29
 .def SECONDS_20 = R30
-.def TMP_BUTTON = R31
 
-.cseg
 .org $000
     JMP reset
 .org INT1addr
@@ -56,14 +50,14 @@ reset:
 
     CLR NULL ; 0x00
     CLR ATTEMPT_COUNT
-   
-    LDI EEPROM_ADR, EEPROM_ADR_PIN1
+	
+    LDI TMP, EEPROM_ADR_PIN1
     CALL EEPROM_read
-    MOV RIGHT_PIN1, EEPROM_VALUE
+    MOV RIGHT_PIN1, TMP2
 
-    LDI EEPROM_ADR, EEPROM_ADR_PIN2
+    LDI TMP, EEPROM_ADR_PIN2
     CALL EEPROM_read
-    MOV RIGHT_PIN2, EEPROM_VALUE
+    MOV RIGHT_PIN2, TMP2
 
     CLR TMP ; 0x00
     OUT DDRB, TMP 
@@ -101,19 +95,7 @@ soft_reset:
     CLR SECONDS_20
     CLR COUNTER
     CLR TMP
-
-	LDI  ZL, low(disp_buf)
-    LDI  ZH, high(disp_buf)
-    CLR  TMP
-    ST   Z+, TMP
-    ST   Z+, TMP
-    ST   Z+, TMP
-    ST   Z,  TMP
-    CLR  TMP
-    STS  disp_mux, TMP
-
     CLR TMP2
-	CLR TMP_BUTTON
     CLR CURRENT_CELL
     CLR CURRENT_PIN1
     CLR CURRENT_PIN2
@@ -126,14 +108,7 @@ soft_reset:
     ANDI TMP, 0b11000000    ; PA0-PA3 = LOW, PA6/PA7 ?? ???????
     OUT  PORTA, TMP
     OUT  PORTC, NULL
-
-main_loop:
-    RCALL read_number
-	
-    CPI CURRENT_CELL, 4
-    BREQ check_correct
-
-    RJMP main_loop
+    RJMP read_number
 
 check_correct:
     CP CURRENT_PIN1, RIGHT_PIN1
@@ -159,8 +134,6 @@ incorrect:
 incorrect_loop:
     LDI  TMP, (1<<PA6)
     OUT PORTA, TMP
-
-	;CALL display_update
     
 	MOV TMP, FLAG_TIMER_20
     CPI TMP, 1
@@ -197,14 +170,17 @@ rjmp_soft_reset:
 	RJMP soft_reset
 
 read_number:
-    IN TMP_BUTTON, PINB
+	CPI CURRENT_CELL, 4
+    BREQ check_correct
 
-	CPSE TMP_BUTTON, NULL 
+    IN TMP, PINB
+    IN TMP2, PINA
+	ANDI TMP2, 0b00110000
+
+    CPSE TMP, NULL 
     RJMP read_b
 
-    IN TMP_BUTTON, PINA
-
-    CPSE TMP_BUTTON, NULL
+    CPSE TMP2, NULL
     RJMP read_a
 
     RJMP check_7sec
@@ -215,17 +191,17 @@ read_b:
     NOP
     NOP
 
-	IN TMP_BUTTON, PINB
-    CP TMP_BUTTON, NULL 
+	IN TMP, PINB
+    CP TMP, NULL 
     BREQ read_number
-
-	MOV CURRENT_READ_NUMBER, TMP_BUTTON
     
     CLR SECONDS_7
 	CLR COUNTER
+
+    MOV CURRENT_READ_NUMBER, TMP
 stop_reading_b:
-    IN TMP_BUTTON, PINB
-    CP TMP_BUTTON, NULL
+    IN TMP, PINB
+    CP TMP, NULL
     BRNE stop_reading_b
     CLR CURRENT_NUMBER
     RJMP get_number_b
@@ -236,20 +212,20 @@ read_a:
     NOP
     NOP
 
-	IN TMP_BUTTON, PINA
-    CP TMP_BUTTON, NULL 
+	IN TMP2, PINA
+    CP TMP2, NULL 
     BREQ read_number
 
     CLR SECONDS_7
 	CLR COUNTER
 
-    SBRC TMP_BUTTON, 4
+    SBRC TMP2, 4
     LDI CURRENT_NUMBER, 0x08
-    SBRC TMP_BUTTON, 5
+    SBRC TMP2, 5
     LDI CURRENT_NUMBER, 0x09
 stop_reading_a:
-    IN TMP_BUTTON, PINA
-    CP TMP_BUTTON, NULL
+    IN TMP2, PINA
+    CP TMP2, NULL
     BRNE stop_reading_a
     RJMP set_number
 
@@ -258,6 +234,7 @@ inc_current_number:
     INC CURRENT_NUMBER
 
 get_number_b:
+	OUT PORTC, CURRENT_READ_NUMBER
     SBRS CURRENT_READ_NUMBER, 0
     RJMP inc_current_number
 set_number:
@@ -270,34 +247,14 @@ set_number:
 
 write_12:
     OR CURRENT_PIN1, CURRENT_NUMBER
-
-	MOV  TMP, CURRENT_CELL
-    DEC  TMP                   ; CURRENT_CELL уже инкрементирован, индекс = -1
-    LDI  ZL, low(disp_buf)
-    LDI  ZH, high(disp_buf)
-    ADD  ZL, TMP
-    BRCC T0_BUF_OK
-    INC  ZH
-T0_BUF_OK:
-    ST   Z, CURRENT_NUMBER     ; записываем цифру в буфер дисплея
-
-    RET
+    RJMP read_number
 set_34: 
     CPI CURRENT_CELL, 4
 	BREQ shift_number
 
 write_34:
     OR CURRENT_PIN2, CURRENT_NUMBER
-
-	MOV  TMP, CURRENT_CELL
-    DEC  TMP                   ; CURRENT_CELL уже инкрементирован, индекс = -1
-    LDI  ZL, low(disp_buf)
-    LDI  ZH, high(disp_buf)
-    ADD  ZL, TMP
-    BRCC T0_BUF_OK
-    INC  ZH
-
-    RET
+    RJMP read_number
 
 shift_number:
     LSL CURRENT_NUMBER
@@ -358,74 +315,101 @@ OVF_EXIT:
     RETI
 
 TIMER0_COMP:
-    ; Гасим текущий разряд
-    ;IN   TMP, PORTA
-    ;ANDI TMP, 0b11110000       ; сохраняем биты PA6/PA7 (кнопки)
-    ;OUT  PORTA, TMP
+	PUSH  TIMER_TMP
+    IN    TIMER_TMP, SREG             ; сохраняем флаги
+    PUSH  TIMER_TMP
+    PUSH  ZL
+    PUSH  ZH
+
+    IN   TIMER_TMP, PORTA
+    ANDI TIMER_TMP, 0b11000000
+    OUT  PORTA, TIMER_TMP
     OUT  PORTC, NULL
 
-    ; Загружаем номер текущего разряда
-    LDS  TMP, disp_mux         ; 0..3
+    CPI  DISP_CELL, 0
+    BREQ d1
+	CPI  DISP_CELL, 1
+    BREQ d2
+	CPI  DISP_CELL, 2
+    BREQ d3
+	CPI  DISP_CELL, 3
+    BREQ d4
 
-    ; Проверяем нужно ли показывать этот разряд
-    MOV  TMP2, CURRENT_CELL
-    CP   TMP, TMP2             ; разряд >= CURRENT_CELL?
-    BRSH T0_NEXT_MUX           ; да — пропускаем, он ещё не введён
+	RJMP OC0_EXIT
 
-    ; Читаем цифру из буфера для этого разряда
-    LDI  ZL, low(disp_buf)
-    LDI  ZH, high(disp_buf)
-    ADD  ZL, TMP
-    BRCC T0_NO_CARRY
-    INC  ZH
-T0_NO_CARRY:
-    LD   TMP2, Z               ; TMP2 = цифра 0..15
+d1:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA3)
+    OUT  PORTA, TIMER_TMP
 
-    ; Читаем маску сегментов из таблицы
+    MOV  TIMER_TMP, CURRENT_PIN1
+    ANDI TIMER_TMP, 0x0F
+    RJMP display_show_digit
+
+d2:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA2)
+    OUT  PORTA, TIMER_TMP
+
+    MOV  TIMER_TMP, CURRENT_PIN1
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    RJMP display_show_digit
+
+d3:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA1)
+    OUT  PORTA, TIMER_TMP
+
+    MOV  TIMER_TMP, CURRENT_PIN2
+    ANDI TIMER_TMP, 0x0F
+    RJMP display_show_digit
+
+d4:
+	IN   TIMER_TMP, PORTA
+    ORI  TIMER_TMP, (1<<PA0)
+    OUT  PORTA, TIMER_TMP
+
+    MOV  TIMER_TMP, CURRENT_PIN2
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    LSR  TIMER_TMP
+    RJMP display_show_digit
+
+display_show_digit:
     LDI  ZL, low(SEG_TABLE*2)
     LDI  ZH, high(SEG_TABLE*2)
-    ADD  ZL, TMP2
-    BRCC T0_SEG_OK
+    ADD  ZL, TIMER_TMP
+    BRCC DSH_NO_CARRY
     INC  ZH
-T0_SEG_OK:
-    LPM  TMP2, Z
-    OUT  PORTC, TMP2           ; выводим сегменты
+DSH_NO_CARRY:
+    LPM  TIMER_TMP, Z
+    OUT  PORTC, TIMER_TMP
+    RJMP OC0_EXIT
 
-    ; Включаем нужный анод (PA0..PA3)
-    LDS  TMP, disp_mux
-    LDI  TMP2, 1
-    ; сдвигаем 1 на TMP позиций влево
-T0_SHIFT:
-    TST  TMP
-    BREQ T0_ANODE
-    LSL  TMP2
-    DEC  TMP
-    RJMP T0_SHIFT
-T0_ANODE:
-    IN   TMP, PORTA
-    ANDI TMP, 0b11000000
-    OR   TMP, TMP2
-    OUT  PORTA, TMP
+OC0_EXIT:
+	INC DISP_CELL
+	ANDI DISP_CELL, 0x03
 
-T0_NEXT_MUX:
-    LDS  TMP, disp_mux
-    INC  TMP
-    CPI  TMP, 4
-    BRNE T0_SAVE_MUX
-    CLR  TMP
-T0_SAVE_MUX:
-    STS  disp_mux, TMP
+	POP   ZH
+    POP   ZL
+    POP   TIMER_TMP
+    OUT   SREG, TIMER_TMP             ; восстанавливаем флаги
+    POP   TIMER_TMP
 
-    RETI
+	RETI
+
 
 EEPROM_read:
     SBIC EECR, EEWE  
     RJMP EEPROM_read
 
-    OUT EEARL, EEPROM_ADR
-    CLR TMP
-    OUT EEARH, TMP 
+    OUT EEARL, TMP
+    OUT EEARH, NULL 
     SBI EECR, EERE 
-    IN EEPROM_VALUE, EEDR
+    IN TMP2, EEDR
 
     RET
