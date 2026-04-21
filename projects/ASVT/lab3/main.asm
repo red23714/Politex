@@ -65,6 +65,8 @@ reset:
     OUT DDRA, TMP 
     LDI TMP, 0xF3
     OUT DDRD, TMP
+	SER TMP
+	OUT DDRC, TMP
 
     ; ???????????? /1024
     LDI TMP, (1<<CS11)|(1<<CS10)
@@ -319,7 +321,7 @@ OVF_EXIT:
 
 TIMER0_COMP:
 	PUSH  TIMER_TMP
-    IN    TIMER_TMP, SREG             ; сохраняем флаги
+    IN    TIMER_TMP, SREG             ; ????????? ?????
     PUSH  TIMER_TMP
     PUSH  ZL
     PUSH  ZH
@@ -327,7 +329,7 @@ TIMER0_COMP:
     IN   TIMER_TMP, PORTA
     ANDI TIMER_TMP, 0b11000000
     OUT  PORTA, TIMER_TMP
-    OUT  PORTC, NULL
+    ;OUT  PORTC, NULL
 
     CPI  DISP_CELL, 0
     BREQ d1
@@ -400,7 +402,7 @@ OC0_EXIT:
 	POP   ZH
     POP   ZL
     POP   TIMER_TMP
-    OUT   SREG, TIMER_TMP             ; восстанавливаем флаги
+    OUT   SREG, TIMER_TMP             ; ??????????????? ?????
     POP   TIMER_TMP
 
 	RETI
