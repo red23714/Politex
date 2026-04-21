@@ -1,23 +1,18 @@
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <chrono>
-#include <atomic>
-#include <thread>
-
-#ifndef QUEUE_H_
-#define QUEUE_H_
-
-#include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <pthread.h>
 #include <semaphore.h>
+#include <sched.h>
 #endif
+
+/* =========================================================
+   QUEUE
+   ========================================================= */
 
 typedef void (*task_func_t)(void* arg);
 
@@ -50,7 +45,6 @@ typedef struct queue_t
 	pthread_cond_t cond;
 	sem_t semaphore;
 #endif
-
 } queue_t;
 
 int queue_init(queue_t* q)
@@ -67,17 +61,14 @@ int queue_init(queue_t* q)
 #ifdef _WIN32
 	InitializeCriticalSection(&q->mutex);
 	InitializeConditionVariable(&q->cond);
-
 	q->semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
 	if (!q->semaphore)
 		return -1;
 #else
 	if (pthread_mutex_init(&q->mutex, NULL) != 0)
 		return -1;
-
 	if (pthread_cond_init(&q->cond, NULL) != 0)
 		return -1;
-
 	if (sem_init(&q->semaphore, 0, 0) != 0)
 		return -1;
 #endif
@@ -255,13 +246,11 @@ void* worker(void* arg)
 #ifdef _WIN32
 	if (q->active_threads == 0)
 		WakeConditionVariable(&q->cond);
-
 	LeaveCriticalSection(&q->mutex);
 	return 0;
 #else
 	if (q->active_threads == 0)
 		pthread_cond_signal(&q->cond);
-
 	pthread_mutex_unlock(&q->mutex);
 	return NULL;
 #endif
@@ -278,7 +267,6 @@ void queue_stop_and_wait(queue_t* q)
 	q->is_running = false;
 
 	int threads_to_wake = q->active_threads;
-
 	for (int i = 0; i < threads_to_wake; i++)
 	{
 #ifdef _WIN32
@@ -304,28 +292,63 @@ void queue_stop_and_wait(queue_t* q)
 #endif
 }
 
-#endif
+/* =========================================================
+   QUICKSORT
+   ========================================================= */
 
+#define THRESHOLD 1000
+
+/* Атомарный счётчик задач в работе */
 #ifdef _WIN32
-#include <windows.h>
+static volatile LONG tasks_in_progress = 0;
 #else
-#include <pthread.h>
+static volatile int tasks_in_progress = 0;
+static pthread_mutex_t tip_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
-using namespace std;
 
-const int THRESHOLD = 1000;
+static void tip_increment(void)
+{
+#ifdef _WIN32
+	InterlockedIncrement(&tasks_in_progress);
+#else
+	__sync_fetch_and_add(&tasks_in_progress, 1);
+#endif
+}
 
-struct task_data
+static void tip_decrement(void)
+{
+#ifdef _WIN32
+	InterlockedDecrement(&tasks_in_progress);
+#else
+	__sync_fetch_and_add(&tasks_in_progress, -1);
+#endif
+}
+
+static int tip_load(void)
+{
+#ifdef _WIN32
+	return (int)InterlockedCompareExchange(&tasks_in_progress, 0, 0);
+#else
+	return __sync_fetch_and_add(&tasks_in_progress, 0);
+#endif
+}
+
+typedef struct
 {
 	int* arr;
 	int left;
 	int right;
 	queue_t* q;
-};
+} task_data;
 
-atomic<int> tasks_in_progress(0);
+static void swap_int(int* a, int* b)
+{
+	int tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
 
-void quicksort_serial(int* arr, int left, int right)
+static void quicksort_serial(int* arr, int left, int right)
 {
 	if (left >= right)
 		return;
@@ -342,7 +365,7 @@ void quicksort_serial(int* arr, int left, int right)
 
 		if (i <= j)
 		{
-			swap(arr[i], arr[j]);
+			swap_int(&arr[i], &arr[j]);
 			i++;
 			j--;
 		}
@@ -365,16 +388,16 @@ void quicksort_task(void* arg)
 
 	if (left >= right)
 	{
-		delete data;
-		tasks_in_progress--;
+		free(data);
+		tip_decrement();
 		return;
 	}
 
 	if (right - left <= THRESHOLD)
 	{
 		quicksort_serial(arr, left, right);
-		delete data;
-		tasks_in_progress--;
+		free(data);
+		tip_decrement();
 		return;
 	}
 
@@ -390,7 +413,7 @@ void quicksort_task(void* arg)
 
 		if (i <= j)
 		{
-			swap(arr[i], arr[j]);
+			swap_int(&arr[i], &arr[j]);
 			i++;
 			j--;
 		}
@@ -398,48 +421,58 @@ void quicksort_task(void* arg)
 
 	if (left < j)
 	{
-		task_data* left_task = new task_data{arr, left, j, q};
-		tasks_in_progress++;
+		task_data* left_task = (task_data*)malloc(sizeof(task_data));
+		left_task->arr = arr;
+		left_task->left = left;
+		left_task->right = j;
+		left_task->q = q;
+		tip_increment();
 		queue_push(q, quicksort_task, left_task);
 	}
 
 	if (i < right)
 	{
-		task_data* right_task = new task_data{arr, i, right, q};
-		tasks_in_progress++;
+		task_data* right_task = (task_data*)malloc(sizeof(task_data));
+		right_task->arr = arr;
+		right_task->left = i;
+		right_task->right = right;
+		right_task->q = q;
+		tip_increment();
 		queue_push(q, quicksort_task, right_task);
 	}
 
-	delete data;
-	tasks_in_progress--;
+	free(data);
+	tip_decrement();
 }
 
-int main()
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+int main(void)
 {
-	ifstream fin("input.txt");
-	ofstream fout("output.txt");
-	ofstream ftime("time.txt");
+	FILE* fin = fopen("input.txt", "r");
+	FILE* fout = fopen("output.txt", "w");
+	FILE* ftime = fopen("time.txt", "w");
 
-	int num_threads;
-	int N;
+	int num_threads, N;
+	fscanf(fin, "%d", &num_threads);
+	fscanf(fin, "%d", &N);
 
-	fin >> num_threads;
-	fin >> N;
-
-	vector<int> arr(N);
+	int* arr = (int*)malloc(N * sizeof(int));
 	for (int i = 0; i < N; i++)
-		fin >> arr[i];
+		fscanf(fin, "%d", &arr[i]);
+
+	fclose(fin);
 
 	queue_t queue;
 	queue_init(&queue);
 
 #ifdef _WIN32
-	using thread_t = HANDLE;
+	HANDLE* threads = (HANDLE*)malloc(num_threads * sizeof(HANDLE));
 #else
-	using thread_t = pthread_t;
+	pthread_t* threads = (pthread_t*)malloc(num_threads * sizeof(pthread_t));
 #endif
-
-	vector<thread_t> threads(num_threads);
 
 	for (int i = 0; i < num_threads; i++)
 	{
@@ -450,18 +483,27 @@ int main()
 #endif
 	}
 
-	auto start = chrono::high_resolution_clock::now();
+	clock_t start = clock();
 
-	task_data* initial = new task_data{arr.data(), 0, N - 1, &queue};
-	tasks_in_progress = 1;
+	task_data* initial = (task_data*)malloc(sizeof(task_data));
+	initial->arr = arr;
+	initial->left = 0;
+	initial->right = N - 1;
+	initial->q = &queue;
+
+	tip_increment();
 	queue_push(&queue, quicksort_task, initial);
 
-	while (tasks_in_progress > 0)
+	while (tip_load() > 0)
 	{
-		this_thread::yield();
+#ifdef _WIN32
+		Sleep(0);
+#else
+		sched_yield();
+#endif
 	}
 
-	auto end = chrono::high_resolution_clock::now();
+	clock_t end = clock();
 
 	queue_stop_and_wait(&queue);
 
@@ -475,17 +517,20 @@ int main()
 #endif
 	}
 
-	fout << num_threads << "\n";
-	fout << N << "\n";
-
+	fprintf(fout, "%d\n", num_threads);
+	fprintf(fout, "%d\n", N);
 	for (int i = 0; i < N; i++)
-		fout << arr[i] << " ";
+		fprintf(fout, "%d ", arr[i]);
 
-	long long ms =
-		chrono::duration_cast<chrono::milliseconds>(end - start).count();
-	ftime << ms;
+	long ms = (long)(((double)(end - start) / CLOCKS_PER_SEC) * 1000);
+	fprintf(ftime, "%ld", ms);
 
 	queue_destroy(&queue);
+	free(arr);
+	free(threads);
+
+	fclose(fout);
+	fclose(ftime);
 
 	return 0;
 }

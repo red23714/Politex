@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fstream>
-#include <chrono>
 #include <vector>
-#include <thread>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -17,7 +16,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -378,13 +376,14 @@ void count_variants(void* arg)
 
 	free(args);
 
-	int tmp[target + 1];
-	int state[target + 1];
+	// Заменяем VLA на vector (работает и на MSVC, и на GCC/Clang)
+	std::vector<int> tmp(target + 1);
+	std::vector<int> state(target + 1);
 
-	clean_array(tmp, target, right_num);
-	write_variant(tmp, target);
+	clean_array(tmp.data(), target, right_num);
+	write_variant(tmp.data(), target);
 
-	clean_array(state, target, right_num);
+	clean_array(state.data(), target, right_num);
 
 	int val_pos = 1;
 
@@ -422,7 +421,7 @@ void count_variants(void* arg)
 		for (int i = 0; i < target + 1; i++)
 			tmp[i] = state[i];
 
-		write_variant(tmp, target);
+		write_variant(tmp.data(), target);
 
 		if (rest > 0)
 			val_pos++;
@@ -463,7 +462,7 @@ int main()
 #endif
 	}
 
-	auto start = std::chrono::high_resolution_clock::now();
+	clock_t start = clock();
 
 	for (int i = 1; i < target; i++)
 	{
@@ -478,7 +477,7 @@ int main()
 
 	queue_stop_and_wait(&q);
 
-	auto end = std::chrono::high_resolution_clock::now();
+	clock_t end = clock();
 
 	for (int i = 0; i < threads_count; i++)
 	{
@@ -500,8 +499,7 @@ int main()
 	fout << target << "\n";
 	fout << variants_count << "\n";
 
-	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
-				  .count();
+	long ms = (long)(((double)(end - start) / CLOCKS_PER_SEC) * 1000);
 	ftime << ms;
 
 	return 0;
