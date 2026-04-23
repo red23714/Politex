@@ -22,6 +22,8 @@ SRC=src
 	$(CC) $(SRC)/msort.cpp -D_REENTRANT -lpthread -g -o $(BUILD)/msort
 	$(BUILD)/msort
 
+4:
+	$(CC) $(SRC)/phil.cpp -D_REENTRANT -lpthread -g -o $(BUILD)/phil
 
 clean:
 	rm -r ./build/*
