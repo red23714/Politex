@@ -237,6 +237,87 @@ void queue_stop_and_wait(queue_t* q)
 
 #endif
 
+typedef struct
+{
+	int count;
+#ifdef _WIN32
+	CRITICAL_SECTION mutex;
+	CONDITION_VARIABLE cond;
+#else
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+#endif
+} tip_t;
+
+void tip_init(tip_t* tip)
+{
+#ifdef _WIN32
+	InitializeCriticalSection(&tip->mutex);
+	InitializeConditionVariable(&tip->cond);
+#else
+	pthread_mutex_init(&tip->mutex, NULL);
+	pthread_cond_init(&tip->cond, NULL);
+#endif
+	tip->count = 0;
+}
+
+void tip_destroy(tip_t* tip)
+{
+#ifdef _WIN32
+	DeleteCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_destroy(&tip->mutex);
+	pthread_cond_destroy(&tip->cond);
+#endif
+}
+
+void tip_increment(tip_t* tip)
+{
+#ifdef _WIN32
+	EnterCriticalSection(&tip->mutex);
+	tip->count++;
+	LeaveCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_lock(&tip->mutex);
+	tip->count++;
+	pthread_mutex_unlock(&tip->mutex);
+#endif
+}
+
+/* Декрементируем и будим main, если счётчик дошёл до нуля */
+void tip_decrement(tip_t* tip)
+{
+#ifdef _WIN32
+	EnterCriticalSection(&tip->mutex);
+	tip->count--;
+	if (tip->count == 0)
+		WakeConditionVariable(&tip->cond);
+	LeaveCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_lock(&tip->mutex);
+	tip->count--;
+	if (tip->count == 0)
+		pthread_cond_signal(&tip->cond);
+	pthread_mutex_unlock(&tip->mutex);
+#endif
+}
+
+/* Блокируемся до тех пор, пока счётчик не станет нулём */
+void tip_wait_zero(tip_t* tip)
+{
+#ifdef _WIN32
+	EnterCriticalSection(&tip->mutex);
+	while (tip->count > 0)
+		SleepConditionVariableCS(&tip->cond, &tip->mutex, INFINITE);
+	LeaveCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_lock(&tip->mutex);
+	while (tip->count > 0)
+		pthread_cond_wait(&tip->cond, &tip->mutex);
+	pthread_mutex_unlock(&tip->mutex);
+#endif
+}
+
 #define TRESHOLD 1000
 
 typedef struct
@@ -244,6 +325,7 @@ typedef struct
 	int l;
 	int r;
 	int* arr;
+	tip_t* tip;
 } merge_sort_arg_t;
 
 void merge(int arr[], int l, int m, int r)
@@ -294,6 +376,8 @@ void merge_sort_task(void* arg)
 
 	merge_sort(args->arr, args->l, args->r);
 
+	tip_decrement(args->tip);
+
 	free(args);
 }
 
@@ -330,6 +414,8 @@ int main()
 
 	queue_t q;
 	queue_init(&q);
+	tip_t tip;
+	tip_init(&tip);
 
 	std::vector<pthread_t> threads(threads_count);
 
@@ -348,9 +434,13 @@ int main()
 		args->l = l;
 		args->r = r;
 		args->arr = arr.data();
+		args->tip = &tip;
 
+		tip_increment(&tip);
 		queue_push(&q, merge_sort_task, args);
 	}
+
+	tip_wait_zero(&tip);
 
 	queue_stop_and_wait(&q);
 

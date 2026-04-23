@@ -28,12 +28,12 @@ typedef struct queue_elem
 	task_t task;
 } queue_elem;
 
-typedef struct queue_t
+typedef struct
 {
 	queue_elem* head;
 	queue_elem* tail;
 	int length;
-	bool is_running;
+	int is_running;
 	int active_threads;
 
 #ifdef _WIN32
@@ -55,7 +55,7 @@ int queue_init(queue_t* q)
 	q->head = NULL;
 	q->tail = NULL;
 	q->length = 0;
-	q->is_running = true;
+	q->is_running = 1;
 	q->active_threads = 0;
 
 #ifdef _WIN32
@@ -105,6 +105,8 @@ void queue_destroy(queue_t* q)
 
 task_t queue_pop(queue_t* q)
 {
+	task_t empty = {NULL, NULL};
+
 #ifdef _WIN32
 	WaitForSingleObject(q->semaphore, INFINITE);
 	EnterCriticalSection(&q->mutex);
@@ -120,17 +122,14 @@ task_t queue_pop(queue_t* q)
 #else
 		pthread_mutex_unlock(&q->mutex);
 #endif
-		task_t empty = {NULL, NULL};
 		return empty;
 	}
 
 	task_t t = q->head->task;
 	queue_elem* tmp = q->head;
 	q->head = q->head->next;
-
 	if (!q->head)
 		q->tail = NULL;
-
 	q->length--;
 	free(tmp);
 
@@ -177,7 +176,6 @@ void queue_push(queue_t* q, task_func_t func, void* arg)
 		q->tail->next = tmp;
 		q->tail = tmp;
 	}
-
 	q->length++;
 
 #ifdef _WIN32
@@ -189,6 +187,95 @@ void queue_push(queue_t* q, task_func_t func, void* arg)
 #endif
 }
 
+/* =========================================================
+   TASKS IN PROGRESS — простой счётчик под мьютексом
+   ========================================================= */
+
+typedef struct
+{
+	int count;
+#ifdef _WIN32
+	CRITICAL_SECTION mutex;
+	CONDITION_VARIABLE cond;
+#else
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+#endif
+} tip_t;
+
+void tip_init(tip_t* tip)
+{
+#ifdef _WIN32
+	InitializeCriticalSection(&tip->mutex);
+	InitializeConditionVariable(&tip->cond);
+#else
+	pthread_mutex_init(&tip->mutex, NULL);
+	pthread_cond_init(&tip->cond, NULL);
+#endif
+	tip->count = 0;
+}
+
+void tip_destroy(tip_t* tip)
+{
+#ifdef _WIN32
+	DeleteCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_destroy(&tip->mutex);
+	pthread_cond_destroy(&tip->cond);
+#endif
+}
+
+void tip_increment(tip_t* tip)
+{
+#ifdef _WIN32
+	EnterCriticalSection(&tip->mutex);
+	tip->count++;
+	LeaveCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_lock(&tip->mutex);
+	tip->count++;
+	pthread_mutex_unlock(&tip->mutex);
+#endif
+}
+
+/* Декрементируем и будим main, если счётчик дошёл до нуля */
+void tip_decrement(tip_t* tip)
+{
+#ifdef _WIN32
+	EnterCriticalSection(&tip->mutex);
+	tip->count--;
+	if (tip->count == 0)
+		WakeConditionVariable(&tip->cond);
+	LeaveCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_lock(&tip->mutex);
+	tip->count--;
+	if (tip->count == 0)
+		pthread_cond_signal(&tip->cond);
+	pthread_mutex_unlock(&tip->mutex);
+#endif
+}
+
+/* Блокируемся до тех пор, пока счётчик не станет нулём */
+void tip_wait_zero(tip_t* tip)
+{
+#ifdef _WIN32
+	EnterCriticalSection(&tip->mutex);
+	while (tip->count > 0)
+		SleepConditionVariableCS(&tip->cond, &tip->mutex, INFINITE);
+	LeaveCriticalSection(&tip->mutex);
+#else
+	pthread_mutex_lock(&tip->mutex);
+	while (tip->count > 0)
+		pthread_cond_wait(&tip->cond, &tip->mutex);
+	pthread_mutex_unlock(&tip->mutex);
+#endif
+}
+
+/* =========================================================
+   WORKER
+   ========================================================= */
+
 #ifdef _WIN32
 DWORD WINAPI worker(LPVOID arg)
 #else
@@ -199,15 +286,11 @@ void* worker(void* arg)
 
 #ifdef _WIN32
 	EnterCriticalSection(&q->mutex);
-#else
-	pthread_mutex_lock(&q->mutex);
-#endif
-
 	q->active_threads++;
-
-#ifdef _WIN32
 	LeaveCriticalSection(&q->mutex);
 #else
+	pthread_mutex_lock(&q->mutex);
+	q->active_threads++;
 	pthread_mutex_unlock(&q->mutex);
 #endif
 
@@ -215,15 +298,11 @@ void* worker(void* arg)
 	{
 #ifdef _WIN32
 		EnterCriticalSection(&q->mutex);
-#else
-		pthread_mutex_lock(&q->mutex);
-#endif
-
-		bool should_stop = !q->is_running && q->length == 0;
-
-#ifdef _WIN32
+		int should_stop = !q->is_running && q->length == 0;
 		LeaveCriticalSection(&q->mutex);
 #else
+		pthread_mutex_lock(&q->mutex);
+		int should_stop = !q->is_running && q->length == 0;
 		pthread_mutex_unlock(&q->mutex);
 #endif
 
@@ -237,18 +316,14 @@ void* worker(void* arg)
 
 #ifdef _WIN32
 	EnterCriticalSection(&q->mutex);
-#else
-	pthread_mutex_lock(&q->mutex);
-#endif
-
 	q->active_threads--;
-
-#ifdef _WIN32
 	if (q->active_threads == 0)
 		WakeConditionVariable(&q->cond);
 	LeaveCriticalSection(&q->mutex);
 	return 0;
 #else
+	pthread_mutex_lock(&q->mutex);
+	q->active_threads--;
 	if (q->active_threads == 0)
 		pthread_cond_signal(&q->cond);
 	pthread_mutex_unlock(&q->mutex);
@@ -260,34 +335,19 @@ void queue_stop_and_wait(queue_t* q)
 {
 #ifdef _WIN32
 	EnterCriticalSection(&q->mutex);
-#else
-	pthread_mutex_lock(&q->mutex);
-#endif
-
-	q->is_running = false;
-
-	int threads_to_wake = q->active_threads;
-	for (int i = 0; i < threads_to_wake; i++)
-	{
-#ifdef _WIN32
+	q->is_running = 0;
+	for (int i = 0; i < q->active_threads; i++)
 		ReleaseSemaphore(q->semaphore, 1, NULL);
-#else
-		sem_post(&q->semaphore);
-#endif
-	}
-
 	while (q->active_threads > 0)
-	{
-#ifdef _WIN32
 		SleepConditionVariableCS(&q->cond, &q->mutex, INFINITE);
-#else
-		pthread_cond_wait(&q->cond, &q->mutex);
-#endif
-	}
-
-#ifdef _WIN32
 	LeaveCriticalSection(&q->mutex);
 #else
+	pthread_mutex_lock(&q->mutex);
+	q->is_running = 0;
+	for (int i = 0; i < q->active_threads; i++)
+		sem_post(&q->semaphore);
+	while (q->active_threads > 0)
+		pthread_cond_wait(&q->cond, &q->mutex);
 	pthread_mutex_unlock(&q->mutex);
 #endif
 }
@@ -298,47 +358,13 @@ void queue_stop_and_wait(queue_t* q)
 
 #define THRESHOLD 1000
 
-/* Атомарный счётчик задач в работе */
-#ifdef _WIN32
-static volatile LONG tasks_in_progress = 0;
-#else
-static volatile int tasks_in_progress = 0;
-static pthread_mutex_t tip_mutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
-
-static void tip_increment(void)
-{
-#ifdef _WIN32
-	InterlockedIncrement(&tasks_in_progress);
-#else
-	__sync_fetch_and_add(&tasks_in_progress, 1);
-#endif
-}
-
-static void tip_decrement(void)
-{
-#ifdef _WIN32
-	InterlockedDecrement(&tasks_in_progress);
-#else
-	__sync_fetch_and_add(&tasks_in_progress, -1);
-#endif
-}
-
-static int tip_load(void)
-{
-#ifdef _WIN32
-	return (int)InterlockedCompareExchange(&tasks_in_progress, 0, 0);
-#else
-	return __sync_fetch_and_add(&tasks_in_progress, 0);
-#endif
-}
-
 typedef struct
 {
 	int* arr;
 	int left;
 	int right;
 	queue_t* q;
+	tip_t* tip;
 } task_data;
 
 static void swap_int(int* a, int* b)
@@ -362,7 +388,6 @@ static void quicksort_serial(int* arr, int left, int right)
 			i++;
 		while (arr[j] > pivot)
 			j--;
-
 		if (i <= j)
 		{
 			swap_int(&arr[i], &arr[j]);
@@ -385,22 +410,24 @@ void quicksort_task(void* arg)
 	int right = data->right;
 	int* arr = data->arr;
 	queue_t* q = data->q;
+	tip_t* tip = data->tip;
+	free(data);
 
 	if (left >= right)
 	{
-		free(data);
-		tip_decrement();
+		tip_decrement(tip);
 		return;
 	}
 
+	/* Маленький участок — сортируем последовательно */
 	if (right - left <= THRESHOLD)
 	{
 		quicksort_serial(arr, left, right);
-		free(data);
-		tip_decrement();
+		tip_decrement(tip);
 		return;
 	}
 
+	/* Разбиение */
 	int i = left, j = right;
 	int pivot = arr[(left + right) / 2];
 
@@ -410,7 +437,6 @@ void quicksort_task(void* arg)
 			i++;
 		while (arr[j] > pivot)
 			j--;
-
 		if (i <= j)
 		{
 			swap_int(&arr[i], &arr[j]);
@@ -419,30 +445,32 @@ void quicksort_task(void* arg)
 		}
 	}
 
+	/* Отправляем подзадачи в очередь */
 	if (left < j)
 	{
-		task_data* left_task = (task_data*)malloc(sizeof(task_data));
-		left_task->arr = arr;
-		left_task->left = left;
-		left_task->right = j;
-		left_task->q = q;
-		tip_increment();
-		queue_push(q, quicksort_task, left_task);
+		task_data* t = (task_data*)malloc(sizeof(task_data));
+		t->arr = arr;
+		t->left = left;
+		t->right = j;
+		t->q = q;
+		t->tip = tip;
+		tip_increment(tip);
+		queue_push(q, quicksort_task, t);
 	}
 
 	if (i < right)
 	{
-		task_data* right_task = (task_data*)malloc(sizeof(task_data));
-		right_task->arr = arr;
-		right_task->left = i;
-		right_task->right = right;
-		right_task->q = q;
-		tip_increment();
-		queue_push(q, quicksort_task, right_task);
+		task_data* t = (task_data*)malloc(sizeof(task_data));
+		t->arr = arr;
+		t->left = i;
+		t->right = right;
+		t->q = q;
+		t->tip = tip;
+		tip_increment(tip);
+		queue_push(q, quicksort_task, t);
 	}
 
-	free(data);
-	tip_decrement();
+	tip_decrement(tip); /* текущая задача завершена */
 }
 
 /* =========================================================
@@ -462,27 +490,27 @@ int main(void)
 	int* arr = (int*)malloc(N * sizeof(int));
 	for (int i = 0; i < N; i++)
 		fscanf(fin, "%d", &arr[i]);
-
 	fclose(fin);
 
+	/* Инициализация */
 	queue_t queue;
 	queue_init(&queue);
 
+	tip_t tip;
+	tip_init(&tip);
+
+	/* Запуск потоков */
 #ifdef _WIN32
 	HANDLE* threads = (HANDLE*)malloc(num_threads * sizeof(HANDLE));
-#else
-	pthread_t* threads = (pthread_t*)malloc(num_threads * sizeof(pthread_t));
-#endif
-
 	for (int i = 0; i < num_threads; i++)
-	{
-#ifdef _WIN32
 		threads[i] = CreateThread(NULL, 0, worker, &queue, 0, NULL);
 #else
+	pthread_t* threads = (pthread_t*)malloc(num_threads * sizeof(pthread_t));
+	for (int i = 0; i < num_threads; i++)
 		pthread_create(&threads[i], NULL, worker, &queue);
 #endif
-	}
 
+	/* Первая задача */
 	clock_t start = clock();
 
 	task_data* initial = (task_data*)malloc(sizeof(task_data));
@@ -490,21 +518,17 @@ int main(void)
 	initial->left = 0;
 	initial->right = N - 1;
 	initial->q = &queue;
+	initial->tip = &tip;
 
-	tip_increment();
+	tip_increment(&tip);
 	queue_push(&queue, quicksort_task, initial);
 
-	while (tip_load() > 0)
-	{
-#ifdef _WIN32
-		Sleep(0);
-#else
-		sched_yield();
-#endif
-	}
+	/* Ждём завершения сортировки (без busy-wait) */
+	tip_wait_zero(&tip);
 
 	clock_t end = clock();
 
+	/* Останавливаем потоки */
 	queue_stop_and_wait(&queue);
 
 	for (int i = 0; i < num_threads; i++)
@@ -517,18 +541,19 @@ int main(void)
 #endif
 	}
 
-	fprintf(fout, "%d\n", num_threads);
-	fprintf(fout, "%d\n", N);
+	/* Запись результатов */
+	fprintf(fout, "%d\n%d\n", num_threads, N);
 	for (int i = 0; i < N; i++)
 		fprintf(fout, "%d ", arr[i]);
 
 	long ms = (long)(((double)(end - start) / CLOCKS_PER_SEC) * 1000);
 	fprintf(ftime, "%ld", ms);
 
+	/* Очистка */
+	tip_destroy(&tip);
 	queue_destroy(&queue);
 	free(arr);
 	free(threads);
-
 	fclose(fout);
 	fclose(ftime);
 
