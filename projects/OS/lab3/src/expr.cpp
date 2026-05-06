@@ -47,8 +47,8 @@ typedef struct queue_t
 	int active_threads;
 
 #ifdef _WIN32
-	CRITICAL_SECTION mutex;
-	CONDITION_VARIABLE cond;
+	HANDLE mutex;
+	HANDLE done_event;
 	HANDLE semaphore;
 #else
 	pthread_mutex_t mutex;
@@ -74,21 +74,16 @@ int queue_init(queue_t* q)
 	q->active_threads = 0;
 
 #ifdef _WIN32
-	InitializeCriticalSection(&q->mutex);
-	InitializeConditionVariable(&q->cond);
-
+	q->mutex = CreateMutex(NULL, FALSE, NULL);
+	q->done_event = CreateEvent(NULL, TRUE, FALSE, NULL);
 	q->semaphore = CreateSemaphore(NULL, 0, LONG_MAX, NULL);
-	if (!q->semaphore)
+
+	if (!q->mutex || !q->done_event || !q->semaphore)
 		return -1;
 #else
-	if (pthread_mutex_init(&q->mutex, NULL) != 0)
-		return -1;
-
-	if (pthread_cond_init(&q->cond, NULL) != 0)
-		return -1;
-
-	if (sem_init(&q->semaphore, 0, 0) != 0)
-		return -1;
+	pthread_mutex_init(&q->mutex, NULL);
+	pthread_cond_init(&q->cond, NULL);
+	sem_init(&q->semaphore, 0, 0);
 #endif
 
 	return 0;
@@ -97,7 +92,7 @@ int queue_init(queue_t* q)
 void queue_destroy(queue_t* q)
 {
 #ifdef _WIN32
-	EnterCriticalSection(&q->mutex);
+	WaitForSingleObject(q->mutex, INFINITE);
 #else
 	pthread_mutex_lock(&q->mutex);
 #endif
@@ -110,8 +105,9 @@ void queue_destroy(queue_t* q)
 	}
 
 #ifdef _WIN32
-	LeaveCriticalSection(&q->mutex);
-	DeleteCriticalSection(&q->mutex);
+	ReleaseMutex(q->mutex);
+	CloseHandle(q->mutex);
+	CloseHandle(q->done_event);
 	CloseHandle(q->semaphore);
 #else
 	pthread_mutex_unlock(&q->mutex);
@@ -125,7 +121,7 @@ task_t queue_pop(queue_t* q)
 {
 #ifdef _WIN32
 	WaitForSingleObject(q->semaphore, INFINITE);
-	EnterCriticalSection(&q->mutex);
+	WaitForSingleObject(q->mutex, INFINITE);
 #else
 	sem_wait(&q->semaphore);
 	pthread_mutex_lock(&q->mutex);
@@ -134,7 +130,7 @@ task_t queue_pop(queue_t* q)
 	if (!q->head)
 	{
 #ifdef _WIN32
-		LeaveCriticalSection(&q->mutex);
+		ReleaseMutex(q->mutex);
 #else
 		pthread_mutex_unlock(&q->mutex);
 #endif
@@ -153,7 +149,7 @@ task_t queue_pop(queue_t* q)
 	free(tmp);
 
 #ifdef _WIN32
-	LeaveCriticalSection(&q->mutex);
+	ReleaseMutex(q->mutex);
 #else
 	pthread_mutex_unlock(&q->mutex);
 #endif
@@ -172,7 +168,7 @@ void queue_push(queue_t* q, task_func_t func, void* arg)
 	tmp->next = NULL;
 
 #ifdef _WIN32
-	EnterCriticalSection(&q->mutex);
+	WaitForSingleObject(q->mutex, INFINITE);
 #else
 	pthread_mutex_lock(&q->mutex);
 #endif
@@ -181,7 +177,7 @@ void queue_push(queue_t* q, task_func_t func, void* arg)
 	{
 		free(tmp);
 #ifdef _WIN32
-		LeaveCriticalSection(&q->mutex);
+		ReleaseMutex(q->mutex);
 #else
 		pthread_mutex_unlock(&q->mutex);
 #endif
@@ -199,7 +195,7 @@ void queue_push(queue_t* q, task_func_t func, void* arg)
 	q->length++;
 
 #ifdef _WIN32
-	LeaveCriticalSection(&q->mutex);
+	ReleaseMutex(q->mutex);
 	ReleaseSemaphore(q->semaphore, 1, NULL);
 #else
 	pthread_mutex_unlock(&q->mutex);
@@ -216,7 +212,7 @@ void* worker(void* arg)
 	queue_t* q = (queue_t*)arg;
 
 #ifdef _WIN32
-	EnterCriticalSection(&q->mutex);
+	WaitForSingleObject(q->mutex, INFINITE);
 #else
 	pthread_mutex_lock(&q->mutex);
 #endif
@@ -224,7 +220,7 @@ void* worker(void* arg)
 	q->active_threads++;
 
 #ifdef _WIN32
-	LeaveCriticalSection(&q->mutex);
+	ReleaseMutex(q->mutex);
 #else
 	pthread_mutex_unlock(&q->mutex);
 #endif
@@ -232,7 +228,7 @@ void* worker(void* arg)
 	while (1)
 	{
 #ifdef _WIN32
-		EnterCriticalSection(&q->mutex);
+		WaitForSingleObject(q->mutex, INFINITE);
 #else
 		pthread_mutex_lock(&q->mutex);
 #endif
@@ -240,7 +236,7 @@ void* worker(void* arg)
 		bool should_stop = !q->is_running && q->length == 0;
 
 #ifdef _WIN32
-		LeaveCriticalSection(&q->mutex);
+		ReleaseMutex(q->mutex);
 #else
 		pthread_mutex_unlock(&q->mutex);
 #endif
@@ -254,7 +250,7 @@ void* worker(void* arg)
 	}
 
 #ifdef _WIN32
-	EnterCriticalSection(&q->mutex);
+	WaitForSingleObject(q->mutex, INFINITE);
 #else
 	pthread_mutex_lock(&q->mutex);
 #endif
@@ -263,9 +259,9 @@ void* worker(void* arg)
 
 #ifdef _WIN32
 	if (q->active_threads == 0)
-		WakeConditionVariable(&q->cond);
+		SetEvent(q->done_event);
 
-	LeaveCriticalSection(&q->mutex);
+	ReleaseMutex(q->mutex);
 	return 0;
 #else
 	if (q->active_threads == 0)
@@ -279,7 +275,7 @@ void* worker(void* arg)
 void queue_stop_and_wait(queue_t* q)
 {
 #ifdef _WIN32
-	EnterCriticalSection(&q->mutex);
+	WaitForSingleObject(q->mutex, INFINITE);
 #else
 	pthread_mutex_lock(&q->mutex);
 #endif
@@ -287,6 +283,12 @@ void queue_stop_and_wait(queue_t* q)
 	q->is_running = false;
 
 	int threads_to_wake = q->active_threads;
+
+#ifdef _WIN32
+	ReleaseMutex(q->mutex);
+#else
+	pthread_mutex_unlock(&q->mutex);
+#endif
 
 	for (int i = 0; i < threads_to_wake; i++)
 	{
@@ -297,18 +299,12 @@ void queue_stop_and_wait(queue_t* q)
 #endif
 	}
 
+#ifdef _WIN32
+	WaitForSingleObject(q->done_event, INFINITE);
+#else
+	pthread_mutex_lock(&q->mutex);
 	while (q->active_threads > 0)
-	{
-#ifdef _WIN32
-		SleepConditionVariableCS(&q->cond, &q->mutex, INFINITE);
-#else
 		pthread_cond_wait(&q->cond, &q->mutex);
-#endif
-	}
-
-#ifdef _WIN32
-	LeaveCriticalSection(&q->mutex);
-#else
 	pthread_mutex_unlock(&q->mutex);
 #endif
 }
