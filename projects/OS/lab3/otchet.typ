@@ -177,10 +177,10 @@
   caption: [Функции expr.cpp]
 ) <tab_expr>
 
-//#figure(
-//  image(),
-//  caption: [Блок-схема работы expr.cpp]
-//)
+#figure(
+  image("expr_block.png"),
+  caption: [Блок-схема работы msort.cpp]
+)
 
 == msort.cpp — Параллельная сортировка слиянием
 
@@ -217,10 +217,10 @@
   caption: [Функции msort.cpp]
 ) <tab_msort>
 
-//#figure(
-//  image(),
-//  caption: [Блок-схема работы msort.cpp]
-//)
+#figure(
+  image("msort_block.png"),
+  caption: [Блок-схема работы msort.cpp]
+)
 
 == qsort.cpp — Параллельная быстрая сортировка
 
@@ -255,10 +255,10 @@
   caption: [Функции qsort.cpp]
 ) <tab_qsort>
 
-//#figure(
-//  image(),
-//  caption: [Блок-схема работы qsort.cpp]
-//)
+#figure(
+  image("qsort_block.png"),
+  caption: [Блок-схема работы msort.cpp]
+)
 
 == phil.cpp — Задача обедающих философов (с официантом)
 
@@ -287,14 +287,34 @@
   caption: [Функции phil.cpp]
 ) <tab_phil>
 
-//#figure(
-//  image(),
-//  caption: [Блок-схема работы phil.cpp]
-//)
+#figure(
+  image("phil_block.png"),
+  caption: [Блок-схема работы msort.cpp]
+)
 
 #pagebreak()
 
 = Временные диаграммы
+
+#figure(
+  image("expr_time.png"),
+  caption: [Временная диаграмма работы потоков expr.cpp]
+)
+
+#figure(
+  image("msort_time.png"),
+  caption: [Временная диаграмма работы потоков msort.cpp]
+)
+
+#figure(
+  image("qsort_time.png"),
+  caption: [Временная диаграмма работы потоков qsort.cpp]
+)
+
+#figure(
+  image("phil_time.png"),
+  caption: [Временная диаграмма работы потоков phil.cpp]
+)
 
 = Тестирование и результаты работы программы
 
