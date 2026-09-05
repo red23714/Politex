@@ -1,0 +1,128 @@
+#ifndef _MY_STRING_H_
+#define _MY_STRING_H_
+
+#include <string>
+#include <string_view>
+
+class MyString
+{
+  public:
+	// Constructors
+	MyString();
+
+	MyString(const char* source_str);
+	MyString(std::string& source_str);
+	MyString(MyString& source_str);
+
+	MyString(const char* source_str, int count);
+	MyString(std::string& source_str, int count);
+	MyString(MyString& source_str, int count);
+
+	MyString(int count, char ch);
+
+	~MyString();
+
+	// clear str content
+	void clear();
+
+	// Clear not used ram
+	void shrink_to_fit();
+
+	// Equal operators
+	void operator=(const char* source_str);
+	void operator=(std::string& source_str);
+	void operator=(MyString& source_str);
+
+	void operator=(char ch);
+
+	// Gettes
+	char* c_str();
+	int size();
+	int capacity();
+	bool empty();
+
+	// Insert by index
+	void insert(int index, int count, char ch);
+
+	void insert(int index, const char* source_str);
+	void insert(int index, std::string& source_str);
+	void insert(int index, MyString& source_str);
+
+	void insert(int index, const char* source_str, int count);
+	void insert(int index, std::string& source_str, int count);
+	void insert(int index, MyString& source_str, int count);
+
+	void insert(int index, const char* source_str, int s_index, int count);
+	void insert(int index, std::string& source_str, int s_index, int count);
+	void insert(int index, MyString& source_str, int s_index, int count);
+
+	// Append to end of string
+	void append(int count, char ch);
+
+	void append(const char* source_str);
+	void append(std::string& source_str);
+	void append(MyString& source_str);
+
+	void append(const char* source_str, int count);
+	void append(std::string& source_str, int count);
+	void append(MyString& source_str, int count);
+
+	void append(const char* source_str, int s_index, int count);
+	void append(std::string& source_str, int s_index, int count);
+	void append(MyString& source_str, int s_index, int count);
+
+	// Delete sub string
+	void erase(int index, int count);
+
+	// Replace sub string
+	void replace(int index, int count, const char* source_str);
+	void replace(int index, int count, std::string& source_str);
+	void replace(int index, int count, MyString& source_str);
+
+	void replace(int index, int count, const char* source_str, int s_count);
+	void replace(int index, int count, std::string& source_str, int s_count);
+	void replace(int index, int count, MyString& source_str, int s_count);
+
+	void replace(int index, int count, const char* source_str, int s_index,
+				 int s_count);
+	void replace(int index, int count, std::string& source_str, int s_index,
+				 int s_count);
+	void replace(int index, int count, MyString& source_str, int s_index,
+				 int s_count);
+
+	// Get sub string
+	MyString* substr(int index);
+	MyString* substr(int index, int count);
+
+	// Sum operators
+	MyString* operator+(const char* source_str);
+	MyString* operator+(std::string& source_str);
+	MyString* operator+(MyString& source_str);
+	MyString* operator+=(const char* source_str);
+	MyString* operator+=(std::string& source_str);
+	MyString* operator+=(MyString& source_str);
+
+	// Index operator
+	char* operator[](int index);
+
+	// Operator and methods to compare strings
+	short compare(MyString&);
+	bool operator>(MyString& other);
+	bool operator<(MyString& other);
+	bool operator>=(MyString& other);
+	bool operator<=(MyString& other);
+	bool operator!=(MyString& other);
+	bool operator==(MyString& other);
+
+	// Finders
+	int find(const char* source_str);
+	int find(std::string& source_str);
+	int find(MyString& source_str);
+	int find(const char* source_str, int index);
+	int find(std::string& source_str, int index);
+	int find(MyString& source_str, int index);
+
+  private:
+};
+
+#endif // _MY_STRING_H_

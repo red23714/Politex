@@ -8,9 +8,9 @@ struct idt_ptr g_idtp;		 // Описатель таблицы для коман�
 // Пустой обработчик прерываний.
 void default_intr_handler()
 {
-	asm("pusha");
+  asm("pusha");
 	// TODO обработчик прерываний
-	asm("popa; leave; iret");
+  asm("popa; leave; iret");
 }
 
 void intr_reg_handler(int num, unsigned short segm_sel, unsigned short flags,
