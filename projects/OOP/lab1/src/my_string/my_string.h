@@ -15,6 +15,8 @@ class MyString
 	MyString(std::string_view source_str, int count);
 	MyString(int count, char ch);
 
+	MyString(const MyString& other);
+
 	~MyString();
 
 	// clear str content
@@ -26,6 +28,8 @@ class MyString
 	// Equal operators
 	void operator=(std::string_view source_str);
 	void operator=(char ch);
+
+	MyString& operator=(const MyString& other);
 
 	// Gettes
 	char* c_str();
@@ -91,6 +95,10 @@ class MyString
 	int capacity_;
 
 	void init(std::string_view sv);
+	char* create_copy_of_pstr(int new_size);
+	void delete_pstr_change_params(char* new_pstr, int new_len,
+								   int new_capacity);
+	void my_insert(int index, int count, const char* data);
 };
 
 #endif // _MY_STRING_H_

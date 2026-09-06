@@ -1,6 +1,6 @@
 # 1. Compiler and Flag Definitions
 CXX      := clang++
-CXXFLAGS := -Wall -Wextra -std=c++17 -O2
+CXXFLAGS := -Wall -Wextra -fsanitize=address -std=c++17
 LDFLAGS  := 
 
 # 2. Target and Directories
