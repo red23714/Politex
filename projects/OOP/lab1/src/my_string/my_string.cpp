@@ -18,7 +18,10 @@ void MyString::init(std::string_view sv)
 char* MyString::create_copy_of_pstr(int new_size)
 {
 	char* tmp = new char[new_size];
-	std::memcpy(tmp, pstr_, capacity_);
+	if (new_size < capacity_)
+		std::memcpy(tmp, pstr_, new_size);
+	else
+		std::memcpy(tmp, pstr_, capacity_);
 
 	return tmp;
 }
@@ -42,9 +45,12 @@ void MyString::my_insert(int index, int count, const char* data)
 		capacity_ = 1;
 	}
 
-	int new_capacity = capacity_ + count;
+	int new_capacity = len_ + count + 1;
+	if (len_ + count < capacity_)
+		new_capacity = capacity_;
+
 	char* tmp = create_copy_of_pstr(new_capacity);
-	std::memmove(tmp + index + count, tmp + index, capacity_ - index);
+	std::memmove(tmp + index + count, tmp + index, len_ + 1 - index);
 	std::memcpy(tmp + index, data, count);
 
 	delete_pstr_change_params(tmp, len_ + count, new_capacity);
@@ -92,7 +98,11 @@ void MyString::clear()
 	len_ = 0;
 }
 
-void MyString::shrink_to_fit() {}
+void MyString::shrink_to_fit()
+{
+	char* tmp = create_copy_of_pstr(len_ + 1);
+	delete_pstr_change_params(tmp, len_, len_ + 1);
+}
 
 void MyString::operator=(std::string_view source_str)
 {
@@ -118,13 +128,13 @@ MyString& MyString::operator=(const MyString& other)
 	return *this;
 }
 
-char* MyString::c_str() { return pstr_; }
+const char& MyString::c_str() const { return static_cast<const char&>(*pstr_); }
 
-int MyString::size() { return len_; }
+int MyString::size() const { return len_; }
 
-int MyString::capacity() { return capacity_; }
+int MyString::capacity() const { return capacity_; }
 
-bool MyString::empty() { return len_ == 0; }
+bool MyString::empty() const { return len_ == 0; }
 
 void MyString::insert(int index, int count, char ch)
 {
@@ -180,11 +190,107 @@ void MyString::erase(int index, int count)
 	len_ = len_ - count;
 }
 
+void MyString::replace(int index, int count, std::string_view source_str,
+					   int s_index, int s_count)
+{
+	std::string_view replace_str = source_str.substr(s_index, s_count);
+	erase(index, count);
+	insert(index, replace_str);
+}
+
 void MyString::replace(int index, int count, std::string_view source_str)
 {
-	int source_str_size = source_str.size();
-	erase(index, count);
-	insert(index, source_str);
+	replace(index, count, source_str, 0, source_str.size());
+}
+
+void MyString::replace(int index, int count, std::string_view source_str,
+					   int s_count)
+{
+	replace(index, count, source_str, 0, s_count);
+}
+
+MyString MyString::substr(int index, int count) const
+{
+	MyString new_str = *this; // Unname pointer and make copy
+
+	if (index != 0)
+		new_str.erase(0, index); // delete start of the string previous to
+								 // index were we need substr
+
+	new_str.erase(count, len_ - index -
+							 count); // delete other part after substr to end
+
+	new_str.shrink_to_fit();
+
+	return new_str;
+}
+
+MyString MyString::substr(int index) const
+{
+	return substr(index, len_ - index);
+}
+
+MyString& MyString::operator+=(std::string_view source_str)
+{
+	this->append(source_str);
+	return *this;
+}
+
+MyString MyString::operator+(std::string_view source_str) const
+{
+	MyString tmp = *this;
+	return tmp += source_str;
+}
+
+char& MyString::operator[](int index) { return pstr_[index]; }
+
+const char& MyString::operator[](int index) const { return pstr_[index]; }
+
+short MyString::compare(MyString& other) const
+{
+	int this_len = this->len_;
+	if (this_len < other.len_)
+		return -1;
+	if (this_len > other.len_)
+		return 1;
+
+	for (int i = 0; i < this_len; ++i)
+	{
+		if (this->pstr_[i] != other.pstr_[i])
+		{
+			if (this->pstr_[i] - other.pstr_[i] > 0)
+				return 1;
+			else
+				return -1;
+		}
+	}
+
+	return 0;
+}
+
+bool MyString::operator>(MyString& other) const
+{
+	return this->compare(other) == 1;
+}
+bool MyString::operator<(MyString& other) const
+{
+	return this->compare(other) == -1;
+}
+bool MyString::operator>=(MyString& other) const
+{
+	return this->compare(other) != -1;
+}
+bool MyString::operator<=(MyString& other) const
+{
+	return this->compare(other) != 1;
+}
+bool MyString::operator!=(MyString& other) const
+{
+	return this->compare(other) != 0;
+}
+bool MyString::operator==(MyString& other) const
+{
+	return this->compare(other) == 0;
 }
 
 MyString::operator std::string_view() const

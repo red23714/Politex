@@ -35,6 +35,13 @@ int main()
 	str_clear.clear();
 	str_clear.pstr();
 
+	MyString str_shrink("Hello world!");
+	str_shrink.pstr();
+	str_shrink.erase(5, 6);
+	str_shrink.pstr();
+	str_shrink.shrink_to_fit();
+	str_shrink.pstr();
+
 	MyString str_eq;
 	str_eq = "hello";
 	str_eq.pstr();
@@ -99,6 +106,42 @@ int main()
 	MyString str_repl("hello amazing world");
 	str_repl.replace(6, 7, "wonderful");
 	str_repl.pstr();
+
+	str_repl = "hello amazing world";
+	str_repl.replace(6, 7, "wonderful", 6);
+	str_repl.pstr();
+
+	str_repl = "hello amazing world";
+	str_repl.replace(6, 7, "wonderful", 1, 2);
+	str_repl.pstr();
+
+	MyString str_sub("hello amazing world"), substr;
+	substr = str_sub.substr(6);
+	substr.pstr();
+
+	str_sub = "hello amazing world";
+	substr = str_sub.substr(6, 7);
+	substr.pstr();
+
+	MyString left("hel"), right("lo"), r;
+	r = left + right;
+	left.pstr();
+	right.pstr();
+	r.pstr();
+
+	left += right;
+	left.pstr();
+	right.pstr();
+
+	MyString str_brac("hello");
+	std::cout << str_brac[2] << std::endl;
+	str_brac[2] = 'L';
+	str_brac.pstr();
+
+	MyString a("abcd"), b("abce");
+	std::cout << a.compare(b) << b.compare(a) << std::endl;
+	std::cout << (a == b) << (a != b) << (a > b) << (a >= b) << (a < b)
+			  << (a <= b) << std::endl;
 
 	return 0;
 }

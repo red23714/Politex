@@ -32,10 +32,10 @@ class MyString
 	MyString& operator=(const MyString& other);
 
 	// Gettes
-	char* c_str();
-	int size();
-	int capacity();
-	bool empty();
+	const char& c_str() const;
+	int size() const;
+	int capacity() const;
+	bool empty() const;
 
 	// Insert by index
 	void insert(int index, int count, char ch);
@@ -60,28 +60,29 @@ class MyString
 				 int s_count);
 
 	// Get sub string
-	MyString* substr(int index);
-	MyString* substr(int index, int count);
+	MyString substr(int index) const;
+	MyString substr(int index, int count) const;
 
 	// Sum operators
-	MyString* operator+(std::string_view source_str);
-	MyString* operator+=(std::string_view source_str);
+	MyString operator+(std::string_view source_str) const;
+	MyString& operator+=(std::string_view source_str);
 
 	// Index operator
-	char* operator[](int index);
+	char& operator[](int index);
+	const char& operator[](int index) const;
 
 	// Operator and methods to compare strings
-	short compare(MyString&);
-	bool operator>(MyString& other);
-	bool operator<(MyString& other);
-	bool operator>=(MyString& other);
-	bool operator<=(MyString& other);
-	bool operator!=(MyString& other);
-	bool operator==(MyString& other);
+	short compare(MyString& other) const;
+	bool operator>(MyString& other) const;
+	bool operator<(MyString& other) const;
+	bool operator>=(MyString& other) const;
+	bool operator<=(MyString& other) const;
+	bool operator!=(MyString& other) const;
+	bool operator==(MyString& other) const;
 
 	// Finders
-	int find(std::string_view source_str);
-	int find(std::string_view source_str, int index);
+	int find(std::string_view source_str) const;
+	int find(std::string_view source_str, int index) const;
 
 	operator std::string_view() const;
 
