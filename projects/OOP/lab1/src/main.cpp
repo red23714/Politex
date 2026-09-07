@@ -96,5 +96,9 @@ int main()
 	str2.erase(5, 6);
 	str2.pstr();
 
+	MyString str_repl("hello amazing world");
+	str_repl.replace(6, 7, "wonderful");
+	str_repl.pstr();
+
 	return 0;
 }

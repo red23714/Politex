@@ -180,6 +180,13 @@ void MyString::erase(int index, int count)
 	len_ = len_ - count;
 }
 
+void MyString::replace(int index, int count, std::string_view source_str)
+{
+	int source_str_size = source_str.size();
+	erase(index, count);
+	insert(index, source_str);
+}
+
 MyString::operator std::string_view() const
 {
 	return std::string_view(pstr_, len_);
