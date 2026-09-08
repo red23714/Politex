@@ -143,6 +143,9 @@ int main()
 	std::cout << (a == b) << (a != b) << (a > b) << (a >= b) << (a < b)
 			  << (a <= b) << std::endl;
 
+	MyString str_find = std::string("hello");
+	str_find = "hello amazing world";
+
 	MyString str_num(0x12345678);
 	str_num.pstr();
 

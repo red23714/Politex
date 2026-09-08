@@ -90,6 +90,16 @@ MyString::MyString(int count, char ch)
 
 MyString::MyString(const MyString& other) { init(std::string_view(other)); }
 
+MyString::MyString(const char* source_str)
+	: MyString(std::string_view(source_str))
+{
+}
+
+MyString::MyString(std::string source_str)
+	: MyString(std::string_view(source_str))
+{
+}
+
 MyString::MyString(MyString&& other)
 	: pstr_(other.pstr_), len_(other.len_), capacity_(other.capacity_)
 {
@@ -187,6 +197,16 @@ void MyString::operator=(std::string_view source_str)
 	init(source_str);
 }
 
+void MyString::operator=(const char* source_str)
+{
+	*this = std::string_view(source_str);
+}
+
+void MyString::operator=(const std::string& source_str)
+{
+	*this = std::string_view(source_str);
+}
+
 void MyString::operator=(char ch)
 {
 	delete_pstr_change_params(new char[2], 1, 2);
@@ -223,7 +243,7 @@ MyString& MyString::operator=(const MyString& other)
 	return *this;
 }
 
-const char& MyString::c_str() const { return static_cast<const char&>(*pstr_); }
+const char* MyString::c_str() const { return pstr_; }
 
 int MyString::size() const { return len_; }
 
@@ -386,6 +406,45 @@ bool MyString::operator!=(MyString& other) const
 bool MyString::operator==(MyString& other) const
 {
 	return this->compare(other) == 0;
+}
+
+std::basic_ifstream<char>& operator>>(std::basic_ifstream<char>& is,
+									  MyString& str)
+{
+}
+
+std::basic_ofstream<char>& operator<<(std::basic_ofstream<char>& os,
+									  const MyString& str)
+{
+	os.write(str.c_str(), str.size());
+	return os;
+}
+
+int MyString::find(std::string_view source_str) const
+{
+	return find(source_str, 0);
+}
+
+int MyString::find(std::string_view source_str, int index) const
+{
+	int m = static_cast<int>(source_str.size());
+
+	if (m == 0 || index < 0 || index > len_ - m)
+		return -1;
+
+	const char* pattern = source_str.data();
+
+	for (int i = index; i <= len_ - m; ++i)
+	{
+		int j = 0;
+		while (j < m && pstr_[i + j] == pattern[j])
+			++j;
+
+		if (j == m)
+			return i;
+	}
+
+	return -1;
 }
 
 MyString::operator std::string_view() const

@@ -4,6 +4,7 @@
 #include <string_view>
 #include <cstring>
 #include <cstdint>
+#include <fstream>
 
 #define DEBUG 1
 
@@ -20,6 +21,8 @@ class MyString
 	MyString(int32_t number);
 	MyString(float number);
 
+	MyString(const char* source_str);
+	MyString(std::string source_str);
 	MyString(const MyString& other);
 
 	~MyString();
@@ -32,6 +35,8 @@ class MyString
 
 	// Equal operators
 	void operator=(std::string_view source_str);
+	void operator=(const char* source_str);
+	void operator=(const std::string& source_str);
 	void operator=(char ch);
 
 	MyString& operator=(MyString&& other);
@@ -39,7 +44,7 @@ class MyString
 	MyString& operator=(const MyString& other);
 
 	// Gettes
-	const char& c_str() const;
+	const char* c_str() const;
 	int size() const;
 	int capacity() const;
 	bool empty() const;
@@ -87,6 +92,11 @@ class MyString
 	bool operator!=(MyString& other) const;
 	bool operator==(MyString& other) const;
 
+	friend std::basic_ofstream<char>& operator<<(std::basic_ofstream<char>& os,
+												 const MyString& str);
+
+	friend std::basic_ifstream<char>& operator>>(std::basic_ifstream<char>& is,
+												 MyString& str);
 	// Finders
 	int find(std::string_view source_str) const;
 	int find(std::string_view source_str, int index) const;
