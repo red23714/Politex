@@ -90,6 +90,83 @@ MyString::MyString(int count, char ch)
 
 MyString::MyString(const MyString& other) { init(std::string_view(other)); }
 
+MyString::MyString(MyString&& other)
+	: pstr_(other.pstr_), len_(other.len_), capacity_(other.capacity_)
+{
+	other.pstr_ = nullptr;
+	other.len_ = 0;
+	other.capacity_ = 0;
+}
+
+MyString::MyString(int32_t number)
+{
+	if (number == 0)
+	{
+		this->insert(0, 1, '0');
+	}
+
+	bool is_negative = false;
+	int32_t tmp = number;
+
+	if (tmp < 0)
+	{
+		is_negative = true;
+		tmp = -tmp;
+	}
+
+	while (tmp > 0)
+	{
+		char tmp2 = '0' + tmp % 10;
+		this->insert(0, 1, tmp2);
+		tmp /= 10;
+	}
+
+	if (is_negative)
+		this->insert(0, 1, '-');
+}
+
+MyString::MyString(float number)
+{
+	if (number < 0)
+	{
+		this->insert(0, 1, '-');
+	}
+
+	int32_t int_part = static_cast<int32_t>(number);
+	MyString int_str(int_part);
+
+	for (int i = 0; i < int_str.size(); ++i)
+	{
+		this->insert(this->size(), 1, int_str[i]);
+	}
+
+	float fraction = number - int_part;
+
+	if (fraction > 0.00001f)
+	{
+		this->insert(this->size(), 1, '.');
+
+		int steps = 0;
+
+		while (steps < 6)
+		{
+			fraction *= 10.0f;
+			int32_t digit = static_cast<int32_t>(fraction);
+
+			char ch = '0' + digit;
+			this->insert(this->size(), 1, ch);
+
+			fraction -= digit;
+			++steps;
+
+			if (fraction < 0.00001f)
+			{
+				break;
+			}
+		}
+	}
+}
+
 MyString::~MyString() { delete[] pstr_; }
 
 void MyString::clear()
@@ -116,6 +193,24 @@ void MyString::operator=(char ch)
 
 	pstr_[0] = ch;
 	pstr_[1] = '\0';
+}
+
+MyString& MyString::operator=(MyString&& other)
+{
+	if (this != &other)
+	{
+		delete_pstr_change_params(nullptr, 0, 0);
+
+		pstr_ = other.pstr_;
+		len_ = other.len_;
+		capacity_ = other.capacity_;
+
+		other.pstr_ = nullptr;
+		other.len_ = 0;
+		other.capacity_ = 0;
+	}
+
+	return *this;
 }
 
 MyString& MyString::operator=(const MyString& other)

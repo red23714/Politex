@@ -143,5 +143,14 @@ int main()
 	std::cout << (a == b) << (a != b) << (a > b) << (a >= b) << (a < b)
 			  << (a <= b) << std::endl;
 
+	MyString str_num(0x12345678);
+	str_num.pstr();
+
+	MyString str_float(0.05f);
+	str_float.pstr();
+
+	str_num = std::move(str_float);
+	str_num.pstr();
+
 	return 0;
 }

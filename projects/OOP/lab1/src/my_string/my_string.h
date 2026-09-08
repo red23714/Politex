@@ -3,6 +3,7 @@
 
 #include <string_view>
 #include <cstring>
+#include <cstdint>
 
 #define DEBUG 1
 
@@ -14,6 +15,10 @@ class MyString
 	MyString(std::string_view source_str);
 	MyString(std::string_view source_str, int count);
 	MyString(int count, char ch);
+
+	MyString(MyString&& other); // Move constructor
+	MyString(int32_t number);
+	MyString(float number);
 
 	MyString(const MyString& other);
 
@@ -28,6 +33,8 @@ class MyString
 	// Equal operators
 	void operator=(std::string_view source_str);
 	void operator=(char ch);
+
+	MyString& operator=(MyString&& other);
 
 	MyString& operator=(const MyString& other);
 
