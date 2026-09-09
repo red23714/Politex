@@ -145,6 +145,7 @@ int main()
 
 	MyString str_find = std::string("hello");
 	str_find = "hello amazing world";
+	std::cout << str_find.find("amazing") << std::endl;
 
 	MyString str_num(0x12345678);
 	str_num.pstr();
@@ -154,6 +155,13 @@ int main()
 
 	str_num = std::move(str_float);
 	str_num.pstr();
+
+	std::cout << str_find.at(0) << std::endl;
+
+	MyString str_tofloat(0.05f);
+	MyString str_toint(12345678);
+	std::cout << str_tofloat.to_float() << std::endl;
+	std::cout << str_toint.to_int() << std::endl;
 
 	return 0;
 }

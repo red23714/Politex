@@ -1,5 +1,6 @@
 #include "my_string.h"
 #include <cstring>
+#include <stdexcept>
 #include <string_view>
 
 #ifdef DEBUG
@@ -37,6 +38,10 @@ void MyString::delete_pstr_change_params(char* new_pstr, int new_len,
 
 void MyString::my_insert(int index, int count, const char* data)
 {
+	if (index < 0)
+		index = capacity_ - index;
+	if (index > capacity_ || index < 0)
+		throw std::out_of_range("Index is bigger than length of string");
 	if (capacity_ == 0)
 	{
 		pstr_ = new char[1];
@@ -294,6 +299,11 @@ void MyString::append(std::string_view source_str, int s_index, int count)
 
 void MyString::erase(int index, int count)
 {
+	if (index < 0)
+		index = capacity_ - index;
+	if (index > capacity_ || index < 0)
+		throw std::out_of_range("Index is bigger than length of string");
+
 	std::memset(pstr_ + index, 0, count);
 	std::memmove(
 		pstr_ + index, pstr_ + index + count,
@@ -326,6 +336,14 @@ void MyString::replace(int index, int count, std::string_view source_str,
 
 MyString MyString::substr(int index, int count) const
 {
+	if (index < 0)
+		index = capacity_ - index;
+	if (index > capacity_ || index < 0)
+		throw std::out_of_range("Index is bigger than length of string");
+	if (count + index > capacity_)
+		throw std::out_of_range(
+			"Substring count is larger than length of string");
+
 	MyString new_str = *this; // Unname pointer and make copy
 
 	if (index != 0)
@@ -357,7 +375,15 @@ MyString MyString::operator+(std::string_view source_str) const
 	return tmp += source_str;
 }
 
-char& MyString::operator[](int index) { return pstr_[index]; }
+char& MyString::operator[](int index)
+{
+	if (index < 0)
+		index = capacity_ - index;
+	if (index > capacity_ || index < 0)
+		throw std::out_of_range("Index is bigger than length of string");
+
+	return pstr_[index];
+}
 
 const char& MyString::operator[](int index) const { return pstr_[index]; }
 
@@ -427,9 +453,14 @@ int MyString::find(std::string_view source_str) const
 
 int MyString::find(std::string_view source_str, int index) const
 {
+	if (index < 0)
+		index = capacity_ - index;
+	if (index > capacity_ || index < 0)
+		throw std::out_of_range("Index is bigger than length of string");
+
 	int m = static_cast<int>(source_str.size());
 
-	if (m == 0 || index < 0 || index > len_ - m)
+	if (m == 0)
 		return -1;
 
 	const char* pattern = source_str.data();
@@ -447,6 +478,55 @@ int MyString::find(std::string_view source_str, int index) const
 	return -1;
 }
 
+char MyString::at(int index)
+{
+	if (index < 0)
+		index = capacity_ - index;
+	if (index > capacity_ || index < 0)
+		throw std::out_of_range("Index is bigger than length of string");
+
+	return pstr_[index];
+}
+
+int MyString::to_int() { return static_cast<int>(this->to_float()); }
+
+float MyString::to_float()
+{
+	float result = 0.0f;
+	float sign = 1.0f;
+	int i = 0;
+
+	if (this->pstr_[i] == '-')
+	{
+		sign = -1.0f;
+		i++;
+	}
+	else if (this->pstr_[i] == '+')
+	{
+		i++;
+	}
+
+	while (i < this->len_ && this->pstr_[i] >= '0' && this->pstr_[i] <= '9')
+	{
+		result = result * 10.0f + (this->pstr_[i] - '0');
+		i++;
+	}
+
+	if (i < this->len_ && this->pstr_[i] == '.')
+	{
+		i++;
+		float weight = 0.1f;
+
+		while (i < this->len_ && this->pstr_[i] >= '0' && this->pstr_[i] <= '9')
+		{
+			result += (this->pstr_[i] - '0') * weight;
+			weight /= 10.0f;
+			i++;
+		}
+	}
+
+	return result * sign;
+}
 MyString::operator std::string_view() const
 {
 	return std::string_view(pstr_, len_);

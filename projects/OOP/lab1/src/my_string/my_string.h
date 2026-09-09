@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstdint>
 #include <fstream>
+#include <stdexcept>
 
 #define DEBUG 1
 
@@ -97,9 +98,15 @@ class MyString
 
 	friend std::basic_ifstream<char>& operator>>(std::basic_ifstream<char>& is,
 												 MyString& str);
+
 	// Finders
 	int find(std::string_view source_str) const;
 	int find(std::string_view source_str, int index) const;
+
+	char at(int index);
+
+	int to_int();
+	float to_float();
 
 	operator std::string_view() const;
 
