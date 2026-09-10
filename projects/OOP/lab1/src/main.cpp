@@ -163,5 +163,8 @@ int main()
 	std::cout << str_tofloat.to_float() << std::endl;
 	std::cout << str_toint.to_int() << std::endl;
 
+	MyString test("hello");
+	test[5];
+
 	return 0;
 }

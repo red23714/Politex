@@ -32,4 +32,8 @@ $(OBJDIR):
 clean:
 	rm -rf $(OBJDIR) $(TARGET)
 
+wrapper:
+	clang++ -std=c++17 -shared -fPIC -I/usr/include/python3.14 src/my_string/my_string.cpp my_string_wrapper.cpp -lboost_python314 -lpython3.14 -o my_string.so
+	python test.py
+
 .PHONY: all clean

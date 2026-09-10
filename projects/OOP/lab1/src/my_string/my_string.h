@@ -120,10 +120,12 @@ class MyString
 	int capacity_;
 
 	void init(std::string_view sv);
-	char* create_copy_of_pstr(int new_size);
+	char* create_copy_of_pstr(int new_size) const;
 	void delete_pstr_change_params(char* new_pstr, int new_len,
 								   int new_capacity);
 	void my_insert(int index, int count, const char* data);
+	int check_index(int index, int capacity, int count,
+					std::string error_msg) const;
 };
 
 #endif // _MY_STRING_H_

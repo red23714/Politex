@@ -16,7 +16,7 @@ void MyString::init(std::string_view sv)
 	pstr_[len_] = '\0';
 }
 
-char* MyString::create_copy_of_pstr(int new_size)
+char* MyString::create_copy_of_pstr(int new_size) const
 {
 	char* tmp = new char[new_size];
 	if (new_size < capacity_)
@@ -38,10 +38,7 @@ void MyString::delete_pstr_change_params(char* new_pstr, int new_len,
 
 void MyString::my_insert(int index, int count, const char* data)
 {
-	if (index < 0)
-		index = capacity_ - index;
-	if (index > capacity_ || index < 0)
-		throw std::out_of_range("Index is bigger than length of string");
+	index = check_index(index, capacity_, 0, "Insert or append");
 	if (capacity_ == 0)
 	{
 		pstr_ = new char[1];
@@ -59,6 +56,22 @@ void MyString::my_insert(int index, int count, const char* data)
 	std::memcpy(tmp + index, data, count);
 
 	delete_pstr_change_params(tmp, len_ + count, new_capacity);
+}
+
+int MyString::check_index(int index, int capacity, int count,
+						  std::string error_msg) const
+{
+	if (index < 0)
+		index = capacity + index;
+	if (index > capacity || index < 0)
+		throw std::out_of_range(
+			"Index is bigger than length of string. \n Error in method " +
+			error_msg + "\n");
+	if (count < 0 || index + count > capacity)
+		throw std::out_of_range("Count is not right in method " + error_msg +
+								"\n");
+
+	return index;
 }
 
 #ifdef DEBUG
@@ -91,6 +104,7 @@ MyString::MyString(int count, char ch)
 	pstr_ = new char[capacity_];
 
 	std::memset(pstr_, ch, count);
+	pstr_[capacity_ - 1] = '\0';
 }
 
 MyString::MyString(const MyString& other) { init(std::string_view(other)); }
@@ -299,10 +313,7 @@ void MyString::append(std::string_view source_str, int s_index, int count)
 
 void MyString::erase(int index, int count)
 {
-	if (index < 0)
-		index = capacity_ - index;
-	if (index > capacity_ || index < 0)
-		throw std::out_of_range("Index is bigger than length of string");
+	index = check_index(index, capacity_, count, "erase");
 
 	std::memset(pstr_ + index, 0, count);
 	std::memmove(
@@ -336,13 +347,7 @@ void MyString::replace(int index, int count, std::string_view source_str,
 
 MyString MyString::substr(int index, int count) const
 {
-	if (index < 0)
-		index = capacity_ - index;
-	if (index > capacity_ || index < 0)
-		throw std::out_of_range("Index is bigger than length of string");
-	if (count + index > capacity_)
-		throw std::out_of_range(
-			"Substring count is larger than length of string");
+	index = check_index(index, capacity_, count, "substr");
 
 	MyString new_str = *this; // Unname pointer and make copy
 
@@ -377,15 +382,16 @@ MyString MyString::operator+(std::string_view source_str) const
 
 char& MyString::operator[](int index)
 {
-	if (index < 0)
-		index = capacity_ - index;
-	if (index > capacity_ || index < 0)
-		throw std::out_of_range("Index is bigger than length of string");
+	index = check_index(index, capacity_, 0, "operator [] changing index");
 
 	return pstr_[index];
 }
 
-const char& MyString::operator[](int index) const { return pstr_[index]; }
+const char& MyString::operator[](int index) const
+{
+	index = check_index(index, capacity_, 0, "operator [] geting index");
+	return pstr_[index];
+}
 
 short MyString::compare(MyString& other) const
 {
@@ -453,10 +459,7 @@ int MyString::find(std::string_view source_str) const
 
 int MyString::find(std::string_view source_str, int index) const
 {
-	if (index < 0)
-		index = capacity_ - index;
-	if (index > capacity_ || index < 0)
-		throw std::out_of_range("Index is bigger than length of string");
+	index = check_index(index, capacity_, 0, "find with index");
 
 	int m = static_cast<int>(source_str.size());
 
@@ -480,10 +483,7 @@ int MyString::find(std::string_view source_str, int index) const
 
 char MyString::at(int index)
 {
-	if (index < 0)
-		index = capacity_ - index;
-	if (index > capacity_ || index < 0)
-		throw std::out_of_range("Index is bigger than length of string");
+	index = check_index(index, capacity_, 0, "at");
 
 	return pstr_[index];
 }
