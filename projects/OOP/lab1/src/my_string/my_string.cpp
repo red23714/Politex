@@ -100,6 +100,9 @@ MyString::MyString(std::string_view source_str, int count)
 
 MyString::MyString(int count, char ch)
 {
+	if (count < 0)
+		throw std::invalid_argument(
+			"Count is must be more than zero/ Error in constructor");
 	len_ = count;
 	capacity_ = len_ + 1;
 	pstr_ = new char[capacity_];
@@ -403,13 +406,12 @@ const char& MyString::operator[](int index) const
 short MyString::compare(const MyString& other) const
 {
 	int this_len = this->len_;
-	if (this_len < other.len_)
-		return -1;
-	if (this_len > other.len_)
-		return 1;
 
 	for (int i = 0; i < this_len; ++i)
 	{
+		if (other.len_ < i)
+			return 1;
+
 		if (this->pstr_[i] != other.pstr_[i])
 		{
 			if (this->pstr_[i] - other.pstr_[i] > 0)
@@ -471,7 +473,7 @@ int MyString::find(std::string_view source_str, int index) const
 	int m = static_cast<int>(source_str.size());
 
 	if (m == 0)
-		return -1;
+		return 0;
 
 	const char* pattern = source_str.data();
 
@@ -490,6 +492,8 @@ int MyString::find(std::string_view source_str, int index) const
 
 char MyString::at(int index)
 {
+	if (index == 0 && len_ == 0)
+		throw std::invalid_argument("Call method \"at\" at empty string");
 	index = check_index(index, len_, 0, "at");
 
 	return pstr_[index];
@@ -499,6 +503,8 @@ int MyString::to_int() { return static_cast<int>(this->to_float()); }
 
 float MyString::to_float()
 {
+	// TODO make type of expression
+
 	float result = 0.0f;
 	float sign = 1.0f;
 	int i = 0;
