@@ -85,13 +85,13 @@ class MyString
 	const char& operator[](int index) const;
 
 	// Operator and methods to compare strings
-	short compare(MyString& other) const;
-	bool operator>(MyString& other) const;
-	bool operator<(MyString& other) const;
-	bool operator>=(MyString& other) const;
-	bool operator<=(MyString& other) const;
-	bool operator!=(MyString& other) const;
-	bool operator==(MyString& other) const;
+	short compare(const MyString& other) const;
+	bool operator>(const MyString& other) const;
+	bool operator<(const MyString& other) const;
+	bool operator>=(const MyString& other) const;
+	bool operator<=(const MyString& other) const;
+	bool operator!=(const MyString& other) const;
+	bool operator==(const MyString& other) const;
 
 	friend std::basic_ofstream<char>& operator<<(std::basic_ofstream<char>& os,
 												 const MyString& str);

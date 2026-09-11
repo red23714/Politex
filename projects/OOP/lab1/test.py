@@ -462,5 +462,112 @@ class TestMyStringSourceTypes(unittest.TestCase):
         self.assertEqual(s.c_str(), "world")
 
 
+class TestMyStringKnownIssues(unittest.TestCase):
+    """
+    Тесты, воспроизводящие ошибки, найденные в реализации MyString
+    и её Python-обёртке (см. раздел "Обнаруженные ошибки" в отчёте).
+
+    Каждый тест помечен @unittest.expectedFailure: пока баг не
+    исправлен, ожидается, что тест НЕ пройдёт (упадёт или бросит
+    исключение) -- сама сборка теста при этом всё равно считается
+    "успешной" (xfail), и это не ломает общий прогон.
+
+    После исправления соответствующей ошибки в C++ коде уберите
+    декоратор @unittest.expectedFailure у этого теста: он должен
+    начать проходить (иначе unittest сообщит "unexpected success").
+    """
+
+    # --- Баг №3: конструкторы из числа не инициализируют
+    # len_/capacity_/pstr_ перед первым insert() -> undefined behavior.
+    # В зависимости от содержимого памяти может дать неверный
+    # результат, бросить std::out_of_range или уронить интерпретатор.
+
+    @unittest.expectedFailure
+    def test_bug_number_constructor_zero(self):
+        s = my_string.MyString(0)
+        self.assertEqual(s.c_str(), "0")
+
+    @unittest.expectedFailure
+    def test_bug_number_constructor_positive(self):
+        s = my_string.MyString(12345)
+        self.assertEqual(s.c_str(), "12345")
+
+    @unittest.expectedFailure
+    def test_bug_number_constructor_negative(self):
+        s = my_string.MyString(-42)
+        self.assertEqual(s.c_str(), "-42")
+
+    @unittest.expectedFailure
+    def test_bug_float_constructor(self):
+        s = my_string.MyString(3.14)
+        self.assertEqual(s.c_str(), "3.14")
+
+    # --- Баг №4: compare() сравнивает длины строк раньше посимвольного
+    # сравнения, то есть не является лексикографическим сравнением.
+
+    @unittest.expectedFailure
+    def test_bug_compare_not_lexicographic(self):
+        a = my_string.MyString("z")
+        b = my_string.MyString("aa")
+        # Лексикографически (как у std::string) "z" > "aa", т.к. 'z' > 'a'
+        self.assertGreater(a.compare(b), 0)
+
+    @unittest.expectedFailure
+    def test_bug_greater_operator_not_lexicographic(self):
+        a = my_string.MyString("z")
+        b = my_string.MyString("aa")
+        self.assertTrue(a > b)
+
+    # --- Баг №5: find() с пустой искомой строкой возвращает -1,
+    # а не индекс начала поиска (как у std::string::find("")).
+
+    @unittest.expectedFailure
+    def test_bug_find_empty_pattern(self):
+        s = my_string.MyString("hello")
+        self.assertEqual(s.find(""), 0)
+
+    # --- Баг №6: at() на пустой строке разыменовывает nullptr вместо
+    # выброса исключения (падение интерпретатора / SIGSEGV).
+
+    @unittest.expectedFailure
+    def test_bug_at_on_empty_string_raises(self):
+        s = my_string.MyString()
+        with self.assertRaises(Exception):
+            s.at(0)
+
+    # --- Баг №7: to_float()/to_int() на пустой строке разыменовывают
+    # pstr_[0] без проверки len_ == 0 (падение вместо возврата 0).
+
+    @unittest.expectedFailure
+    def test_bug_to_float_on_empty_string(self):
+        s = my_string.MyString()
+        self.assertEqual(s.to_float(), 0.0)
+
+    @unittest.expectedFailure
+    def test_bug_to_int_on_empty_string(self):
+        s = my_string.MyString()
+        self.assertEqual(s.to_int(), 0)
+
+    # --- Баг №8: MyString(count, ch) не проверяет count >= 0, что
+    # приводит к отрицательному размеру буфера и краху программы.
+
+    @unittest.expectedFailure
+    def test_bug_negative_count_char_constructor_raises(self):
+        with self.assertRaises(Exception):
+            my_string.MyString(-1, "x")
+
+    # Примечание: ошибка №1 (неоднозначность operator!= при компиляции)
+    # и ошибка №2 (пустая заглушка operator>>) обнаруживаются на этапе
+    # сборки C++ модуля, а не тестами Python, поэтому тестов для них
+    # здесь нет -- проект в текущем виде не соберётся, пока ошибка №1
+    # не исправлена.
+    #
+    # Ошибка №9 (use-after-free при самоприсваивании перекрывающейся
+    # подстроки в operator=(std::string_view)) недостижима через
+    # штатный Python-интерфейс (assign всегда получает независимую
+    # копию данных), поэтому воспроизводится только на уровне C++
+    # (см. отчёт) и не покрыта тестом здесь.
+
+
 if __name__ == "__main__":
     unittest.main()

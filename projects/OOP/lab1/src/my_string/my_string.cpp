@@ -38,7 +38,6 @@ void MyString::delete_pstr_change_params(char* new_pstr, int new_len,
 
 void MyString::my_insert(int index, int count, const char* data)
 {
-	index = check_index(index, capacity_, 0, "Insert or append");
 	if (capacity_ == 0)
 	{
 		pstr_ = new char[1];
@@ -46,6 +45,8 @@ void MyString::my_insert(int index, int count, const char* data)
 		len_ = 0;
 		capacity_ = 1;
 	}
+
+	index = check_index(index, len_, 0, "Insert or append");
 
 	int new_capacity = len_ + count + 1;
 	if (len_ + count < capacity_)
@@ -218,7 +219,10 @@ void MyString::operator=(std::string_view source_str)
 
 void MyString::operator=(const char* source_str)
 {
-	*this = std::string_view(source_str);
+	if (source_str != pstr_)
+	{
+		*this = std::string_view(source_str);
+	}
 }
 
 void MyString::operator=(const std::string& source_str)
@@ -272,6 +276,9 @@ bool MyString::empty() const { return len_ == 0; }
 
 void MyString::insert(int index, int count, char ch)
 {
+	if (count < 0)
+		throw std::out_of_range("Count is negative in method insert by char");
+
 	char* data = new char[count];
 
 	std::memset(data, ch, count);
@@ -313,7 +320,7 @@ void MyString::append(std::string_view source_str, int s_index, int count)
 
 void MyString::erase(int index, int count)
 {
-	index = check_index(index, capacity_, count, "erase");
+	index = check_index(index, len_, count, "erase");
 
 	std::memset(pstr_ + index, 0, count);
 	std::memmove(
@@ -347,7 +354,7 @@ void MyString::replace(int index, int count, std::string_view source_str,
 
 MyString MyString::substr(int index, int count) const
 {
-	index = check_index(index, capacity_, count, "substr");
+	index = check_index(index, len_, count, "substr");
 
 	MyString new_str = *this; // Unname pointer and make copy
 
@@ -382,18 +389,18 @@ MyString MyString::operator+(std::string_view source_str) const
 
 char& MyString::operator[](int index)
 {
-	index = check_index(index, capacity_, 0, "operator [] changing index");
+	index = check_index(index, len_, 0, "operator [] changing index");
 
 	return pstr_[index];
 }
 
 const char& MyString::operator[](int index) const
 {
-	index = check_index(index, capacity_, 0, "operator [] geting index");
+	index = check_index(index, len_, 0, "operator [] geting index");
 	return pstr_[index];
 }
 
-short MyString::compare(MyString& other) const
+short MyString::compare(const MyString& other) const
 {
 	int this_len = this->len_;
 	if (this_len < other.len_)
@@ -415,27 +422,27 @@ short MyString::compare(MyString& other) const
 	return 0;
 }
 
-bool MyString::operator>(MyString& other) const
+bool MyString::operator>(const MyString& other) const
 {
 	return this->compare(other) == 1;
 }
-bool MyString::operator<(MyString& other) const
+bool MyString::operator<(const MyString& other) const
 {
 	return this->compare(other) == -1;
 }
-bool MyString::operator>=(MyString& other) const
+bool MyString::operator>=(const MyString& other) const
 {
 	return this->compare(other) != -1;
 }
-bool MyString::operator<=(MyString& other) const
+bool MyString::operator<=(const MyString& other) const
 {
 	return this->compare(other) != 1;
 }
-bool MyString::operator!=(MyString& other) const
+bool MyString::operator!=(const MyString& other) const
 {
 	return this->compare(other) != 0;
 }
-bool MyString::operator==(MyString& other) const
+bool MyString::operator==(const MyString& other) const
 {
 	return this->compare(other) == 0;
 }
@@ -459,7 +466,7 @@ int MyString::find(std::string_view source_str) const
 
 int MyString::find(std::string_view source_str, int index) const
 {
-	index = check_index(index, capacity_, 0, "find with index");
+	index = check_index(index, len_, 0, "find with index");
 
 	int m = static_cast<int>(source_str.size());
 
@@ -483,7 +490,7 @@ int MyString::find(std::string_view source_str, int index) const
 
 char MyString::at(int index)
 {
-	index = check_index(index, capacity_, 0, "at");
+	index = check_index(index, len_, 0, "at");
 
 	return pstr_[index];
 }

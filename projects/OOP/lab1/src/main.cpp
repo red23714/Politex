@@ -166,5 +166,16 @@ int main()
 	MyString test("hello");
 	test[5];
 
+	MyString str_test("abcdef");
+
+	str_test.replace(1, 2, str_test);
+	str_test.pstr();
+
+	MyString s("hello");
+	std::string_view view = s;
+
+	s = view;
+	s.pstr();
+
 	return 0;
 }
