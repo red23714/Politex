@@ -24,13 +24,12 @@ def nod_min_abs(a, b):
             d = sign * r1
             x = sign * x1
             y = sign * y1
-            print(f"\nd = {d}, x = {x}, y = {y}")
-            return x, y, d
+            return d, x, y
 
         x_next = x0 - q * x1
         y_next = y0 - q * y1
 
-        print(f"{i + 1:>3} {r_next:>8} {x_next:>6} {y_next:>6} {q:>6}")
+        print(f"{i + 1} {r_next} {x_next} {y_next}")
 
         r0, r1 = r1, r_next
         x0, x1 = x1, x_next

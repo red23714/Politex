@@ -23,7 +23,7 @@ def nod(a, b):
 
         i += 1
 
-    return x1, y1, r1
+    return r1, x1, y1
 
 
 print("1.")

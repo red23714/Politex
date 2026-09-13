@@ -24,8 +24,6 @@ def nod_bin(a, b):
                 A = (A + b) // 2
                 B = (B - a) // 2
 
-            print(f"{i} {u} {''} {A} {B} {''} {''}")
-
         while v % 2 == 0:
             v = v // 2
 
@@ -36,18 +34,16 @@ def nod_bin(a, b):
                 C = (C + b) // 2
                 D = (D - a) // 2
 
-            print(f"{i} {''} {v} {''} {''} {C} {D}")
-
         if u >= v:
             u = u - v
             A = A - C
             B = B - D
+            print(f"{i} : {u} {A} {B}")
         else:
             v = v - u
             C = C - A
             D = D - B
-
-        print(f"{i} {u} {v} {A} {B} {C} {D}")
+            print(f"{i} : {v} {C} {D}")
 
         i += 1
 
@@ -55,7 +51,7 @@ def nod_bin(a, b):
     x = C
     y = D
 
-    return x, y, d
+    return d, x, y
 
 
 print("1.")
