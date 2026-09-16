@@ -520,7 +520,15 @@ int MyString::to_int() { return static_cast<int>(this->to_float()); }
 
 float MyString::to_float()
 {
-	// TODO make type of expression
+	for (int i = 0; i < this->len_; i++)
+	{
+		char tmp = this->pstr_[i];
+		if (tmp < '0' || tmp > '9' || tmp != '.' || tmp != '-' || tmp != '+')
+		{
+			throw WrongTransformException(
+				"Cant transform this string to number");
+		}
+	}
 
 	float result = 0.0f;
 	float sign = 1.0f;
