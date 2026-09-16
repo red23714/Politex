@@ -4,6 +4,13 @@
 
 int main()
 {
+	MyString str_t1(1000, 'a');
+	MyString str_t2("1234567890");
+	str_t1.pstr();
+	str_t1 = str_t2;
+	str_t1.insert(3, "****", 3);
+	str_t1.pstr();
+
 	MyString str;
 	str.pstr();
 

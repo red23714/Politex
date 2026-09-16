@@ -62,8 +62,6 @@ void MyString::my_insert(int index, int count, const char* data)
 int MyString::check_index(int index, int capacity, int count,
 						  std::string error_msg) const
 {
-	if (index < 0)
-		index = capacity + index;
 	if (index > capacity || index < 0)
 		throw std::out_of_range(
 			"Index is bigger than length of string. \n Error in method " +
@@ -216,8 +214,19 @@ void MyString::shrink_to_fit()
 
 void MyString::operator=(std::string_view source_str)
 {
-	delete_pstr_change_params(nullptr, 0, 0);
-	init(source_str);
+	int new_len = static_cast<int>(source_str.size());
+
+	if (new_len + 1 <= capacity_)
+	{
+		std::memcpy(pstr_, source_str.data(), new_len);
+		pstr_[new_len] = '\0';
+		len_ = new_len;
+	}
+	else
+	{
+		delete_pstr_change_params(nullptr, 0, 0);
+		init(source_str);
+	}
 }
 
 void MyString::operator=(const char* source_str)
@@ -235,10 +244,19 @@ void MyString::operator=(const std::string& source_str)
 
 void MyString::operator=(char ch)
 {
-	delete_pstr_change_params(new char[2], 1, 2);
-
-	pstr_[0] = ch;
-	pstr_[1] = '\0';
+	if (2 <= capacity_)
+	{
+		// буфера хватает под один символ + '\0' — переиспользуем
+		pstr_[0] = ch;
+		pstr_[1] = '\0';
+		len_ = 1;
+	}
+	else
+	{
+		delete_pstr_change_params(new char[2], 1, 2);
+		pstr_[0] = ch;
+		pstr_[1] = '\0';
+	}
 }
 
 MyString& MyString::operator=(MyString&& other)
@@ -263,8 +281,7 @@ MyString& MyString::operator=(const MyString& other)
 {
 	if (this != &other)
 	{
-		delete_pstr_change_params(nullptr, 0, 0);
-		init(std::string_view(other));
+		*this = std::string_view(other);
 	}
 	return *this;
 }

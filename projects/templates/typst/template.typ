@@ -53,6 +53,8 @@
 
 #show heading: indented-heading
 
+#show figure.where(kind: table): set block(breakable: true)
+
 #show figure: it => block(
   spacing: 2em,
 )[
@@ -175,7 +177,8 @@
 #figure(
   table(
     columns: 2,
-    [*Amount*], [*Ingredient*],
+    table.header(
+    [*Amount*], [*Ingredient*]),
     [360g], [Baking flour],
     [250g], [Butter (room temp.)],
     [150g], [Brown sugar],
