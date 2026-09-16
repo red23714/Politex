@@ -10,44 +10,17 @@
 
 #define DEBUG 1
 
-class MyStringIterator
-{
-  public:
-	MyStringIterator();
-	MyStringIterator(char* ptr);
-
-	char& operator*() const;
-	char* operator->() const;
-
-	MyStringIterator& operator++();
-	MyStringIterator operator++(int);
-	MyStringIterator& operator--();
-	MyStringIterator operator--(int);
-
-	MyStringIterator operator+(int n) const;
-	MyStringIterator operator-(int n) const;
-	int operator-(const MyStringIterator& other) const;
-
-	bool operator==(const MyStringIterator& other) const;
-	bool operator!=(const MyStringIterator& other) const;
-
-	char* base() const;
-
-  private:
-	char* ptr_;
-};
-
 class MyString
 {
   public:
 	class WrongTransformException : public std::exception
 	{
 	  public:
-		WrongTransformException(char* mesg) : msg(mesg) {}
-		const char* what() { return msg; }
+		WrongTransformException(std::string mesg) : msg(mesg) {}
+		std::string what() { return msg; }
 
 	  private:
-		char* msg = "Wrong transformation";
+		std::string msg = "Wrong transformation";
 	};
 
 	using iterator = char*;
@@ -88,6 +61,7 @@ class MyString
 
 	class const_reverse_iterator : public reverse_iterator
 	{
+	  public:
 		explicit const_reverse_iterator(const char* ptr)
 			: reverse_iterator(const_cast<char*>(ptr))
 		{
@@ -95,7 +69,28 @@ class MyString
 
 		const char& operator*() const { return *ptr_it; }
 		const char* operator->() const { return ptr_it; }
+
+		const_reverse_iterator& operator++()
+		{
+			--ptr_it;
+			return *this;
+		}
+		const_reverse_iterator operator++(int)
+		{
+			const_reverse_iterator tmp = *this;
+			--ptr_it;
+			return tmp;
+		}
 	};
+
+	iterator begin();
+	iterator end();
+	const_iterator cbegin() const;
+	const_iterator cend() const;
+	reverse_iterator rbegin();
+	reverse_iterator rend();
+	const_reverse_iterator rcbegin() const;
+	const_reverse_iterator rcend() const;
 
 	// Constructors
 	MyString();
@@ -156,6 +151,8 @@ class MyString
 	// Delete sub string
 	void erase(int index, int count);
 
+	void erase(iterator it, int count);
+
 	// Replace sub string
 	void replace(int index, int count, std::string_view source_str);
 	void replace(int index, int count, std::string_view source_str,
@@ -163,9 +160,18 @@ class MyString
 	void replace(int index, int count, std::string_view source_str, int s_index,
 				 int s_count);
 
+	void replace(iterator it, int count, std::string_view source_str);
+	void replace(iterator it, int count, std::string_view source_str,
+				 int s_count);
+	void replace(iterator it, int count, std::string_view source_str,
+				 int s_index, int s_count);
+
 	// Get sub string
 	MyString substr(int index) const;
 	MyString substr(int index, int count) const;
+
+	MyString substr(const_iterator it) const;
+	MyString substr(const_iterator it, int count) const;
 
 	// Sum operators
 	MyString operator+(std::string_view source_str) const;
@@ -195,6 +201,8 @@ class MyString
 	int find(std::string_view source_str, int index) const;
 
 	char at(int index);
+
+	char at(iterator it);
 
 	int to_int();
 	float to_float();

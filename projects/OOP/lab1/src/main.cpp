@@ -1,6 +1,12 @@
 #include "my_string/my_string.h"
 #include <string>
 #include <iostream>
+#include <cassert>
+
+void print_result(const std::string& test_name, bool passed)
+{
+	std::cout << (passed ? "[OK]   " : "[FAIL] ") << test_name << std::endl;
+}
 
 int main()
 {
@@ -170,19 +176,240 @@ int main()
 	std::cout << str_tofloat.to_float() << std::endl;
 	std::cout << str_toint.to_int() << std::endl;
 
-	MyString test("hello");
-	test[5];
+	try
+	{
+		std::cout << str_find.to_float() << std::endl;
+	}
+	catch (const MyString::WrongTransformException)
+	{
+		std::cout << "work exception to wrong transform" << std::endl;
+	}
 
-	MyString str_test("abcdef");
+	std::cout << "=== ТЕСТЫ ИТЕРАТОРОВ ===" << std::endl;
 
-	str_test.replace(1, 2, str_test);
-	str_test.pstr();
+	// ---------- 1-2. begin() / end() ----------
+	{
+		MyString s("Hello");
+		std::string result;
+		for (MyString::iterator it = s.begin(); it != s.end(); ++it)
+			result += *it;
 
-	MyString s("hello");
-	std::string_view view = s;
+		std::cout << "begin()/end() обход: \"" << result
+				  << "\" (ожидали \"Hello\")" << std::endl;
+		print_result("begin()/end()", result == "Hello");
 
-	s = view;
-	s.pstr();
+		// Проверка модификации через iterator
+		for (MyString::iterator it = s.begin(); it != s.end(); ++it)
+			*it = std::toupper(*it);
+		std::cout << "После модификации: \"" << s.c_str()
+				  << "\" (ожидали \"HELLO\")" << std::endl;
+		print_result("iterator modification",
+					 std::string(s.c_str()) == "HELLO");
+	}
 
+	// ---------- 3-4. cbegin() / cend() ----------
+	{
+		const MyString s("World");
+		std::string result;
+		for (MyString::const_iterator it = s.cbegin(); it != s.cend(); ++it)
+			result += *it;
+
+		std::cout << "cbegin()/cend() обход: \"" << result
+				  << "\" (ожидали \"World\")" << std::endl;
+		print_result("cbegin()/cend()", result == "World");
+		// *it = 'X'; // <-- должно НЕ компилироваться, если раскомментировать
+	}
+
+	// ---------- 5-6. rbegin() / rend() ----------
+	{
+		MyString s("Hello");
+		std::string result;
+		for (MyString::reverse_iterator it = s.rbegin(); it != s.rend(); ++it)
+			result += *it;
+
+		std::cout << "rbegin()/rend() обход: \"" << result
+				  << "\" (ожидали \"olleH\")" << std::endl;
+		print_result("rbegin()/rend()", result == "olleH");
+
+		// Проверка модификации через reverse_iterator
+		MyString s2("abc");
+		for (MyString::reverse_iterator it = s2.rbegin(); it != s2.rend(); ++it)
+			*it = std::toupper(*it);
+		std::cout << "После модификации reverse: \"" << s2.c_str()
+				  << "\" (ожидали \"ABC\")" << std::endl;
+		print_result("reverse_iterator modification",
+					 std::string(s2.c_str()) == "ABC");
+	}
+
+	// ---------- 7-8. rcbegin() / rcend() ----------
+	{
+		const MyString s("Hello");
+		std::string result;
+		for (MyString::const_reverse_iterator it = s.rcbegin(); it != s.rcend();
+			 ++it)
+			result += *it;
+
+		std::cout << "rcbegin()/rcend() обход: \"" << result
+				  << "\" (ожидали \"olleH\")" << std::endl;
+		print_result("rcbegin()/rcend()", result == "olleH");
+		// *it = 'X'; // <-- должно НЕ компилироваться, если раскомментировать
+	}
+
+	// ---------- Проверка на пустой строке (граничный случай) ----------
+	{
+		MyString s;
+		int count = 0;
+		for (MyString::iterator it = s.begin(); it != s.end(); ++it)
+			++count;
+		std::cout << "begin()/end() на пустой строке, итераций: " << count
+				  << " (ожидали 0)" << std::endl;
+		print_result("empty string forward", count == 0);
+	}
+
+	// ---------- insert/erase/replace/at через iterator ----------
+	{
+		MyString s("Hello");
+		MyString::iterator it = s.begin();
+		++it;
+		++it; // указывает на второй 'l' (индекс 2)
+		s.insert(it, 3, 'X');
+		std::cout << "insert(iterator, 3, 'X') в \"Hello\" на индекс 2: \""
+				  << s.c_str() << "\" (ожидали \"HeXXXllo\")" << std::endl;
+		print_result("insert(iterator)", std::string(s.c_str()) == "HeXXXllo");
+	}
+	{
+		MyString s("Hello");
+		MyString::iterator it = s.begin();
+		++it; // индекс 1 ('e')
+		s.erase(it, 2);
+		std::cout << "erase(iterator, 2) из \"Hello\" на индекс 1: \""
+				  << s.c_str() << "\" (ожидали \"Hlo\")" << std::endl;
+		print_result("erase(iterator)", std::string(s.c_str()) == "Hlo");
+	}
+	{
+		MyString s("Hello");
+		MyString::iterator it = s.begin();
+		char c = s.at(it);
+		std::cout << "at(begin()) = '" << c << "' (ожидали 'H')" << std::endl;
+		print_result("at(iterator)", c == 'H');
+	}
+	{
+		MyString s("Hello World");
+		MyString::const_iterator it = s.cbegin();
+		for (int i = 0; i < 6; ++i)
+			++it; // индекс 6 -> "World"
+		MyString sub = s.substr(it);
+		std::cout << "substr(iterator) от индекса 6: \"" << sub.c_str()
+				  << "\" (ожидали \"World\")" << std::endl;
+		print_result("substr(const_iterator)",
+					 std::string(sub.c_str()) == "World");
+	}
+
+	std::cout << std::endl << "=== ОСТАЛЬНЫЕ ФУНКЦИИ ===" << std::endl;
+
+	// ---------- MyString(MyString&&) — move-конструктор ----------
+	{
+		MyString original("MoveMe");
+		const char* original_ptr = original.c_str();
+
+		MyString moved(std::move(original));
+
+		std::cout << "Move-конструктор: moved = \"" << moved.c_str()
+				  << "\" (ожидали \"MoveMe\")" << std::endl;
+		print_result("move constructor value",
+					 std::string(moved.c_str()) == "MoveMe");
+
+		std::cout << "После move, original.size() = " << original.size()
+				  << " (ожидали 0)" << std::endl;
+		print_result("move constructor leaves source empty",
+					 original.size() == 0);
+	}
+
+	// ---------- MyString(int32_t) — число в строку ----------
+	{
+		MyString s(12345);
+		std::cout << "MyString(12345) = \"" << s.c_str()
+				  << "\" (ожидали \"12345\")" << std::endl;
+		print_result("int constructor positive",
+					 std::string(s.c_str()) == "12345");
+
+		MyString s_neg(-42);
+		std::cout << "MyString(-42) = \"" << s_neg.c_str()
+				  << "\" (ожидали \"-42\")" << std::endl;
+		print_result("int constructor negative",
+					 std::string(s_neg.c_str()) == "-42");
+	}
+
+	// ---------- MyString(float) — float в строку ----------
+	{
+		MyString s(3.14f);
+		std::cout << "MyString(3.14f) = \"" << s.c_str()
+				  << "\" (ожидали что-то вроде \"3.14...\")" << std::endl;
+		// Точное сравнение зависит от реализации округления, поэтому просто
+		// выводим
+	}
+	{
+		MyString s(0.05f);
+		std::cout << "MyString(0.05f) = \"" << s.c_str()
+				  << "\" (ожидали что-то вроде \"0.05...\")" << std::endl;
+	}
+
+	// ---------- operator=(MyString&&) — move-присваивание ----------
+	{
+		MyString a("First");
+		MyString b("Second");
+		b = std::move(a);
+
+		std::cout << "После move-присваивания b = \"" << b.c_str()
+				  << "\" (ожидали \"First\")" << std::endl;
+		print_result("move assignment value",
+					 std::string(b.c_str()) == "First");
+
+		std::cout << "После move-присваивания a.size() = " << a.size()
+				  << " (ожидали 0)" << std::endl;
+		print_result("move assignment leaves source empty", a.size() == 0);
+	}
+
+	// ---------- at(index) ----------
+	{
+		MyString s("Test");
+		char c = s.at(1);
+		std::cout << "at(1) для \"Test\" = '" << c << "' (ожидали 'e')"
+				  << std::endl;
+		print_result("at(index) valid", c == 'e');
+
+		bool threw = false;
+		try
+		{
+			s.at(100); // индекс за пределами строки
+		}
+		catch (const std::exception&)
+		{
+			threw = true;
+		}
+		std::cout << "at(100) выбросил исключение: " << (threw ? "да" : "нет")
+				  << " (ожидали да)" << std::endl;
+		print_result("at(index) throws on invalid index", threw);
+	}
+
+	// ---------- to_int() ----------
+	{
+		MyString s("123");
+		int result = s.to_int();
+		std::cout << "to_int() для \"123\" = " << result << " (ожидали 123)"
+				  << std::endl;
+		print_result("to_int() positive", result == 123);
+	}
+
+	// ---------- to_float() ----------
+	{
+		MyString s("3.14");
+		float result = s.to_float();
+		std::cout << "to_float() для \"3.14\" = " << result
+				  << " (ожидали ~3.14)" << std::endl;
+		print_result("to_float()", std::abs(result - 3.14f) < 0.01f);
+	}
+
+	std::cout << std::endl << "=== ТЕСТЫ ЗАВЕРШЕНЫ ===" << std::endl;
 	return 0;
 }

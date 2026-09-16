@@ -86,6 +86,47 @@ void MyString::pstr()
 }
 #endif
 
+MyString::iterator MyString::begin()
+{
+	iterator tmp(pstr_);
+	return tmp;
+}
+MyString::iterator MyString::end()
+{
+	iterator tmp(pstr_ + len_);
+	return tmp;
+}
+MyString::const_iterator MyString::cbegin() const
+{
+	const_iterator tmp(pstr_);
+	return tmp;
+}
+MyString::const_iterator MyString::cend() const
+{
+	const_iterator tmp(pstr_ + len_);
+	return tmp;
+}
+MyString::reverse_iterator MyString::rbegin()
+{
+	reverse_iterator tmp(pstr_ + len_ - 1);
+	return tmp;
+}
+MyString::reverse_iterator MyString::rend()
+{
+	reverse_iterator tmp(pstr_ - 1);
+	return tmp;
+}
+MyString::const_reverse_iterator MyString::rcbegin() const
+{
+	const_reverse_iterator tmp(pstr_ + len_ - 1);
+	return tmp;
+}
+MyString::const_reverse_iterator MyString::rcend() const
+{
+	const_reverse_iterator tmp(pstr_ - 1);
+	return tmp;
+}
+
 MyString::MyString() : len_(0), capacity_(0) {}
 
 MyString::MyString(std::string_view source_str) { init(source_str); }
@@ -324,6 +365,29 @@ void MyString::insert(int index, std::string_view source_str, int s_index,
 	my_insert(index, count, new_source_str.data());
 }
 
+void MyString::insert(iterator it, int count, char ch)
+{
+	int index = it - begin();
+	insert(index, count, ch);
+}
+
+void MyString::insert(iterator it, std::string_view source_str)
+{
+	insert(it, source_str, 0, source_str.size());
+}
+
+void MyString::insert(iterator it, std::string_view source_str, int count)
+{
+	insert(it, source_str, 0, count);
+}
+
+void MyString::insert(iterator it, std::string_view source_str, int s_index,
+					  int count)
+{
+	int index = it - begin();
+	insert(index, source_str, s_index, count);
+}
+
 void MyString::append(int count, char ch) { insert(len_, count, ch); }
 
 void MyString::append(std::string_view source_str) { insert(len_, source_str); }
@@ -353,12 +417,10 @@ void MyString::erase(int index, int count)
 	len_ = len_ - count;
 }
 
-void MyString::replace(int index, int count, std::string_view source_str,
-					   int s_index, int s_count)
+void MyString::erase(iterator it, int count)
 {
-	std::string_view replace_str = source_str.substr(s_index, s_count);
+	int index = it - begin();
 	erase(index, count);
-	insert(index, replace_str);
 }
 
 void MyString::replace(int index, int count, std::string_view source_str)
@@ -370,6 +432,37 @@ void MyString::replace(int index, int count, std::string_view source_str,
 					   int s_count)
 {
 	replace(index, count, source_str, 0, s_count);
+}
+
+void MyString::replace(int index, int count, std::string_view source_str,
+					   int s_index, int s_count)
+{
+	std::string_view replace_str = source_str.substr(s_index, s_count);
+	erase(index, count);
+	insert(index, replace_str);
+}
+
+void MyString::replace(iterator it, int count, std::string_view source_str)
+{
+	replace(it, count, source_str, 0, source_str.size());
+}
+
+void MyString::replace(iterator it, int count, std::string_view source_str,
+					   int s_count)
+{
+	replace(it, count, source_str, 0, s_count);
+}
+
+void MyString::replace(iterator it, int count, std::string_view source_str,
+					   int s_index, int s_count)
+{
+	int index = it - begin();
+	replace(index, count, source_str, s_index, s_count);
+}
+
+MyString MyString::substr(int index) const
+{
+	return substr(index, len_ - index);
 }
 
 MyString MyString::substr(int index, int count) const
@@ -390,9 +483,16 @@ MyString MyString::substr(int index, int count) const
 	return new_str;
 }
 
-MyString MyString::substr(int index) const
+MyString MyString::substr(const_iterator it) const
 {
-	return substr(index, len_ - index);
+	int index = it - cbegin();
+	return substr(it, len_ - index);
+}
+
+MyString MyString::substr(const_iterator it, int count) const
+{
+	int index = it - cbegin();
+	return substr(index, count);
 }
 
 MyString& MyString::operator+=(std::string_view source_str)
@@ -516,6 +616,12 @@ char MyString::at(int index)
 	return pstr_[index];
 }
 
+char MyString::at(iterator it)
+{
+	int index = it - begin();
+	return at(index);
+}
+
 int MyString::to_int() { return static_cast<int>(this->to_float()); }
 
 float MyString::to_float()
@@ -523,10 +629,12 @@ float MyString::to_float()
 	for (int i = 0; i < this->len_; i++)
 	{
 		char tmp = this->pstr_[i];
-		if (tmp < '0' || tmp > '9' || tmp != '.' || tmp != '-' || tmp != '+')
+		if ((tmp < '0' || tmp > '9') &&
+			(tmp != '.' && tmp != '-' && tmp != '+' && tmp != 'f'))
 		{
-			throw WrongTransformException(
-				"Cant transform this string to number");
+			std::string error_msg = "Cant transform this string to number ";
+			error_msg += tmp;
+			throw WrongTransformException(error_msg);
 		}
 	}
 
