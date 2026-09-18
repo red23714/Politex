@@ -2,6 +2,8 @@
 #include <string>
 #include <iostream>
 #include <cassert>
+#include <fstream>
+#include <cstdio>
 
 void print_result(const std::string& test_name, bool passed)
 {
@@ -408,6 +410,313 @@ int main()
 		std::cout << "to_float() для \"3.14\" = " << result
 				  << " (ожидали ~3.14)" << std::endl;
 		print_result("to_float()", std::abs(result - 3.14f) < 0.01f);
+	}
+
+	std::cout << std::endl
+			  << "=== ТЕСТЫ operator<< / operator>> ===" << std::endl;
+
+	const char* io_test_file = "mystring_io_test.txt";
+
+	// ---------- operator<<(ofstream, MyString) ----------
+	{
+		MyString to_write("Hello, file!");
+		{
+			std::ofstream out(io_test_file);
+			out << to_write;
+		}
+
+		std::ifstream check(io_test_file);
+		std::string raw((std::istreambuf_iterator<char>(check)),
+						std::istreambuf_iterator<char>());
+
+		std::cout << "operator<< записал в файл: \"" << raw
+				  << "\" (ожидали \"Hello, file!\")" << std::endl;
+		print_result("operator<<(ofstream, MyString)", raw == "Hello, file!");
+	}
+
+	// ---------- operator>>(ifstream, MyString): чтение нескольких "слов"
+	// ----------
+	{
+		{
+			std::ofstream out(io_test_file);
+			out << "   first   second\tthird ";
+		}
+
+		std::ifstream in(io_test_file);
+		MyString w1, w2, w3;
+		in >> w1;
+		in >> w2;
+		in >> w3;
+
+		std::cout << "operator>> прочитал: \"" << w1.c_str() << "\", \""
+				  << w2.c_str() << "\", \"" << w3.c_str() << "\"" << std::endl;
+		print_result(
+			"operator>>(ifstream, MyString) #1 (пропуск пробелов в начале)",
+			std::string(w1.c_str()) == "first");
+		print_result(
+			"operator>>(ifstream, MyString) #2 (несколько слов подряд)",
+			std::string(w2.c_str()) == "second");
+		print_result("operator>>(ifstream, MyString) #3 (разделитель - таб)",
+					 std::string(w3.c_str()) == "third");
+	}
+
+	// ---------- operator>>: конец файла посреди чтения ----------
+	{
+		{
+			std::ofstream out(io_test_file);
+			out << "onlyword";
+		}
+
+		std::ifstream in(io_test_file);
+		MyString w;
+		in >> w;
+		std::cout << "operator>> без пробела до EOF: \"" << w.c_str()
+				  << "\" (ожидали \"onlyword\")" << std::endl;
+		print_result("operator>> дочитывает слово до EOF",
+					 std::string(w.c_str()) == "onlyword");
+	}
+
+	// ---------- Круговой прогон: operator<< затем operator>> ----------
+	{
+		MyString original("roundtrip");
+		{
+			std::ofstream out(io_test_file);
+			out << original;
+		}
+
+		MyString restored;
+		std::ifstream in(io_test_file);
+		in >> restored;
+
+		std::cout << "round-trip << / >>: \"" << restored.c_str()
+				  << "\" (ожидали \"roundtrip\")" << std::endl;
+		print_result("operator<< / operator>> round-trip",
+					 restored == original);
+	}
+
+	std::remove(io_test_file);
+
+	std::cout << std::endl
+			  << "=== ТЕСТЫ find() (алгоритм Ахо-Корасика) ===" << std::endl;
+
+	// ---------- Базовые случаи (уже проверялись выше, но проверим явно)
+	// ----------
+	{
+		MyString s("hello amazing world amazing");
+		print_result("find: первое вхождение", s.find("amazing") == 6);
+		print_result("find: поиск с индекса", s.find("amazing", 7) == 20);
+		print_result("find: образец не найден", s.find("notfound") == -1);
+		print_result("find: пустой образец возвращает 0", s.find("") == 0);
+	}
+
+	// ---------- Перекрывающиеся вхождения: ключевая проверка для
+	// суффиксных ссылок автомата Ахо-Корасика ----------
+	{
+		MyString s("aaaaaa");
+		print_result("find: перекрытие 'aa' от начала", s.find("aa") == 0);
+		print_result("find: перекрытие 'aa' от индекса 1",
+					 s.find("aa", 1) == 1);
+		print_result("find: перекрытие 'aa' от индекса 5",
+					 s.find("aa", 5) == -1);
+
+		MyString s2("abababab");
+		print_result("find: перекрытие 'abab' от 0", s2.find("abab") == 0);
+		print_result("find: перекрытие 'abab' от 1", s2.find("abab", 1) == 2);
+	}
+
+	// ---------- Образец в начале / в конце / из одного символа ----------
+	{
+		MyString s("abcdef");
+		print_result("find: образец в начале строки", s.find("abc") == 0);
+		print_result("find: образец в конце строки", s.find("def") == 3);
+		print_result("find: образец из одного символа", s.find("c") == 2);
+	}
+
+	// ---------- Образец длиннее строки / равен строке целиком ----------
+	{
+		MyString s("abc");
+		print_result("find: образец длиннее строки", s.find("abcdef") == -1);
+
+		MyString s_exact("exact");
+		print_result("find: образец равен всей строке",
+					 s_exact.find("exact") == 0);
+	}
+
+	// ---------- Некорректный индекс должен бросать исключение ----------
+	{
+		MyString s("hello");
+		bool threw = false;
+		try
+		{
+			s.find("l", 100);
+		}
+		catch (const std::exception&)
+		{
+			threw = true;
+		}
+		std::cout << "find с индексом за пределами строки выбросил "
+					 "исключение: "
+				  << (threw ? "да" : "нет") << " (ожидали да)" << std::endl;
+		print_result("find: исключение при некорректном индексе", threw);
+	}
+
+	std::cout << std::endl
+			  << "=== ТЕСТЫ append(SOURCE_STR, ...) ===" << std::endl;
+
+	// ---------- append(SOURCE_STR) ----------
+	{
+		MyString s;
+		s.append(std::string_view("Hello "));
+		s.append(std::string_view("world"));
+		std::cout << "append(string_view) x2: \"" << s.c_str()
+				  << "\" (ожидали \"Hello world\")" << std::endl;
+		print_result("append(SOURCE_STR)",
+					 std::string(s.c_str()) == "Hello world");
+	}
+
+	// ---------- append(SOURCE_STR, int count) ----------
+	{
+		MyString s;
+		s.append(std::string_view("Hello world"), 6);
+		std::cout << "append(string_view, 6): \"" << s.c_str()
+				  << "\" (ожидали \"Hello \")" << std::endl;
+		print_result("append(SOURCE_STR, count)",
+					 std::string(s.c_str()) == "Hello ");
+	}
+
+	// ---------- append(SOURCE_STR, int s_index, int count) ----------
+	{
+		MyString s;
+		s.append(std::string_view("Hello world"), 6, 5);
+		std::cout << "append(string_view, 6, 5): \"" << s.c_str()
+				  << "\" (ожидали \"world\")" << std::endl;
+		print_result("append(SOURCE_STR, s_index, count)",
+					 std::string(s.c_str()) == "world");
+	}
+
+	std::cout << std::endl
+			  << "=== ТЕСТЫ insert(iterator, SOURCE_STR, ...) ===" << std::endl;
+
+	// ---------- insert(iterator, SOURCE_STR) ----------
+	{
+		MyString s("aaaaa");
+		MyString::iterator it = s.begin();
+		++it; // индекс 1
+		s.insert(it, "@@@@@");
+		std::cout << "insert(iterator, \"@@@@@\") на индекс 1: \"" << s.c_str()
+				  << "\" (ожидали \"a@@@@@aaaa\")" << std::endl;
+		print_result("insert(iterator, SOURCE_STR)",
+					 std::string(s.c_str()) == "a@@@@@aaaa");
+	}
+
+	// ---------- insert(iterator, SOURCE_STR, int count) ----------
+	{
+		MyString s("aaaaa");
+		MyString::iterator it = s.begin();
+		++it; // индекс 1
+		s.insert(it, "@@@@@", 2);
+		std::cout << "insert(iterator, \"@@@@@\", 2) на индекс 1: \""
+				  << s.c_str() << "\" (ожидали \"a@@aaaa\")" << std::endl;
+		print_result("insert(iterator, SOURCE_STR, count)",
+					 std::string(s.c_str()) == "a@@aaaa");
+	}
+
+	// ---------- insert(iterator, SOURCE_STR, int s_index, int count)
+	// ----------
+	{
+		MyString s("aaaaa");
+		MyString::iterator it = s.begin();
+		++it; // индекс 1
+		s.insert(it, "abcde", 1, 2);
+		std::cout << "insert(iterator, \"abcde\", 1, 2) на индекс 1: \""
+				  << s.c_str() << "\" (ожидали \"abcaaaa\")" << std::endl;
+		print_result("insert(iterator, SOURCE_STR, s_index, count)",
+					 std::string(s.c_str()) == "abcaaaa");
+	}
+
+	std::cout << std::endl
+			  << "=== ТЕСТЫ replace(iterator, ...) ===" << std::endl;
+
+	// ---------- replace(iterator, count, SOURCE_STR) ----------
+	{
+		MyString s("hello amazing world");
+		MyString::iterator it = s.begin();
+		for (int i = 0; i < 6; ++i)
+			++it; // индекс 6
+
+		s.replace(it, 7, "wonderful");
+		std::cout << "replace(iterator@6, 7, \"wonderful\"): \"" << s.c_str()
+				  << "\" (ожидали \"hello wonderful world\")" << std::endl;
+		print_result("replace(iterator, count, SOURCE_STR)",
+					 std::string(s.c_str()) == "hello wonderful world");
+	}
+
+	// ---------- replace(iterator, count, SOURCE_STR, s_count) ----------
+	{
+		MyString s("hello amazing world");
+		MyString::iterator it = s.begin();
+		for (int i = 0; i < 6; ++i)
+			++it;
+
+		s.replace(it, 7, "wonderful", 6);
+		std::cout << "replace(iterator@6, 7, \"wonderful\", 6): \"" << s.c_str()
+				  << "\" (ожидали \"hello wonder world\")" << std::endl;
+		print_result("replace(iterator, count, SOURCE_STR, s_count)",
+					 std::string(s.c_str()) == "hello wonder world");
+	}
+
+	// ---------- replace(iterator, count, SOURCE_STR, s_index, s_count)
+	// ----------
+	{
+		MyString s("hello amazing world");
+		MyString::iterator it = s.begin();
+		for (int i = 0; i < 6; ++i)
+			++it;
+
+		s.replace(it, 7, "wonderful", 1, 2);
+		std::cout << "replace(iterator@6, 7, \"wonderful\", 1, 2): \""
+				  << s.c_str() << "\" (ожидали \"hello on world\")"
+				  << std::endl;
+		print_result("replace(iterator, count, SOURCE_STR, s_index, s_count)",
+					 std::string(s.c_str()) == "hello on world");
+	}
+
+	std::cout << std::endl
+			  << "=== ТЕСТЫ substr(const_iterator, count) ===" << std::endl;
+	{
+		MyString s("hello amazing world");
+		MyString::const_iterator it = s.cbegin();
+		for (int i = 0; i < 6; ++i)
+			++it; // индекс 6
+
+		MyString sub = s.substr(it, 7);
+		std::cout << "substr(const_iterator@6, 7): \"" << sub.c_str()
+				  << "\" (ожидали \"amazing\")" << std::endl;
+		print_result("substr(const_iterator, count)",
+					 std::string(sub.c_str()) == "amazing");
+	}
+
+	std::cout << std::endl << "=== ТЕСТЫ самоприсваивания ===" << std::endl;
+
+	// ---------- operator=(const char*) при самоприсваивании ----------
+	{
+		MyString s("self-assign test");
+		s = s.c_str();
+		std::cout << "self-assign через c_str(): \"" << s.c_str()
+				  << "\" (ожидали \"self-assign test\")" << std::endl;
+		print_result("operator=(const char*) self-assignment",
+					 std::string(s.c_str()) == "self-assign test");
+	}
+
+	// ---------- operator=(const MyString&) при самоприсваивании ----------
+	{
+		MyString s("self-assign myself");
+		s = s;
+		std::cout << "self-assign через operator=(const MyString&): \""
+				  << s.c_str() << "\" (ожидали \"self-assign myself\")"
+				  << std::endl;
+		print_result("operator=(const MyString&) self-assignment",
+					 std::string(s.c_str()) == "self-assign myself");
 	}
 
 	std::cout << std::endl << "=== ТЕСТЫ ЗАВЕРШЕНЫ ===" << std::endl;

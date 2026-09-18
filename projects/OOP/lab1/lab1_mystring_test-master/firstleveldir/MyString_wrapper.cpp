@@ -4,25 +4,12 @@
 #include <string>
 #include <string_view>
 
-// Same pattern as main.cpp: the build passes -DIMYSTRING="<path>" so the
-// header location does not need to be hardcoded here.
 #include IMYSTRING
 
 namespace py = pybind11;
 
 namespace
 {
-
-// --- helpers -----------------------------------------------------------
-//
-// Boost.Python used a custom `string_view_from_python` converter so that
-// any function taking std::string_view could transparently accept a
-// Python str, a Python bytes object, or another MyString instance.
-// pybind11 does not let us hook into std::string_view conversion that
-// broadly without clashing with its own built-in str<->string_view
-// caster, so instead every place that used to rely on that converter
-// takes a plain py::object here and goes through extract_string(), which
-// reproduces the same three cases explicitly.
 
 std::string extract_string(const py::object& obj)
 {
@@ -47,9 +34,6 @@ bool looks_like_string_source(const py::object& obj)
 		   py::isinstance<MyString>(obj);
 }
 
-// A "char" argument may arrive from Python either as an int ordinal
-// (e.g. ord('C')) or as a single-character str/bytes (e.g. 'C') - accept
-// both, the way the test suite expects.
 char extract_char(const py::object& obj)
 {
 	if (py::isinstance<py::int_>(obj))
@@ -102,17 +86,7 @@ PYBIND11_MODULE(mystring, m)
 {
 	py::class_<MyString> cls(m, "MyString");
 
-	cls
-		// --- constructors ---
-		//
-		// Collapsed into a single dispatcher (mirrors the six Boost
-		// overloads):
-		//   MyString(value)              -> value: str/bytes/MyString
-		//   MyString(value, count)       -> value + repeat count
-		//   MyString(count, ch)          -> count copies of ch (ch as int)
-		//   MyString(number)             -> int32_t or float conversion,
-		//                                    inferred from the Python type
-		.def(py::init<>())
+	cls.def(py::init<>())
 		.def(py::init(
 				 [](py::object a, py::object b)
 				 {
@@ -129,8 +103,6 @@ PYBIND11_MODULE(mystring, m)
 											 b.cast<int>());
 					 }
 
-					 // MyString(count, ch) - ch may be an int ordinal or a
-					 // single-character str/bytes.
 					 if (py::isinstance<py::int_>(a) && !b.is_none() &&
 						 !py::isinstance<py::float_>(b))
 					 {
@@ -141,8 +113,6 @@ PYBIND11_MODULE(mystring, m)
 						 }
 						 catch (const py::type_error&)
 						 {
-							 // fall through to the numeric-conversion cases
-							 // below
 						 }
 					 }
 
@@ -220,7 +190,8 @@ PYBIND11_MODULE(mystring, m)
 			py::arg("value"), py::arg("count") = py::none(),
 			py::arg("offset") = py::none())
 
-		.def("erase", &MyString::erase)
+		.def("erase",
+			 static_cast<void (MyString::*)(int, int)>(&MyString::erase))
 
 		// --- replace ---
 		.def(
@@ -264,7 +235,7 @@ PYBIND11_MODULE(mystring, m)
 			},
 			py::arg("value"), py::arg("from") = py::none())
 
-		.def("at", &MyString::at)
+		.def("at", static_cast<char (MyString::*)(int)>(&MyString::at))
 		.def("to_int", &MyString::to_int)
 		.def("to_float", &MyString::to_float)
 

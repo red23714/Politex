@@ -7,6 +7,165 @@
 #include <iostream>
 #endif
 
+class AhoCorasickNode
+{
+  public:
+	static const int kAlphabetSize = 256;
+
+	AhoCorasickNode()
+	{
+		for (int ch = 0; ch < kAlphabetSize; ++ch)
+		{
+			children_[ch] = -1;
+			next_[ch] = -1;
+		}
+	}
+
+	int child(int ch) const { return children_[ch]; }
+	void set_child(int ch, int node) { children_[ch] = node; }
+
+	int cached_transition(int ch) const { return next_[ch]; }
+	void cache_transition(int ch, int node) { next_[ch] = node; }
+
+	int fail() const { return fail_; }
+	void set_fail(int node) { fail_ = node; }
+
+	bool is_terminal() const { return is_terminal_; }
+	void mark_terminal() { is_terminal_ = true; }
+
+  private:
+	int children_[kAlphabetSize];
+	int next_[kAlphabetSize];
+	int fail_ = 0;
+	bool is_terminal_ = false;
+};
+
+class IntQueue
+{
+  public:
+	explicit IntQueue(int capacity) { data_ = new int[capacity]; }
+
+	~IntQueue() { delete[] data_; }
+
+	void push(int value) { data_[tail_++] = value; }
+	int pop() { return data_[head_++]; }
+	bool empty() const { return head_ == tail_; }
+
+  private:
+	int* data_;
+	int head_ = 0;
+	int tail_ = 0;
+};
+
+class AhoCorasickAutomaton
+{
+  public:
+	AhoCorasickAutomaton(const char* pattern, int pattern_len)
+	{
+		capacity_ = pattern_len + 1;
+		nodes_ = new AhoCorasickNode*[capacity_];
+		add_node();
+
+		insert_pattern(pattern, pattern_len);
+		build_fail_links();
+	}
+
+	~AhoCorasickAutomaton()
+	{
+		for (int i = 0; i < size_; ++i)
+			delete nodes_[i];
+		delete[] nodes_;
+	}
+
+	AhoCorasickAutomaton(const AhoCorasickAutomaton&) = delete;
+	AhoCorasickAutomaton& operator=(const AhoCorasickAutomaton&) = delete;
+
+	void step(unsigned char ch) { state_ = go(state_, ch); }
+
+	bool is_match() const { return nodes_[state_]->is_terminal(); }
+
+  private:
+	AhoCorasickNode** nodes_;
+	int size_ = 0;
+	int capacity_;
+	int state_ = 0;
+
+	int add_node()
+	{
+		nodes_[size_] = new AhoCorasickNode();
+		return size_++;
+	}
+
+	void insert_pattern(const char* pattern, int pattern_len)
+	{
+		int current = 0;
+
+		for (int i = 0; i < pattern_len; ++i)
+		{
+			unsigned char ch = static_cast<unsigned char>(pattern[i]);
+
+			if (nodes_[current]->child(ch) == -1)
+				nodes_[current]->set_child(ch, add_node());
+
+			current = nodes_[current]->child(ch);
+		}
+
+		nodes_[current]->mark_terminal();
+	}
+
+	int go(int state, unsigned char ch)
+	{
+		if (nodes_[state]->cached_transition(ch) != -1)
+			return nodes_[state]->cached_transition(ch);
+
+		int result;
+		if (nodes_[state]->child(ch) != -1)
+			result = nodes_[state]->child(ch);
+		else if (state == 0)
+			result = 0;
+		else
+			result = go(nodes_[state]->fail(), ch);
+
+		nodes_[state]->cache_transition(ch, result);
+		return result;
+	}
+
+	void build_fail_links()
+	{
+		IntQueue queue(capacity_);
+
+		for (int ch = 0; ch < AhoCorasickNode::kAlphabetSize; ++ch)
+		{
+			int child = nodes_[0]->child(ch);
+			if (child == -1)
+				continue;
+
+			nodes_[child]->set_fail(0);
+			queue.push(child);
+		}
+
+		while (!queue.empty())
+		{
+			int current = queue.pop();
+
+			for (int ch = 0; ch < AhoCorasickNode::kAlphabetSize; ++ch)
+			{
+				int child = nodes_[current]->child(ch);
+				if (child == -1)
+					continue;
+
+				int fail_state = go(nodes_[current]->fail(), ch);
+				nodes_[child]->set_fail(fail_state);
+
+				if (nodes_[fail_state]->is_terminal())
+					nodes_[child]->mark_terminal();
+
+				queue.push(child);
+			}
+		}
+	}
+};
+
 void MyString::init(std::string_view sv)
 {
 	len_ = sv.size();
@@ -287,7 +446,6 @@ void MyString::operator=(char ch)
 {
 	if (2 <= capacity_)
 	{
-		// буфера хватает под один символ + '\0' — переиспользуем
 		pstr_[0] = ch;
 		pstr_[1] = '\0';
 		len_ = 1;
@@ -569,6 +727,31 @@ bool MyString::operator==(const MyString& other) const
 std::basic_ifstream<char>& operator>>(std::basic_ifstream<char>& is,
 									  MyString& str)
 {
+	str = "";
+
+	char ch;
+
+	while (is.get(ch))
+	{
+		if (!std::isspace(static_cast<unsigned char>(ch)))
+		{
+			str.append(1, ch);
+			break;
+		}
+	}
+
+	while (is.get(ch))
+	{
+		if (std::isspace(static_cast<unsigned char>(ch)))
+		{
+			is.unget();
+			break;
+		}
+
+		str.append(1, ch);
+	}
+
+	return is;
 }
 
 std::basic_ofstream<char>& operator<<(std::basic_ofstream<char>& os,
@@ -592,16 +775,14 @@ int MyString::find(std::string_view source_str, int index) const
 	if (m == 0)
 		return 0;
 
-	const char* pattern = source_str.data();
+	AhoCorasickAutomaton automaton(source_str.data(), m);
 
-	for (int i = index; i <= len_ - m; ++i)
+	for (int i = index; i < len_; ++i)
 	{
-		int j = 0;
-		while (j < m && pstr_[i + j] == pattern[j])
-			++j;
+		automaton.step(static_cast<unsigned char>(pstr_[i]));
 
-		if (j == m)
-			return i;
+		if (automaton.is_match())
+			return i - m + 1;
 	}
 
 	return -1;
