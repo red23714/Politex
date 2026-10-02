@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdint.h>
+#include <sys/ptrace.h>
+#include <unistd.h>
+#include <sys/personality.h>
+#include <cpuid.h>
 
 #define ll unsigned long long
 
@@ -56,6 +61,15 @@ char* xor_str(const char* str, const char* key)
 	return new;
 }
 
+static long long get_time_ns(void)
+{
+	struct timespec ts;
+
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+
+	return (long long)ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
 const char* first = "he";
 
 // void print_byte_str(const char* str)
@@ -72,6 +86,34 @@ const char* first = "he";
 
 // 	free(x_str);
 // }
+
+uint32_t calculate_crc32(const uint8_t* data, size_t length)
+{
+	uint32_t crc = 0xFFFFFFFF;
+	static uint32_t table[256];
+	static int initialized = 0;
+	if (!initialized)
+	{
+		for (uint32_t i = 0; i < 256; i++)
+		{
+			uint32_t c = i;
+			for (int j = 0; j < 8; j++)
+			{
+				if (c & 1)
+					c = 0xEDB88320 ^ (c >> 1);
+				else
+					c >>= 1;
+			}
+			table[i] = c;
+		}
+		initialized = 1;
+	}
+	for (size_t i = 0; i < length; i++)
+	{
+		crc = table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
+	}
+	return crc ^ 0xFFFFFFFF;
+}
 
 void generate_random_string(char* str, int length)
 {
@@ -176,8 +218,14 @@ void compact_buffer(dynarr* buf, int new_start)
 	buf->data = realloc(buf->data, buf->size * sizeof(ll));
 }
 
-ll give_n_sequence(int n)
+ll give_n_sequence(int n, char* pass, char* right_pass)
 {
+	// Another check in program
+	if (strncmp(pass, right_pass, 9) != 0)
+	{
+		return 0;
+	}
+
 	dynarr buf;
 
 	init_buffer(&buf);
@@ -257,10 +305,171 @@ int main()
 	// print_byte_str(str_serial_prefix);
 	// print_byte_str(str_serial_suffix);
 
+	extern void block1_start();
+	extern void block1_end();
+
+	uint8_t* start_ptr = (uint8_t*) && block1_start;
+	uint8_t* end_ptr = (uint8_t*) && block1_end;
+
+	size_t block_size = end_ptr - start_ptr;
+
+	uint32_t real_crc = calculate_crc32(start_ptr, block_size);
+
+	uint32_t expected_crc = 0xe51c7c4c;
+
+	// if (real_crc != expected_crc)
+	// {
+	// 	printf("[ALERT] Кусок кода модифицирован %x\n", real_crc);
+	// 	return 0;
+	// }
+
+block1_start:
+	__asm__ __volatile__("");
+
+	// Check debugger with ptrace
+	if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1)
+	{
+		printf("Ptrace is not work!\n");
+		return 1;
+	}
+
+	// Check by proccess tree
+	pid_t ppid = getppid();
+
+	char path[64];
+	char cmdline[256];
+
+	snprintf(path, sizeof(path), "/proc/%d/cmdline", ppid);
+
+	FILE* f_proc = fopen(path, "r");
+
+	if (!f_proc)
+		return 1;
+
+	size_t sz = fread(cmdline, 1, sizeof(cmdline) - 1, f_proc);
+	fclose(f_proc);
+
+	cmdline[sz] = '\0';
+
+	if (strstr(cmdline, "gdb") || strstr(cmdline, "lldb") ||
+		strstr(cmdline, "strace") || strstr(cmdline, "ltrace") ||
+		strstr(cmdline, "rr"))
+	{
+		printf("Debugging tool detected: %s\n", cmdline);
+		return 1;
+	}
+
+	// Check by time of execution
+	const long long threshold = 100000000;
+	long long start = get_time_ns();
+
+	volatile unsigned long long x = 0;
+	for (unsigned long long i = 0; i < 1000000; i++)
+		x += i;
+
+	long long end = get_time_ns();
+	long long elapsed = end - start;
+
+	if (elapsed > threshold)
+	{
+		printf("Time end\n");
+		return 1;
+	}
+
+	// Check by ASLR enabled
+	unsigned long personality_value = personality(0xffffffffUL);
+
+	if (personality_value == (unsigned long)-1)
+	{
+		perror("personality");
+		return 1;
+	}
+
+	if (personality_value & ADDR_NO_RANDOMIZE)
+	{
+		printf("ASLR disabled\n");
+		return 1;
+	}
+
+	// Check CPUID hypervisor present bit
+	unsigned int eax, ebx, ecx, edx;
+
+	if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx))
+		return 1;
+
+	if (ecx & (1u << 31))
+	{
+		printf("CPUID\n");
+		return 1;
+	}
+
+	// Check BIOS and system info
+	const char* files[] = {"/sys/class/dmi/id/product_name",
+						   "/sys/class/dmi/id/sys_vendor",
+						   "/sys/class/dmi/id/board_vendor"};
+
+	const char* vm_names[] = {
+		"VMware", "VirtualBox", "KVM", "QEMU", "Microsoft Corporation",
+		"innotek"};
+
+	char line[256];
+
+	for (int i = 0; i < 3; ++i)
+	{
+		FILE* f = fopen(files[i], "r");
+
+		if (!f)
+			continue;
+
+		if (fgets(line, sizeof(line), f))
+		{
+			printf("%s: %s", files[i], line);
+
+			for (int j = 0; j < 6; ++j)
+			{
+				if (strstr(line, vm_names[j]))
+				{
+					printf("Info\n");
+					fclose(f);
+					return 0;
+				}
+			}
+		}
+
+		fclose(f);
+	}
+
+	FILE* f_virt = fopen("/proc/modules", "r");
+
+	if (!f_virt)
+		return 1;
+
+	char line_virt[512];
+
+	const char* modules[] = {"vboxguest", "vmw_balloon",  "vmwgfx",
+							 "virtio",	  "xen_blkfront", "xen_netfront"};
+
+	while (fgets(line_virt, sizeof(line_virt), f_virt))
+	{
+		for (int i = 0; i < 6; ++i)
+		{
+			if (strstr(line_virt, modules[i]))
+			{
+				printf("Virtualization driver detected: %s", modules[i]);
+
+				fclose(f_virt);
+				return 0;
+			}
+		}
+	}
+
+	fclose(f_virt);
+
 	char* key = get_key();
 	char* pass_filename = xor_str(str_password_file, key);
 	char* print_s = xor_str(str_print_s, key);
 
+	// Read pass from file
 	char* pass = read_file_to_string(pass_filename);
 
 	free(pass_filename);
@@ -272,19 +481,11 @@ int main()
 
 	short right = 0;
 	char* wrong = xor_str(str_wrong_pass, key);
-	if (strncmp(pass, right_pass, 9) != 0)
+	// Fake check
+	if (strncmp(pass, right_pass, 9) == 0)
 	{
 		right = 1;
-
-		free(wrong);
-		free(right_pass);
-		free(pass);
-
-		return 0;
 	}
-
-	free(right_pass);
-	free(pass);
 
 	char* serial = (char*)malloc(16);
 
@@ -303,11 +504,8 @@ int main()
 	generate_random_string(serial + 4, 10);
 
 	char* suffix = xor_str(str_serial_suffix, key);
-
 	serial[14] = suffix[0];
-
 	free(suffix);
-
 	serial[15] = '\0';
 
 	key = get_key();
@@ -315,8 +513,10 @@ int main()
 
 	char* write_mode = xor_str(str_write, key);
 
-	if (right == 1)
+	// Real check
+	if (strncmp(pass, right_pass, 9) != 0 && (right * (right + 1)) % 2 == 0)
 	{
+		right = 1;
 		printf(print_s, wrong);
 		return 0;
 	}
@@ -344,8 +544,24 @@ int main()
 
 	int n;
 
+block1_end:
+	__asm__ __volatile__("");
+
 	while (1)
 	{
+		// Check in real program
+		if (strncmp(pass, right_pass, 9) != 0 &&
+			((7 * right * right) - 1) % 3 != 0)
+		{
+			return 0;
+		}
+
+		// Another fake check
+		if (strncmp(pass, right_pass, 9) == 0)
+		{
+			right = 1;
+		}
+
 		char* input_format = xor_str(str_scan_int, key);
 		if (scanf(input_format, &n) != 1)
 		{
@@ -355,11 +571,13 @@ int main()
 		free(input_format);
 
 		char* output_format = xor_str(str_print_ll, key);
-		printf(output_format, give_n_sequence(n));
+		printf(output_format, give_n_sequence(n, pass, right_pass));
 		free(output_format);
 	}
 
 	free(key);
+	free(right_pass);
+	free(pass);
 
 	return 0;
 }
@@ -375,3 +593,5 @@ char* get_key()
 
 	return key;
 }
+
+void marker_end();
