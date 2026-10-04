@@ -1,0 +1,7 @@
+CompileFlags:
+  Add: [
+    "-target", "x86_64-w64-mingw32",
+    "-I/usr/x86_64-w64-mingw32/include",
+    "-D_WIN32",
+    "-DUNICODE"
+  ]
