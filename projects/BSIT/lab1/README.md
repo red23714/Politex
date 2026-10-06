@@ -58,7 +58,7 @@ client.exe
 | `GET_UPTIME` | - | время с запуска ОС |
 | `GET_MEMORY` | - | используемая память |
 | `GET_DRIVES` | - | типы дисков и файловые системы |
-| `GET_FREESPACE` | - | свободное место на локальных (fixed) дисках |
+| `GET_FREESPACE` | - | свободное место на локальных дисках: фиксированных и съёмных (USB-флешки), сетевые и CD пропускаются |
 | `GET_ACL` | `FILE` или `REG`, путь | DACL файла/папки/ключа реестра |
 | `GET_OWNER` | `FILE` или `REG`, путь | владелец объекта |
 
@@ -91,7 +91,7 @@ RESULT  status=ERROR  code=1  source=protocol  message=unknown command
 | `UPTIME` | milliseconds, boot_time_utc, boot_time_unix |
 | `MEMORY` | load_percent, total_phys, avail_phys, total_pagefile, avail_pagefile, total_virtual, avail_virtual (в байтах) |
 | `DRIVE` (по записи на диск) | root, type (fixed/removable/network/cdrom/ramdisk/...), class (local/network/removable), fs, label, ready |
-| `FREESPACE` (по записи на локальный диск) | root, total_bytes, free_bytes, free_to_user_bytes (или error) |
+| `FREESPACE` (по записи на локальный диск) | root, type (fixed/removable), total_bytes, free_bytes, free_to_user_bytes (или error) |
 | `OWNER` | object_type, path, sid, name, name_use |
 | `ACL` (заголовок) | object_type, path, null_dacl, dacl_protected, ace_count |
 | `ACE` (по записи на каждую ACE) | index, sid, name, name_use, ace_type, ace_type_id, ace_flags, ace_flag_names, scope, mask, bits (номера через запятую), bit_names (названия через запятую) |
@@ -117,3 +117,17 @@ RESULT  status=ERROR  code=1  source=protocol  message=unknown command
   Для учебной работы этого достаточно, в реальной системе добавляют HMAC и сертификаты.
 * Сервер слушает только IPv4.
 * Код проверен только на компилируемость (кросс-сборка x64/x86); на реальной Windows запускайте и проверяйте самостоятельно.
+
+## Тестирование на Linux под Wine (клиент и серверы как независимые машины)
+
+Скрипт `wine-lab.sh` создаёт три «машины» на одном Linux: клиент (10.10.0.10), сервер 1 (10.10.0.11), сервер 2 (10.10.0.12).
+У каждой свой IP (сетевое пространство имён) и свой Wine-префикс (свой диск C:, свой реестр), общий мост `labbr`.
+
+1. Собрать exe кросс-компилятором или взять готовые (`server.exe`, `client.exe` рядом со скриптом, либо `EXE_DIR=/путь`).
+2. `./wine-lab.sh up`, затем в трёх терминалах `./wine-lab.sh server1`, `server2`, `client`.
+3. Wireshark: `./wine-lab.sh wireshark` (интерфейс `labbr`, фильтр по IP, например `ip.addr==10.10.0.10 && ip.addr==10.10.0.11`).
+4. Права: `chmod` на папке внутри `~/winelab/srv1/drive_c/` (Wine строит ACL из Unix-прав).
+5. «Флешка»: `./wine-lab.sh flash srv1 on` и перезапуск сервера 1. Wine не подхватывает новые диски на лету.
+6. `./wine-lab.sh down` - убрать сеть.
+
+На настоящей Windows эти ограничения (ACL, горячее подключение дисков) не действуют, для сдачи надёжнее виртуальные машины.
