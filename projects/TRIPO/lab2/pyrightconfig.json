@@ -1,0 +1,9 @@
+{
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [".venv/lib/python3.14/site-packages/idapro/stubs"]
+    }
+  ],
+  "reportMissingModuleSource": "none"
+}

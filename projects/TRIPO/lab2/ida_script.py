@@ -1,72 +1,184 @@
-import idc
-import idautils
 import idaapi
+import idautils
+import idc
+import ida_funcs
 import ida_gdl
 import ida_ua
+import ida_bytes
+import ida_idp
 
-def is_clearing_xor(ea):
-    op1 = idc.print_operand(ea, 0)
-    op2 = idc.print_operand(ea, 1)
-    
+def is_library(f):
+    return bool(f.flags & (ida_funcs.FUNC_LIB | ida_funcs.FUNC_THUNK))
+
+
+def get_loop_blocks(func):
+    """Возвращает список циклов (каждый цикл - множество блоков)."""
+    fc = ida_gdl.FlowChart(func, flags=ida_gdl.FC_PREDS)
+    loops = []
+    for tail in fc:
+        for head in tail.succs():
+            if head.start_ea <= tail.start_ea:  # обратное ребро
+                body = {head.id: head, tail.id: tail}
+                stack = [tail]
+
+                while stack:
+                    b = stack.pop()
+
+                    if b.id == head.id:
+                        continue
+
+                    for p in b.preds():
+                        if p.id not in body and p.start_ea >= head.start_ea:
+                            body[p.id] = p
+                            stack.append(p)
+
+                loops.append(list(body.values()))
+
+    return loops
+
+
+def is_useful_xor(ea):
+    """xor, но не обнуление регистра (xor eax, eax)."""
+    if idc.print_insn_mnem(ea) != "xor":
+        return False
+
     insn = ida_ua.insn_t()
-    if ida_ua.decode_insn(insn, ea) > 0:
-        if op1 == op2 and insn.ops[0].type == ida_ua.o_reg:
-            return True
-    return False
 
-def find_xor_primitives():
-    print("[*] Анализ пользовательских функций на наличие XOR-алгоритмов...")
-    detected_functions = 0
+    if ida_ua.decode_insn(insn, ea) == 0:
+        return False
 
-    for func_ea in idautils.Functions():
-        func = idaapi.get_func(func_ea)
-        if not func:
+    a, b = insn.ops[0], insn.ops[1]
+    if a.type == ida_ua.o_reg and b.type == ida_ua.o_reg and a.reg == b.reg:
+        return False
+
+    return True
+
+
+def find_xor_crypto():
+    funcs_xor = {}
+
+    for fea in idautils.Functions():
+        f = ida_funcs.get_func(fea)
+        if not f or is_library(f):
             continue
-            
-        if func.flags & idaapi.FUNC_LIB:
+
+        for loop in get_loop_blocks(f):
+            for blk in loop:
+                for ea in idautils.Heads(blk.start_ea, blk.end_ea):
+                    if is_useful_xor(ea):
+                        funcs_xor.setdefault(fea, set()).add(ea)
+
+    return {fea: sorted(eas) for fea, eas in funcs_xor.items()}
+
+def find_xor_strings():
+    strings_by_ea = {}
+    for s in idautils.Strings():
+        data = ida_bytes.get_strlit_contents(s.ea, s.length, s.strtype)
+        if not data:
+            continue
+        strings_by_ea[s.ea] = (s, data)
+
+    for fea in idautils.Functions():
+        f = ida_funcs.get_func(fea)
+        if not f or is_library(f):
             continue
 
-        func_name = idc.get_func_name(func_ea)
-        real_xor_instructions = []
-        has_loop = False
-        
-        flowchart = ida_gdl.FlowChart(func)
-        
-        for block in flowchart:
-            for succ_block in block.succs():
-                if succ_block.start_ea <= block.start_ea and succ_block.start_ea >= func_ea:
-                    current_ea = block.start_ea
-        
-                    while current_ea < block.end_ea:
-                        disasm = idc.generate_disasm_line(current_ea, 0)
-            
-                        current_ea = ida_bytes.next_head(current_ea, block.end_ea)
-
-            break
-
-        for ea in idautils.FuncItems(func_ea):
+        for ea in idautils.Heads(f.start_ea, f.end_ea):
             mnem = idc.print_insn_mnem(ea)
-            
-            if mnem in ["xor", "pxor"]:
-                if not is_clearing_xor(ea):
-                    real_xor_instructions.append(ea)
+            if mnem not in ("lea", "mov"):
+                continue
 
-        if real_xor_instructions:
-            detected_functions += 1
-            loop_status = "ДА" if has_loop else "НЕТ"
-            print(f"\n[+] Подозрительная функция: {func_name} ({hex(func_ea)})")
-            print(f"    ├─ Наличие циклов: {loop_status}")
-            print(f"    └─ Инструкции XOR ({len(real_xor_instructions)} шт.):")
-            
-            for xor_ea in real_xor_instructions:
-                disasm = idc.generate_disasm_line(xor_ea, 0)
-                print(f"        └─ {hex(xor_ea)}: {disasm}")
-                
-                idc.set_cmt(xor_ea, "Подозрительный XOR (возможная крипта)", 0)
-            
-            idc.set_cmt(func_ea, f"Возможный XOR-примитив (Циклы: {loop_status})", 1)
+            insn = ida_ua.insn_t()
+            if ida_ua.decode_insn(insn, ea) == 0:
+                continue
 
-    print(f"\n[*] Анализ завершен.")
-    print(f"    └─ Найдено подозрительных пользовательских функций: {detected_functions}")
+            if len(insn.ops) < 2:
+                continue
+            
+            _, src = insn.ops[0], insn.ops[1]
 
-find_xor_primitives()
+            if src.type not in (ida_ua.o_mem, ida_ua.o_imm):
+                continue
+
+            target_ea = src.addr if src.type == ida_ua.o_mem else src.value
+
+            hit = None
+            for s_ea, (s_obj, data) in strings_by_ea.items():
+                if s_ea <= target_ea < s_ea + s_obj.length:
+                    hit = (s_ea, s_obj, data)
+                    break
+
+            if not hit:
+                continue
+
+            s_ea, s_obj, data = hit
+
+            print("[str 0x%X] %-10s 0x%X  %-30s" % (s_ea, mnem, ea, idc.GetDisasm(ea)))
+
+
+def find_byte_strings():
+    for fea in idautils.Functions():
+        f = ida_funcs.get_func(fea)
+        if not f or is_library(f):
+            continue
+
+        chain = []
+
+        for ea in idautils.Heads(f.start_ea, f.end_ea):
+            b = _get_printable_byte(ea)
+            if b is not None:
+                chain.append((ea, b))
+                continue
+
+            if len(chain) >= 4:
+                _print_chain(f, chain)
+            chain = []
+
+        if len(chain) >= 4:
+            _print_chain(f, chain)
+
+
+def _get_printable_byte(ea):
+    if idc.print_insn_mnem(ea) != "mov":
+        return None
+
+    insn = ida_ua.insn_t()
+    if ida_ua.decode_insn(insn, ea) == 0:
+        return None
+    if len(insn.ops) < 2:
+        return None
+
+    dst, src = insn.ops[0], insn.ops[1]
+
+    if dst.type != ida_ua.o_displ:
+        return None
+    if src.type != ida_ua.o_imm:
+        return None
+
+    v = src.value & 0xFF
+    if not (32 <= v < 127):
+        return None
+
+    return v
+
+
+def _print_chain(f, chain):
+    text = "".join(chr(b) for _, b in chain)
+    print("[byte-str] func 0x%X  len=%d  %r"
+          % (f.start_ea, len(chain), text))
+
+print("Поиск XOR")
+
+funcs_xor = find_xor_crypto()
+for fea in funcs_xor.keys():
+    print("[+] %s | 0x%X" % (idc.get_func_name(fea), fea))
+
+    for ea in funcs_xor[fea]:
+        print("      0x%X  %s" % (ea, idc.GetDisasm(ea)))
+
+print("\nПоиск XOR-строк")
+
+find_xor_strings()
+find_byte_strings()
+
+print("Поиск окончен")
