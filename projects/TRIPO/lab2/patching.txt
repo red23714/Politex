@@ -4,3 +4,5 @@ int TlsCallback_0() убрал вызов функции проверки с rdt
 4011C0 заменил push ebp на переход сразу дальше к 401237
 
 kb#fwj1P@bbfb2
+
+error in 401204
