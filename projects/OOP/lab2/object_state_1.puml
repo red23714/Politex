@@ -1,0 +1,56 @@
+@startuml
+title Диаграмма объектов: партия в процессе, в выбранную клетку введено ошибочное число
+hide empty members
+
+object "app : App" as app {
+  _current = "game"
+  _running = True
+  _music_paused = True
+}
+
+object "puzzleScreen : PuzzleScreen" as screen {
+  _popup = None
+  _animation = None
+  _needs_grid_animation = False
+}
+
+object "game : PuzzleGame" as game {
+  _selected = (0, 0)
+  _completed = False
+}
+
+object "puzzle : Board" as puzzle {
+  _cells = 9x9, заполнено 30 клеток
+  (0, 0) = 0, (0, 1) = 9
+}
+
+object "user : Board" as user {
+  _cells = 9x9, заполнена 1 клетка
+  (0, 0) = 9
+}
+
+object "timer : GameTimer" as timer {
+  _running = True
+  _accumulated = 0.0
+}
+
+object "solver : SudokuSolver" as solver
+
+object "repository : BoardRepository" as repo
+
+app *-- screen
+app o-- repo
+screen o-- game
+game *-- puzzle : _puzzle
+game *-- user : _user
+game *-- timer : _timer
+game o-- solver : _solver
+
+note right of user
+  Число 9 в клетке (0, 0) повторяет заданную
+  девятку в клетке (0, 1) той же строки:
+  cell_has_conflict(0, 0) = True,
+  is_solved() = False, сетка серая,
+  цифра выводится красным цветом.
+end note
+@enduml

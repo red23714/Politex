@@ -1,0 +1,44 @@
+@startuml
+title Диаграмма объектов: партия решена (после автоматического решения)
+hide empty members
+
+object "puzzleScreen : PuzzleScreen" as screen {
+  _popup = None
+  _animation = None
+}
+
+object "game : PuzzleGame" as game {
+  _selected = None
+  _completed = True
+}
+
+object "puzzle : Board" as puzzle {
+  _cells = 9x9, заполнено 30 клеток
+}
+
+object "user : Board" as user {
+  _cells = 9x9, заполнено 51 клетка
+  (0, 0) = 2, (0, 3) = 1, ...
+}
+
+object "timer : GameTimer" as timer {
+  _running = False
+  _accumulated = 42.6
+}
+
+object "solver : SudokuSolver" as solver
+
+screen o-- game
+game *-- puzzle : _puzzle
+game *-- user : _user
+game *-- timer : _timer
+game o-- solver : _solver
+
+note right of game
+  current_board() = puzzle + user: поле заполнено
+  и не содержит конфликтов, is_solved() = True.
+  check_completion() вернул True один раз:
+  таймер остановлен, сетка стала зелёной,
+  проигран звук победы.
+end note
+@enduml

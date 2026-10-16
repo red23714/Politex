@@ -1,0 +1,39 @@
+@startuml
+title Диаграмма объектов: режим решателя, введены две одинаковые цифры в одной строке
+hide empty members
+
+object "solverScreen : SolverScreen" as screen {
+  _popup = None
+  _animation = None
+}
+
+object "game : FreeSolverGame" as game {
+  _selected = (0, 1)
+  _completed = False
+  _timer = None
+}
+
+object "puzzle : Board" as puzzle {
+  _cells = 9x9, заполнено 0 клеток
+}
+
+object "user : Board" as user {
+  _cells = 9x9, заполнено 2 клетки
+  (0, 0) = 5, (0, 1) = 5
+}
+
+object "solver : SudokuSolver" as solver
+
+screen o-- game
+game *-- puzzle : _puzzle
+game *-- user : _user
+game o-- solver : _solver
+
+note right of game
+  _solution_source() = current_board()
+  has_conflicts() = True, поэтому
+  can_auto_solve() = False: по пробелу
+  окно SolvePopup не создаётся,
+  а в _popup остаётся None.
+end note
+@enduml

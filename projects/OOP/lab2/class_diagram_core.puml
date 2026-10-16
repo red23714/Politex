@@ -1,0 +1,91 @@
+@startuml
+title Sudoku — диаграмма классов: ядро
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Ядро (без pygame)" {
+  enum Difficulty {
+    EASY
+    MEDIUM
+    HARD
+    VERY_HARD
+    + label : str
+  }
+
+  class Board {
+    {static} SIZE : int = 9
+    {static} BOX : int = 3
+    - _cells : List[List[int]]
+    + from_strings(rows) : Board
+    + get(row, col) : int
+    + set(row, col, value) : None
+    + copy() : Board
+    + to_list() : List[List[int]]
+    + is_full() : bool
+    + find_empty() : Optional[Tuple[int,int]]
+    + empty_cells() : List[Tuple[int,int]]
+    + is_valid_placement(row, col, value) : bool
+    + cell_has_conflict(row, col) : bool
+    + has_conflicts() : bool
+    + is_solved() : bool
+  }
+
+  class SudokuSolver {
+    + solve_steps(board) : Iterator[Board]
+    + solve(board) : bool
+  }
+
+  class BoardRepository {
+    - _rng : Random
+    - _puzzles : Dict[Difficulty, List[List[str]]]
+    + count(difficulty) : int
+    + get_board(difficulty) : Board
+    + all_boards(difficulty) : List[Board]
+  }
+
+  class GameTimer {
+    - _accumulated : float
+    - _running : bool
+    + start() : None
+    + stop() : None
+    + resume() : None
+    + elapsed() : int
+    + format() : str
+  }
+
+  abstract class Game {
+    - _puzzle : Board
+    - _user : Board
+    - _selected : Optional[Tuple[int,int]]
+    + select(row, col) : bool
+    + clear_selection() : None
+    + input_number(value) : bool
+    + current_board() : Board
+    + is_editable(row, col) : bool
+    + is_solved() : bool
+    + check_completion() : bool
+    + can_auto_solve() : bool
+    + auto_solve() : bool
+    + solution_steps() : Iterator[None]
+    # {abstract} _solution_source() : Board
+  }
+
+  class PuzzleGame {
+    # _solution_source() : Board
+  }
+
+  class FreeSolverGame {
+    # _solution_source() : Board
+  }
+}
+
+PuzzleGame --|> Game
+FreeSolverGame --|> Game
+BoardRepository ..> Difficulty
+BoardRepository ..> Board : создаёт
+SudokuSolver ..> Board : решает
+Game *-- "2" Board : puzzle, user
+Game o-- SudokuSolver
+Game o-- "0..1" GameTimer
+PuzzleGame *-- GameTimer
+@enduml

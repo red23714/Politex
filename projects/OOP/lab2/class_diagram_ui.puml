@@ -1,0 +1,116 @@
+@startuml
+title Sudoku — диаграмма классов: интерфейс
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Интерфейс (pygame)" {
+  class Palette {
+    {static} GREEN, BLACK, WHITE, RED, GREY ...
+  }
+
+  class Assets {
+    + font(name, size) : Font
+    + render(text, font, size, color) : Surface
+    + play(sound_name) : None
+    + start_music() : None
+    + pause_music() : None
+    + resume_music() : None
+  }
+
+  abstract class Button {
+    # _label : str
+    # _center : Point
+    + rect : Rect
+    + contains(pos) : bool
+    + {abstract} draw(surface, mouse_pos) : None
+  }
+  class ScalingButton
+  class InvertingButton
+
+  class Popup {
+    + draw(surface, mouse_pos) : None
+    + click(pos) : Optional[str]
+  }
+  class ConfirmPopup
+  class SolvePopup
+
+  class GridRenderer {
+    + cell_rect(row, col) : Rect
+    + cell_at(pos) : Optional[Tuple[int,int]]
+    + draw_grid(surface, thin, thick, extent) : None
+    + animate(surface) : None
+    + highlight(surface, cell, color) : None
+    + draw_number(surface, cell, value, size, color) : None
+  }
+
+  class Transition <<dataclass>> {
+    + target : str
+    + difficulty : Optional[Difficulty]
+  }
+
+  abstract class Screen {
+    + handle_event(event) : Optional[Transition]
+    + update() : None
+    + {abstract} draw(surface) : None
+  }
+  class IntroScreen
+  class MenuScreen {
+    # _add(button, transition) : None
+  }
+  class MainMenuScreen
+  class PlayMenuScreen
+  class ScoreBoardScreen
+  class GameScreen {
+    + start(game) : None
+    # _request_exit() : Optional[Transition]
+    # _on_completed() : None
+  }
+  class PuzzleScreen
+  class SolverScreen
+
+  class App {
+    + run() : None
+    - _switch(transition) : None
+  }
+}
+
+' классы ядра, используемые интерфейсом
+class Game <<ядро>>
+class PuzzleGame <<ядро>>
+class FreeSolverGame <<ядро>>
+class BoardRepository <<ядро>>
+enum Difficulty <<ядро>>
+
+ScalingButton --|> Button
+InvertingButton --|> Button
+ConfirmPopup --|> Popup
+SolvePopup --|> Popup
+IntroScreen --|> Screen
+MenuScreen --|> Screen
+GameScreen --|> Screen
+MainMenuScreen --|> MenuScreen
+PlayMenuScreen --|> MenuScreen
+ScoreBoardScreen --|> MenuScreen
+PuzzleScreen --|> GameScreen
+SolverScreen --|> GameScreen
+
+Popup o-- "2..3" Button
+Button --> Assets
+GridRenderer --> Assets
+Screen --> Assets
+MenuScreen o-- "*" Button
+MenuScreen ..> Transition
+GameScreen o-- "0..1" Game
+GameScreen o-- GridRenderer
+GameScreen o-- "0..1" Popup
+GameScreen ..> Transition
+PlayMenuScreen ..> Difficulty
+App *-- "6" Screen
+App *-- Assets
+App o-- BoardRepository
+App ..> Transition
+App ..> PuzzleGame : создаёт
+App ..> FreeSolverGame : создаёт
+Button ..> Palette
+GridRenderer ..> Palette
+@enduml
