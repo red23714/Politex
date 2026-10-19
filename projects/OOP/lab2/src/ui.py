@@ -1,4 +1,3 @@
-"""Базовые элементы интерфейса на pygame: ресурсы, кнопки, окна, отрисовка поля."""
 import os
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple
@@ -11,8 +10,6 @@ Point = Tuple[int, int]
 
 
 class Palette:
-    """Цвета приложения."""
-
     GREEN: Color = (40, 160, 30)
     BLACK: Color = (20, 20, 20)
     WHITE: Color = (240, 240, 240)
@@ -23,8 +20,6 @@ class Palette:
 
 
 class Assets:
-    """Загружает и кеширует шрифты, надписи и звуки."""
-
     TITLE_FONT: str = "SEASRN__.ttf"
     MENU_FONT: str = "RobotoSlab-Bold.ttf"
     NUMBER_FONT: str = "TypeWrongSmudgedBold.ttf"
@@ -49,40 +44,32 @@ class Assets:
         return os.path.join(self._base_dir, filename)
 
     def font(self, name: str, size: int) -> pg.font.Font:
-        """Возвращает шрифт (с кешированием)."""
         key = (name, size)
         if key not in self._fonts:
             self._fonts[key] = pg.font.Font(self._path(name), size)
         return self._fonts[key]
 
     def render(self, text: str, font_name: str, size: int, color: Color) -> pg.Surface:
-        """Возвращает отрисованную надпись (с кешированием)."""
         key = (text, font_name, size, color)
         if key not in self._texts:
             self._texts[key] = self.font(font_name, size).render(text, True, color)
         return self._texts[key]
 
     def play(self, sound_name: str) -> None:
-        """Проигрывает звуковой эффект."""
         self._sounds[sound_name].play()
 
     def start_music(self) -> None:
-        """Запускает фоновую музыку по кругу."""
         mixer.music.load(self._path(self.MUSIC_FILE))
         mixer.music.play(-1)
 
     def pause_music(self) -> None:
-        """Ставит фоновую музыку на паузу."""
         mixer.music.pause()
 
     def resume_music(self) -> None:
-        """Возобновляет фоновую музыку."""
         mixer.music.unpause()
 
 
 class Button(ABC):
-    """Кнопка-надпись. Подклассы задают внешний вид и реакцию на наведение."""
-
     def __init__(self, label: str, center: Point, assets: Assets) -> None:
         self._label = label
         self._center = center
@@ -124,8 +111,6 @@ class ScalingButton(Button):
 
 
 class InvertingButton(Button):
-    """Малая кнопка: при наведении цвета инвертируются."""
-
     def __init__(self, label: str, center: Point, assets: Assets) -> None:
         super().__init__(label, center, assets)
 

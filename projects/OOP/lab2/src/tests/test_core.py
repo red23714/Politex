@@ -1,4 +1,3 @@
-"""Unit-тесты ядра: Board, SudokuSolver, BoardRepository, GameTimer."""
 import os
 import random
 import sys

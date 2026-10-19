@@ -11,8 +11,6 @@ from ui import Assets, GridRenderer
 
 
 class App:
-    """Создаёт окно, хранит экраны и крутит главный цикл."""
-
     WIDTH: int = 600
     HEIGHT: int = 800
     FPS: int = 60
@@ -39,7 +37,6 @@ class App:
         self._music_paused = False
 
     def run(self) -> None:
-        """Главный цикл приложения."""
         self._assets.start_music()
         clock = pg.time.Clock()
         while self._running:
