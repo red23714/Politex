@@ -36,6 +36,55 @@ const char* str_print_ll = "\x4D\x09\x6C\x19\x65";
 const char* str_serial_prefix = "\x23\x20\x35\x48";
 const char* str_serial_suffix = "\x4C";
 
+#include <stdint.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+
+int real_check(const char* a, const char* b)
+{
+	printf("%s %s %d\n", a, b, strncmp(a, b, 9));
+	return strncmp(a, b, 9) == 0;
+}
+
+__asm__(".text\n"
+		".globl real_check_trampoline\n"
+		"real_check_trampoline:\n\t"
+		"pop %rbp\n\t"
+		"jmp real_check\n");
+
+extern void real_check_trampoline(void);
+extern char patch_point_impl;
+
+int check_impl(const char* a, const char* b)
+{
+	int result;
+	__asm__ __volatile__(".globl patch_point_impl\n"
+						 "patch_point_impl:\n\t"
+						 ".byte 0xB8, 0x00, 0x00, 0x00, 0x00\n\t"
+						 : "=a"(result)
+						 : "D"(a), "S"(b)
+						 : "memory");
+	return result;
+}
+
+void patch_check(void)
+{
+	long pgsz = sysconf(_SC_PAGESIZE);
+	uintptr_t addr = (uintptr_t)&patch_point_impl;
+	void* page = (void*)(addr & ~((uintptr_t)pgsz - 1));
+
+	if (mprotect(page, (size_t)pgsz, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
+		return;
+
+	int32_t off = (int32_t)((uintptr_t)&real_check_trampoline - (addr + 5));
+	unsigned char patch[5] = {0xE9}; /* E9 = jmp rel32 */
+	memcpy(patch + 1, &off, 4);
+	memcpy((void*)addr, patch, 5);
+
+	mprotect(page, (size_t)pgsz, PROT_READ | PROT_EXEC);
+}
+
 char* get_key();
 
 char* xor_str(const char* str, const char* key)
@@ -72,20 +121,20 @@ static long long get_time_ns(void)
 
 const char* first = "he";
 
-// void print_byte_str(const char* str)
-// {
-// 	int len = strlen(str);
-// 	char* x_str = xor_str(str, "hello");
+void print_byte_str(const char* str)
+{
+	int len = strlen(str);
+	char* x_str = xor_str(str, "hello");
 
-// 	for (int i = 0; i < len; i++)
-// 	{
-// 		printf("\\x%02X", (unsigned char)x_str[i]);
-// 	}
+	for (int i = 0; i < len; i++)
+	{
+		printf("\\x%02X", (unsigned char)x_str[i]);
+	}
 
-// 	printf("\n");
+	printf("\n");
 
-// 	free(x_str);
-// }
+	free(x_str);
+}
 
 uint32_t calculate_crc32(const uint8_t* data, size_t length)
 {
@@ -289,6 +338,7 @@ const char* third = "o";
 
 int main()
 {
+	patch_check();
 	srand(time(NULL));
 
 	// print_byte_str(str_open_error);
@@ -296,7 +346,7 @@ int main()
 	// print_byte_str(str_password_file);
 	// print_byte_str(str_serial_file);
 	// print_byte_str(str_format);
-	// print_byte_str(str_numbers);
+	// print_byte_str("123456789");
 	// print_byte_str(str_wrong_pass);
 	// print_byte_str(str_success);
 	// print_byte_str(str_write);
@@ -482,7 +532,7 @@ block1_start:
 	short right = 0;
 	char* wrong = xor_str(str_wrong_pass, key);
 	// Fake check
-	if (strncmp(pass, right_pass, 9) == 0)
+	if (check_impl(pass, right_pass))
 	{
 		right = 1;
 	}
@@ -514,7 +564,7 @@ block1_start:
 	char* write_mode = xor_str(str_write, key);
 
 	// Real check
-	if (strncmp(pass, right_pass, 9) != 0 && (right * (right + 1)) % 2 == 0)
+	if (!check_impl(pass, right_pass) && (right * (right + 1)) % 2 == 0)
 	{
 		right = 1;
 		printf(print_s, wrong);
@@ -550,14 +600,13 @@ block1_end:
 	while (1)
 	{
 		// Check in real program
-		if (strncmp(pass, right_pass, 9) != 0 &&
-			((7 * right * right) - 1) % 3 != 0)
+		if (!check_impl(pass, right_pass) && ((7 * right * right) - 1) % 3 != 0)
 		{
 			return 0;
 		}
 
 		// Another fake check
-		if (strncmp(pass, right_pass, 9) == 0)
+		if (check_impl(pass, right_pass))
 		{
 			right = 1;
 		}
