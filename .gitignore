@@ -8,6 +8,7 @@ build
 .share
 *.tar
 dataset
+__pycache__
 
 !Makefile
 !makefile
