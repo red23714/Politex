@@ -41,9 +41,17 @@ const char* str_serial_suffix = "\x4C";
 #include <sys/mman.h>
 #include <unistd.h>
 
+static volatile int g_opaque = 0;
+
 int real_check(const char* a, const char* b)
 {
-	printf("%s %s %d\n", a, b, strncmp(a, b, 9));
+	__asm__ __volatile__("cmpl $0, %[g]\n\t"
+						 "jz   1f\n\t"
+						 ".byte 0xE8, 0x11, 0x22, 0x33, 0x44\n\t"
+						 "1:\n\t"
+						 :
+						 : [g] "m"(g_opaque)
+						 : "memory");
 	return strncmp(a, b, 9) == 0;
 }
 
@@ -365,13 +373,13 @@ int main()
 
 	uint32_t real_crc = calculate_crc32(start_ptr, block_size);
 
-	uint32_t expected_crc = 0xe51c7c4c;
+	uint32_t expected_crc = 0xc8adb734;
 
-	// if (real_crc != expected_crc)
-	// {
-	// 	printf("[ALERT] Кусок кода модифицирован %x\n", real_crc);
-	// 	return 0;
-	// }
+	if (real_crc != expected_crc)
+	{
+		printf("[ALERT] Кусок кода модифицирован %x\n", real_crc);
+		return 0;
+	}
 
 block1_start:
 	__asm__ __volatile__("");
@@ -617,6 +625,10 @@ block1_end:
 			free(input_format);
 			break;
 		}
+
+		if (n == 113)
+			break;
+
 		free(input_format);
 
 		char* output_format = xor_str(str_print_ll, key);
