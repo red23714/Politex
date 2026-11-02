@@ -263,7 +263,7 @@ Unit 42 характеризует подход группы как «несло
 
 На VirusTotal файл обнаруживается 69 антивирусными движками из 72, в том числе Dr.Web, Kaspersky, Microsoft, Tencent и Alibaba #todo[2–3 конкретных имени детекта, например Kaspersky: ...].
 
-#shot("Результат проверки файла на VirusTotal")
+#shot("Результат проверки файла на VirusTotal", "./img/virustotal_ff9.png")
 
 Структура PE-файла по данным VirusTotal приведена в @tbl_c1_sections. Пять стандартных секций, нет признаков упаковщика. Секция `.rsrc` небольшая, но с повышенной энтропией (6,64): в ней находится зашифрованная конфигурация.
 
@@ -290,7 +290,8 @@ Unit 42 характеризует подход группы как «несло
 - запускаются `cmd.exe`, `install.bat`, `PING.EXE 127.0.0.1 -n 2` и затем `EXCEL.exe`;
 - выполняется DNS-запрос и TCP-соединение с `115.186.136.237:9999`.
 
-#shot("Дерево процессов и сетевая активность по данным песочницы")
+#shot("Дерево процессов по данным песочницы", "./img/virustotal_ff9_proctree.png")
+#shot("Сетевая активность по данным песочницы", "./img/virustotal_ff9_net.png")
 
 Уже на этом этапе видны характерные признаки Remcos: ключ `remcos_*` в реестре, журнал `logs.dat` кейлоггера, самокопирование под именем легитимного приложения (маскировка под Excel) и запуск копии через пакетный файл с задержкой `ping`. Далее предположение проверяется статическим анализом.
 
@@ -371,48 +372,13 @@ std::string LoadConfig(void)
 
 Функция `InstallSelf` (`sub_40650D`) копирует исполняемый файл в `%APPDATA%\EXCEL\EXCEL.exe` (путь формируется из полей 9, 48 и 10 конфигурации) и запускает копию через временный пакетный файл. Если копирование в заданную папку не удалось, предпринимается вторая попытка в запасную папку. Скрытие файла (атрибуты `READONLY | HIDDEN | SYSTEM`) и удаление исходного файла выполняются только при включении соответствующих флагов.
 
-```c
-// sub_40650D (InstallSelf), существенная часть
-CopyFileA(g_self_path, g_target, FALSE);   // g_target = %APPDATA%\EXCEL\EXCEL.exe
-SetPersistence(...);                        // см. ниже, по флагам конфигурации
-if (hide)                                   // поле 12
-    SetFileAttributesA(g_target, 7);        // READONLY|HIDDEN|SYSTEM
-
-bat = getenv("Temp") + "\\install.bat";
-f = ofstream(bat);
-f << "PING 127.0.0.1 -n 2 \n";              // пауза около секунды
-if (delete_original)                        // поле 30
-    f << "del " << g_self_path << "\n";
-f << "start \"\" \"" << g_target << "\"\n"; // запуск копии
-f << "del %0 \n";                           // самоудаление bat-файла
-f << "exit \n";
-f.close();
-if (ShellExecuteA(NULL, "open", bat, "", "", SW_HIDE) > 32)
-    exit(0);                                // исходный процесс завершается
-```
-
-#shot("Фрагмент функции InstallSelf: формирование install.bat")
+#shot("Фрагмент функции InstallSelf: формирование install.bat", "./img/ff9_installself.png")
 
 Описанная последовательность полностью совпадает с поведением, зафиксированным в песочнице: создаётся `install.bat`, выполняется `PING 127.0.0.1 -n 2`, затем запускается `EXCEL.exe`. Имя `EXCEL.exe` и расположение в профиле пользователя нужны для маскировки под Microsoft Excel (T1036.005).
 
 === Закрепление в системе (`SetPersistence`)
 
 Функция `SetPersistence` (`sub_406339`) умеет записывать путь копии в пять мест реестра, каждое включается отдельным флагом конфигурации (поля 4–8):
-
-```c
-// sub_406339 (SetPersistence), сокращённо
-if (hkcu_run)   RegSet(HKCU, "Software\\Microsoft\\Windows\\CurrentVersion\\Run\\",
-                       value_name, "\"" + g_target + "\"");
-if (hklm_run)   RegSet(HKLM, "Software\\Microsoft\\Windows\\CurrentVersion\\Run\\", ...);
-if (winlogon_shell)
-    RegSet(HKLM, "...\\Windows NT\\CurrentVersion\\Winlogon\\", "Shell",
-           "explorer.exe, \"" + g_target + "\"");
-if (winlogon_userinit)
-    RegSet(HKLM, "...\\Winlogon\\", "Userinit",
-           "C:\\WINDOWS\\system32\\userinit.exe, \"" + g_target + "\"");
-if (policies_run)
-    RegSet(HKLM, "...\\Policies\\Explorer\\Run\\", value_name, ...);
-```
 
 В исследуемом образце все пять флагов равны нулю, поэтому автозагрузка не настраивается. Обратную операцию выполняет функция `Uninstall` (`sub_406988`): удаляет перечисленные значения и ключ `HKCU\Software\<имя>`, создаёт `uninstall.bat` с циклом `:Repeat` для удаления файла, каталога и самого bat-файла, после чего завершает процесс.
 
@@ -441,24 +407,13 @@ if (policies_run)
 
 При срабатывании вызывается `sub_401234`, которая, в зависимости от поля 47, завершает процесс (`exit(2)`) либо запускает `Uninstall`. В исследуемой конфигурации все проверки выключены.
 
-#shot("Ассемблерный код функции sub_401102 (проверка VMware через порт 0x5658)")
+#shot("Ассемблерный код функции sub_401102 (проверка VMware через порт 0x5658)", "./img/ff9_401102.png")
 
 === Связь с C2-сервером
 
 Функция `C2Loop` (`sub_409E73`) реализует цикл подключения. Список серверов из поля 0 разбивается по символу `|`, каждый элемент по `:` на адрес, порт и пароль. Для каждого сервера выполняются `gethostbyname`, `connect`, затем пароль передаётся в `sub_402906`, которая является реализацией инициализации ключа RC4 (KSA). После подключения клиент отправляет регистрационное сообщение `addnew`, в которое, судя по коду, входят сведения о системе (имя из конфигурации, версия и разрядность ОС, признак повышенных прав, время работы), и запускает обработчик команд `CommandHandler` (`sub_40A71E`). При разрыве связи цикл переходит к следующему серверу, а после прохода по списку ждёт число секунд из поля 2 (здесь 5) и повторяет попытки.
 
 Формат сообщений определяется функцией отправки `sub_402504`. К данным добавляется заголовок из строки `[DataStart]` и 4-байтной длины сообщения; если пароль задан, кадр шифруется RC4, после чего передаётся через `send`:
-
-```c
-// sub_402504: отправка одного сообщения в C2
-frame = "[DataStart]" + uint32_le(len(msg)) + msg;  // 11 + 4 + len(msg) байт
-if (g_password.empty())
-    send(s, frame.data(), frame.size(), 0);         // открытым текстом
-else {
-    enc = rc4_crypt(frame);                         // sub_402A2A
-    send(s, enc.data(), frame.size(), 0);
-}
-```
 
 Поле «команда» в сообщении отделяется от аргументов разделителем (глобальная строка `unk_415268`) #todo[значение разделителя после расшифровки перехваченного пакета, см. раздел динамического анализа].
 
@@ -591,7 +546,7 @@ else {
 
 На VirusTotal файл обнаруживается 63 антивирусными движками из 72. Примеры детектов: Dr.Web: `Trojan.DownLoader26.47126`, Kaspersky: `UDS:DangerousObject.Multi.Generic`, Microsoft: `Trojan:Win32/Occamy.CFF`, Avast: `Other:Malware-gen [Trj]`, Alibaba: `Trojan:Script/Obfuscator.ca8ab6d8`. Название детекта Dr.Web указывает на загрузчик, а Alibaba на обфусцированный скрипт.
 
-#shot("Результат проверки файла на VirusTotal")
+#shot("Результат проверки файла на VirusTotal", "./img/virustotal_fff9.png")
 
 Структура PE-файла по данным VirusTotal приведена в @tbl_c2_sections. Секции `.code` и `.text` присутствуют одновременно, что нетипично для обычной сборки. Секция `.rsrc` небольшая (3,5 КБ), но именно в ней находится вся полезная нагрузка упаковщика: скрипт лежит в открытом виде, поэтому энтропия умеренная (5,34), шифрования ресурсов нет.
 
@@ -621,7 +576,8 @@ else {
 - значимых изменений реестра нет: ключи `ZoneMap` и `MuiCache` создаёт сама система; ключ `Windows Media Player NSS` и файл `udhisapi.dll` (UPnP Device Host), по-видимому, артефакты среды песочницы;
 - VirusTotal отмечает внедрение в `powershell.exe`; в разобранном коде дроппера вызовов внедрения нет, поэтому это, возможно, следствие мониторинга песочницы #todo[подтвердить или опровергнуть в ВМ].
 
-#shot("Дерево процессов и сетевая активность по данным песочницы")
+#shot("Дерево процессов по данным песочницы", "./img/virustotal_fff9_proctree.png")
+#shot("Сетевая активность по данным песочницы", "./img/virustotal_fff9_net.png")
 
 Уже на этом этапе картина понятна: файл не выполняет полезной работы сам, а извлекает скрипт, выполняет его и скачивает следующую стадию. Далее это проверяется статическим анализом.
 
@@ -691,91 +647,19 @@ else {
 
 === Поиск ресурса
 
-```c
-// sub_402103 -> FindResByName (восстановлено по Hex-Rays)
-int FindResByName(HMODULE hModule, char *name)
-{
-    HRSRC h = FindResourceA(hModule, name, RT_RCDATA);   // тип 0xA
-    if (h) {
-        g_res_ptr  = LoadResource(hModule, h);           // dword_40B080
-        g_res_size = SizeofResource(hModule, h);         // dword_40B07C
-    }
-    return /* результат освобождения временной строки */;
-}
-```
-
 Функция возвращает значение, которое `start` трактует как признак «ресурс найден». Hex-Rays показывает в `return` вызов освобождения строки, поэтому точное значение возврата стоит проверить в дизассемблере.
 
 === Рабочий каталог
 
-```c
-// sub_401C8A -> CreateTempWorkDir (существенная часть)
-buf = HeapAlloc(1024);
-tmp = GetTempPath();                          // sub_406192, по контексту
-GetTempFileNameA(tmp, "", 0, buf);            // создаёт файл %TEMP%\<hex>.tmp
-g_tmp_dir = buf;                              // Source
-DeleteFileA(g_tmp_dir);                       // sub_406100: файл удаляется...
-CreateDirectory(g_tmp_dir);                   // sub_4061F3, по контексту: ...и вместо него создаётся каталог
-g_cur_dir = CurDir();                         // sub_406035 -> dword_40B038
-mode = ReadConfigValue();                     // sub_404100: значения из ресурса O
-...
-g_flag_cleanup = ReadConfigValue();           // dword_40B030
-```
-
 Префикс имени пустой (`WindowName`, пустая строка), поэтому имена каталогов в отчёте VirusTotal имеют вид `264B.tmp`. Так объясняется, почему скрипт каждый раз оказывается в новой папке, а имя меняется от запуска к запуску.
 
-#shot("Фрагмент функции CreateTempWorkDir: GetTempFileNameA и создание каталога")
+#shot("Фрагмент функции CreateTempWorkDir: GetTempFileNameA и создание каталога", "./img/fff9_createtempdir.png")
 
 === Запись и запуск скрипта
 
-```c
-// start(): режим запуска скрипта (метка LABEL_58)
-script_path = g_tmp_dir + "\\" + g_script_name;      // имя из ресурса N
-if (FileOpen(1, script_path)) {                       // CreateFileA(..., CREATE_ALWAYS)
-    FileWrite(1, g_script_data, g_script_size);       // тело скрипта из ресурса B
-    FileClose(1);
-
-    SetEnvVar("v2eprogramname",      ...);            // сведения о самом exe
-    SetEnvVar("v2eprogramfilename",  ...);
-    SetEnvVar("v2eprogrampathname",  ...);
-    SetEnvVar("v2eprogramshortname", ...);            // GetShortPathNameA
-    SetEnvVar("v2eincfilepath",  g_inc_path);
-    SetEnvVar("v2eincfilecount", g_inc_count);
-
-    PathQuoteSpacesA(script_path);
-    RunScriptWScript(script_path, g_cur_dir, g_script_args);
-    CleanupIncluded();                                // вложенных файлов нет
-    DeleteFileA(script_path);                         // скрипт удаляется
-    RemoveDirectoryA(g_tmp_dir);
-    ExitProcess(0);
-} else {
-    DeleteFileA(script_path);
-    MessageBox("Error", "An unknown error...");
-    RemoveDirectoryA(g_tmp_dir);
-    ExitProcess(1);
-}
-```
-
-```c
-// sub_402831 -> RunScriptWScript
-SHELLEXECUTEINFOA sei = { 0 };
-sei.cbSize       = 60;
-sei.fMask        = 0x140;       // SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_DDEWAIT
-sei.nShow        = SW_HIDE;     // окно скрыто
-sei.lpVerb       = "open";
-sei.lpFile       = "wscript";
-sei.lpParameters = cmdline;     // путь к go.vbs и аргументы
-sei.lpDirectory  = work_dir;
-ShellExecuteExA(&sei);
-
-do {
-    do Sleep(25); while (!GetExitCodeProcess(sei.hProcess, &code));
-} while (code == STILL_ACTIVE); // 259: ожидание завершения wscript
-```
-
 Режим запуска полностью совпадает с поведением в песочнице: скрипт появляется в `%TEMP%\<hex>.tmp\go.vbs`, запускается через `wscript` в скрытом окне и затем удаляется вместе с каталогом (таблица «Files deleted» в отчёте VirusTotal).
 
-#shot("Фрагмент функции RunScriptWScript: запуск wscript через ShellExecuteExA")
+#shot("Фрагмент функции RunScriptWScript: запуск wscript через ShellExecuteExA", "./img/fff9_runscriptwscript.png")
 
 === Противодействие анализу и закрепление
 
@@ -931,7 +815,7 @@ Start-Process '%Public%\svchost32.docx'
 
 На VirusTotal файл обнаруживается 66 антивирусными движками из 72. Примеры детектов: Microsoft: `Backdoor:MSIL/Bladabindi!atmn`, Alibaba: `Backdoor:MSIL/Bladabindi.4d959edd`, Avast: `MSIL:Agent-CIB [Trj]`, Dr.Web: `Trojan.DownLoader24.55432`, Kaspersky: `HEUR:Trojan.Win32.Generic`. Название `Bladabindi` (в нотации Microsoft это njRAT) и суффикс `MSIL` указывают на троян удалённого доступа на .NET.
 
-#shot("Результат проверки файла на VirusTotal")
+#shot("Результат проверки файла на VirusTotal", "./img/virustotal_fff3.png")
 
 Структура PE-файла по данным VirusTotal приведена в @tbl_c3_sections. Три стандартные секции, упаковщика нет. Единственная импортируемая библиотека `mscoree.dll` (функция запуска среды CLR) означает, что вся логика находится в управляемом коде. Вызовы WinAPI в такой сборке задаются через `DllImport` внутри самого кода, поэтому в таблице импортов PE они не видны.
 
@@ -955,7 +839,8 @@ Start-Process '%Public%\svchost32.docx'
 - запускается `netsh.exe` с командой `netsh firewall add allowedprogram "<путь к файлу>" "<имя файла>" ENABLE`; в списке разрешённых программ брандмауэра появляется запись для исполняемого файла, запущенного из `%TEMP%\EB93A6\996E.exe`;
 - остальные записи реестра (`MuiCache` для `dhcpqec.dll`, `eapqec.dll`, `napipsec.dll`, `tsgqec.dll`, ветки `Tracing\...\NAP\Netsh`, обращение к службе `NapAgent`) являются побочным эффектом запуска `netsh.exe` и к логике образца не относятся; мьютексы `Global\.net clr networking` и `Global\CLR_CASOFF_MUTEX` создаёт среда CLR.
 
-#shot("Дерево процессов и изменения реестра по данным песочницы")
+#shot("Дерево процессов по данным песочницы", "./img/virustotal_fff3_proctree.png")
+#shot("Изменения реестра по данным песочницы", "./img/virustotal_fff3_reg.png")
 
 Уже на этом этапе виден характерный набор njRAT: ключ `HKCU\Software\<32 символа>`, значение автозагрузки с тем же именем, разрешение в брандмауэре через `netsh` и переменная `SEE_MASK_NOZONECHECKS`. Сетевой активности в отчёте нет: как будет показано ниже, адрес сервера в этой сборке указывает на локальный интерфейс. Далее предположение проверяется статическим анализом.
 
@@ -1036,7 +921,7 @@ if (Spr) USBspr(true);                                                // вык�
 if (Hid) FileSystem.SetAttr(LO.FullName, FileAttribute.Hidden);       // выключено
 ```
 
-#shot("Фрагмент функции INS: переменная SEE_MASK_NOZONECHECKS, netsh и запись в Run")
+#shot("Фрагмент функции INS: переменная SEE_MASK_NOZONECHECKS, netsh и запись в Run", "./img/fff3_ins.png")
 
 Назначение действий:
 
