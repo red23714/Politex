@@ -13,3 +13,6 @@ __pycache__
 !Makefile
 !makefile
 !Docker
+
+!projects/TRIPO/
+!projects/TRIPO/**
