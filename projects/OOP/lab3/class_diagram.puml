@@ -1,0 +1,181 @@
+@startuml MyVim_MVC
+skinparam classAttributeIconSize 0
+skinparam linetype polyline
+skinparam nodesep 40
+skinparam ranksep 60
+skinparam class {
+  BackgroundColor White
+  ArrowColor Black
+  BorderColor Black
+}
+
+title MyVim — архитектура MVC
+
+package "Model" as model_pkg #FDF6E3{
+  class MyString <<wrapper (Lab 1)>> {
+    -data : bytes
+    +MyString(source : str)
+    +clear() : void
+    +shrink_to_fit() : void
+    +append(other : MyString) : void
+    +insert(ch : str, pos : int) : void
+    +erase(pos : int, count : int) : void
+    +replace(pos : int, count : int, s : MyString) : void
+    +find(sub : str, from : int = 0) : int
+    +size() : int
+    +__getitem__(i : int) : str
+    +__setitem__(i : int, ch : str) : void
+    +__str__() : str
+    +__iter__() : Iterator
+  }
+
+  class Model <<Model>> {
+    -lines : List[MyString]
+    -filename : str
+    -modified : bool
+    -cursor_x : int
+    -cursor_y : int
+    -numbered : bool
+    +open_file(path : str) : void
+    +save_file(path : str = None) : void
+    +line_count() : int
+    +get_line(idx : int) : MyString
+    +insert_char(y : int, x : int, ch : str) : void
+    +delete_char(y : int, x : int) : void
+    +insert_line(y : int, line : MyString) : void
+    +delete_line(y : int) : MyString
+    +replace_line(y : int, line : MyString) : void
+    +find_forward(text : str, from_y : int, from_x : int) : Tuple[int, int]
+    +find_backward(text : str, from_y : int, from_x : int) : Tuple[int, int]
+    +get_cursor() : Tuple[int, int]
+    +set_cursor(y : int, x : int) : void
+    +is_modified() : bool
+  }
+}
+
+package "Controller" as ctrl_pkg #FDF6E3{
+  class Command <<Command>> {
+    -keys : str
+    -is_sequence : bool
+    -action : str
+    -args : List[object]
+    +Command(keys : str, action : str, args : List[object] = None)
+    +get_keys() : str
+    +is_sequence() : bool
+    +execute(api : Api) : void
+  }
+
+  class Config <<Config>> {
+    -config_path : str
+    -commands : List[Command]
+    +read_config() : List[Command]
+    -parse_line(line : str) : Command
+    +get_commands() : List[Command]
+  }
+
+  class ProcessInput <<Controller>> {
+    -buffer : str
+    -pending : Command
+    -timer_start : float
+    -timeout : float
+    +feed(key : str, commands : List[Command]) : Command
+    +is_timed_out() : bool
+    +reset() : void
+    -start_timer() : void
+  }
+
+  class Controller <<Controller>> {
+    -queue : Deque[Command]
+    -process_input : ProcessInput
+    -commands : List[Command]
+    +handle_key(key : str) : void
+    +enqueue(cmd : Command) : void
+    +update() : void
+    -match_command(keys : str) : Command
+  }
+}
+
+package "View" as view_pkg #FDF6E3{
+  class CursesAdapter <<Adapter>> {
+    -screen : Any
+    +init() : void
+    +destroy() : void
+    +get_key() : str
+    +clear() : void
+    +draw_text(y : int, x : int, text : str) : void
+    +move_cursor(y : int, x : int) : void
+    +refresh() : void
+  }
+
+  class View <<View>> {
+    -adapter : CursesAdapter
+    +render(model : Model, status : str) : void
+    +draw_text_area(model : Model) : void
+    +draw_status_bar(model : Model, mode : str) : void
+    +draw_cursor(model : Model) : void
+    +get_key() : str
+  }
+}
+
+class Api <<API>> #E8F4E8 {
+  -model : Model
+  -view : View
+  +move_cursor_left() : void
+  +move_cursor_right() : void
+  +move_cursor_up() : void
+  +move_cursor_down() : void
+  +move_line_start() : void
+  +move_line_end() : void
+  +move_word_forward() : void
+  +move_word_backward() : void
+  +move_file_start() : void
+  +move_file_end() : void
+  +move_to_line(n : int) : void
+  +page_up() : void
+  +page_down() : void
+  +delete_char() : void
+  +delete_word() : void
+  +delete_line() : void
+  +copy_line() : void
+  +copy_word() : void
+  +paste() : void
+  +undo() : void
+  +enter_insert_mode() : void
+  +enter_command_mode() : void
+  +enter_search_mode(text : str) : void
+  +replace_char(ch : str) : void
+  +toggle_line_numbers() : void
+}
+
+class App <<App>> {
+  -config : Config
+  -model : Model
+  -api : Api
+  -controller : Controller
+  -view : View
+  -running : bool
+  +setup() : void
+  +run() : void
+  +stop() : void
+  -main_loop() : void
+}
+
+App *-- Config
+App *-- Model
+App *-- Api
+App *-- Controller
+App *-- View
+
+Config ..> Command : создаёт
+Config --> Command : commands 1..*
+
+Controller *-- ProcessInput
+Controller ..> Command : ставит в очередь
+Controller ..> Command : исполняет
+
+Command --> Api : action.execute()
+Api --> Model : изменяет текст
+View ..> Model : читает текст
+View *-- CursesAdapter
+Model *-- "lines" MyString
+@enduml
