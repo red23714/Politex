@@ -1,0 +1,30 @@
+RIGHT = go pos r 1
+LEFT = go pos l 1
+UP = go pos u 1
+DOWN = go pos d 1
+^ = go str st
+$ = go str end
+w = go word end
+b = go word st
+gg = go st
+G = go end 
+@num@G = go line @num@
+PG_UP = go scr u
+PG_DOWN = go scr d
+x = del
+diw = del word space
+dd = del line
+yy = cpy line
+yw = cpy word
+p = pst
+
+/@text@ = search @text@ st
+?@text@ = search @text@ end
+n = search rep end
+N = search rep start
+
+i = insert bf
+I = go str st insert
+A = go str end insert
+S = del line insert
+r = del insert

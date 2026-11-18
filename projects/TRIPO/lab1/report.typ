@@ -14,7 +14,7 @@
   group: "5151001/40202",
   student: "Волошкевич М.А.",
   supervisor-role: "ассистент",
-  supervisor: "Ерастов В.О.",
+  supervisor: "Кондачков Е.Д.",
   year: 2026,
 )
 
