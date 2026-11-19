@@ -12,3 +12,10 @@ class CommandsType(Enum):
     WRITE = 8
     EXIT = 9
     SAVE = 10
+    REPLACE = 11
+    UNDO = 12
+    REVERT = 13
+    NUMBERING = 14
+    HIGHLIGHT = 15
+    HISTORY = 16
+    HELP = 17

@@ -788,6 +788,39 @@ int MyString::find(std::string_view source_str, int index) const
 	return -1;
 }
 
+int MyString::rfind(std::string_view source_str) const
+{
+	return rfind(source_str, len_ - 1);
+}
+
+int MyString::rfind(std::string_view source_str, int index) const
+{
+	index = check_index(index, len_, 0, "rfind with index");
+
+	int m = static_cast<int>(source_str.size());
+
+	if (m == 0)
+		return index;
+
+	if (m > len_)
+		return -1;
+
+	std::string reversed_pattern(source_str.rbegin(), source_str.rend());
+	AhoCorasickAutomaton automaton(reversed_pattern.data(), m);
+
+	int start_i = std::min(len_ - 1, index + m - 1);
+
+	for (int i = start_i; i >= 0; --i)
+	{
+		automaton.step(static_cast<unsigned char>(pstr_[i]));
+
+		if (automaton.is_match())
+			return i;
+	}
+
+	return -1;
+}
+
 char MyString::at(int index)
 {
 	if (index == 0 && len_ == 0)

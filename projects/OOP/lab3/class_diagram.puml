@@ -1,163 +1,289 @@
 @startuml MyVim_MVC
 skinparam classAttributeIconSize 0
 skinparam linetype polyline
-skinparam nodesep 40
-skinparam ranksep 60
+skinparam nodesep 30
+skinparam ranksep 50
+skinparam dpi 120
 skinparam class {
   BackgroundColor White
   ArrowColor Black
   BorderColor Black
 }
+left to right direction
 
-title MyVim — архитектура MVC
+title MyVim — архитектура MVC (с дополнительными заданиями 4.1–4.4)
 
-package "Model" as model_pkg #FDF6E3{
+package "MVC Framework (доп. задание 4.4)" as framework_pkg #EFEFF7 {
+  class FrameworkModel <<framework>> {
+  }
+  class FrameworkView <<framework>> {
+    #adapter
+    +render() : void
+    +get_key() : str
+  }
+  class FrameworkController <<framework>> {
+    +handle_key(key : str) : void
+    +update() : void
+    +on_timeout() : void
+  }
+  class Application <<framework>> {
+    -running : bool
+    -on_start
+    +run() : void
+    +start() : void
+    +stop() : void
+  }
+  class AppBuilder <<Builder>> {
+    -adapter
+    -model
+    -view
+    -controller
+    +set_adapter(a) : AppBuilder
+    +set_model(m) : AppBuilder
+    +set_view(v) : AppBuilder
+    +set_controller(c) : AppBuilder
+    +set_on_start(cb) : AppBuilder
+    +build() : Application
+  }
+}
+
+package "Model" as model_pkg #FDF6E3 {
   class MyString <<wrapper (Lab 1)>> {
-    -data : bytes
-    +MyString(source : str)
-    +clear() : void
-    +shrink_to_fit() : void
-    +append(other : MyString) : void
-    +insert(ch : str, pos : int) : void
-    +erase(pos : int, count : int) : void
-    +replace(pos : int, count : int, s : MyString) : void
-    +find(sub : str, from : int = 0) : int
+    +insert(pos, value)
+    +erase(pos, count)
+    +substr(pos, len)
+    +find(sub, from) : int
+    +rfind(sub, from) : int
+    +append(value)
     +size() : int
-    +__getitem__(i : int) : str
-    +__setitem__(i : int, ch : str) : void
-    +__str__() : str
-    +__iter__() : Iterator
+    +c_str() : str
   }
 
   class Model <<Model>> {
     -lines : List[MyString]
+    -cursor_row : int
+    -cursor_col : int
+    -clipboard : str
     -filename : str
     -modified : bool
-    -cursor_x : int
-    -cursor_y : int
     -numbered : bool
-    +open_file(path : str) : void
-    +save_file(path : str = None) : void
-    +line_count() : int
-    +get_line(idx : int) : MyString
-    +insert_char(y : int, x : int, ch : str) : void
-    +delete_char(y : int, x : int) : void
-    +insert_line(y : int, line : MyString) : void
-    +delete_line(y : int) : MyString
-    +replace_line(y : int, line : MyString) : void
-    +find_forward(text : str, from_y : int, from_x : int) : Tuple[int, int]
-    +find_backward(text : str, from_y : int, from_x : int) : Tuple[int, int]
-    +get_cursor() : Tuple[int, int]
-    +set_cursor(y : int, x : int) : void
-    +is_modified() : bool
+    -original_lines : Dict[int, str]
+    +load_from_string(s : MyString) : void
+    +to_string() : MyString
+    +line_text(row) : str
+    +open_file(path) : void
+    +save(path) : void
+    +snapshot() : Tuple
+    +restore_snapshot(snap) : void
+    +restore_original_line() : bool
+    +insert_text(s : str) : void
+    +delete_range(start, end) : void
+    +delete_line(row) : str
+    +insert_line(row, text) : void
+    +word_forward() : void
+    +word_backward() : void
+    +word_span() : Tuple[int, int]
+    +find_next(query) : bool
+    +find_prev(query) : bool
+    +move_cursor(row, col) : void
   }
 }
 
-package "Controller" as ctrl_pkg #FDF6E3{
-  class Command <<Command>> {
+package "Controller" as ctrl_pkg #FDF6E3 {
+  class Command <<Command (4.1)>> {
     -keys : str
     -is_sequence : bool
-    -action : str
-    -args : List[object]
-    +Command(keys : str, action : str, args : List[object] = None)
-    +get_keys() : str
-    +is_sequence() : bool
-    +execute(api : Api) : void
+    -steps : List[Tuple[str, List]]
+    -mode : str
+    -captured : Dict[str, object]
+    +execute(api, registry) : void
+    +describe() : str
+  }
+
+  class CommandsType <<Enum>> {
+    GO, DEL, CPY, PST, SEARCH, INSERT,
+    OPEN, WRITE, EXIT, SAVE, REPLACE,
+    UNDO, REVERT, NUMBERING, HIGHLIGHT,
+    HISTORY, HELP
+  }
+  class DestinationType <<Enum>> {
+    POS, STR, WORD, LINE, SCREEN
+  }
+  class PositionType <<Enum>> {
+    RIGHT, LEFT, UP, DOWN, START,
+    END, MIDDLE, BEFORE, AFTER
+  }
+  class Mode <<Enum>> {
+    NORMAL, INSERT, COMMAND, SEARCH, REPLACE, HELP
   }
 
   class Config <<Config>> {
     -config_path : str
     -commands : List[Command]
     +read_config() : List[Command]
-    -parse_line(line : str) : Command
-    +get_commands() : List[Command]
+    -parse_line(line, mode) : Command
+    -make_step(tokens) : Tuple
+    +commands_for_mode(mode) : List[Command]
+  }
+
+  class CommandRegistry <<Registry>> {
+    -_handlers : Dict[str, Tuple[callable, bool]]
+    +register(canonical, handler, undoable) : void
+    +register_from_api(api) : void
+    +get_handler(canonical) : callable
+    +is_undoable(canonical) : bool
   }
 
   class ProcessInput <<Controller>> {
     -buffer : str
-    -pending : Command
     -timer_start : float
     -timeout : float
-    +feed(key : str, commands : List[Command]) : Command
-    +is_timed_out() : bool
+    +feed(key, commands) : Command
     +reset() : void
-    -start_timer() : void
+    +is_timed_out() : bool
+    +{static} match_exact(commands, text) : Command
+    +{static} full_regex(keys) : Pattern
+    +{static} can_still_match(commands, text) : bool
   }
 
   class Controller <<Controller>> {
     -queue : Deque[Command]
+    -api : Api
+    -registry : CommandRegistry
     -process_input : ProcessInput
-    -commands : List[Command]
+    -config : Config
     +handle_key(key : str) : void
     +enqueue(cmd : Command) : void
     +update() : void
-    -match_command(keys : str) : Command
+    -run(command : Command) : void
+    -execute_command_line(line : str) : void
+    -finish_search() : void
+  }
+
+  class History <<Singleton (4.3)>> {
+    -{static} _instance : History
+    -records : List[Tuple[Command, snapshot]]
+    +push(command, snapshot) : void
+    +pop() : Tuple
+    +describe() : List[str]
+    +clear() : void
+  }
+
+  class Api <<Facade>> {
+    -model : Model
+    -viewport : Viewport
+    -mode : Mode
+    -last_search : str
+    +registry_table() : List[Tuple]
+    +move_cursor_right(count) : void
+    +move_cursor_left(count) : void
+    +move_line_start() : void
+    +move_line_end() : void
+    +move_word_forward() : void
+    +move_word_backward() : void
+    +move_file_start() : void
+    +move_file_end() : void
+    +move_to_line(n) : void
+    +page_up() : void
+    +page_down() : void
+    +delete_char() : void
+    +delete_word() : void
+    +delete_line() : void
+    +copy_line() : void
+    +copy_word() : void
+    +paste() : void
+    +insert_text(s) : void
+    +replace_char(ch) : void
+    +undo() : void
+    +undo_line() : void
+    +search_forward(text) : void
+    +search_backward(text) : void
+    +open_file(name) : void
+    +save_file(name) : void
+    +quit(force) : void
+    +revert() : void
+    +toggle_line_numbers() : void
+    +toggle_syntax_highlight() : void
+    +show_history() : void
+    +clear_history() : void
+    +show_help() : void
   }
 }
 
-package "View" as view_pkg #FDF6E3{
+package "View" as view_pkg #FDF6E3 {
   class CursesAdapter <<Adapter>> {
-    -screen : Any
+    -screen
     +init() : void
     +destroy() : void
-    +get_key() : str
+    +get_key(timeout_ms) : str
+    +draw_text(y, x, text, attr) : void
+    +draw_segments(y, x, segments) : void
+    +move_cursor(y, x) : void
+    +color_attr(color, bold) : int
     +clear() : void
-    +draw_text(y : int, x : int, text : str) : void
-    +move_cursor(y : int, x : int) : void
     +refresh() : void
+    +get_size() : Tuple
+  }
+
+  class Viewport {
+    -top_row : int
+    -height : int
+    -width : int
+    +update(model) : void
+    +visible_rows(model) : List
+    +resize(h, w) : void
+    +page_up() : int
+    +page_down() : int
+  }
+
+  class LineRenderer <<Component (4.2)>> {
+    +{abstract} draw(adapter, y, x, text) : void
+  }
+  class PlainRenderer {
+    +draw(adapter, y, x, text) : void
+  }
+  class SyntaxHighlightDecorator <<Decorator (4.2)>> {
+    -inner : LineRenderer
+    +draw(adapter, y, x, text) : void
+    +highlight(adapter, text) : List
+    +unwrap() : LineRenderer
   }
 
   class View <<View>> {
-    -adapter : CursesAdapter
-    +render(model : Model, status : str) : void
-    +draw_text_area(model : Model) : void
-    +draw_status_bar(model : Model, mode : str) : void
-    +draw_cursor(model : Model) : void
+    -viewport : Viewport
+    -api : Api
+    -renderer : LineRenderer
+    +render() : void
+    +draw_text_area() : void
+    +draw_status_bar() : void
+    +draw_overlay() : void
+    +place_cursor() : void
+    +toggle_syntax_highlight() : void
     +get_key() : str
   }
 }
 
-class Api <<API>> #E8F4E8 {
-  -model : Model
-  -view : View
-  +move_cursor_left() : void
-  +move_cursor_right() : void
-  +move_cursor_up() : void
-  +move_cursor_down() : void
-  +move_line_start() : void
-  +move_line_end() : void
-  +move_word_forward() : void
-  +move_word_backward() : void
-  +move_file_start() : void
-  +move_file_end() : void
-  +move_to_line(n : int) : void
-  +page_up() : void
-  +page_down() : void
-  +delete_char() : void
-  +delete_word() : void
-  +delete_line() : void
-  +copy_line() : void
-  +copy_word() : void
-  +paste() : void
-  +undo() : void
-  +enter_insert_mode() : void
-  +enter_command_mode() : void
-  +enter_search_mode(text : str) : void
-  +replace_char(ch : str) : void
-  +toggle_line_numbers() : void
+package "Демо-приложение (4.4)" as demo_pkg #F4F4E8 {
+  class TaskListModel {
+    -tasks : List[str]
+    -selected : int
+    +add_task(text) : void
+    +delete_task() : void
+  }
+  class TaskListView {
+    +render() : void
+  }
+  class TaskListController {
+    +handle_key(key) : void
+  }
 }
 
-class App <<App>> {
+' --- связи ---
+class App <<Entry>> {
   -config : Config
-  -model : Model
   -api : Api
-  -controller : Controller
-  -view : View
-  -running : bool
-  +setup() : void
-  +run() : void
-  +stop() : void
-  -main_loop() : void
+  +build_app(filename, config_path) : Application
+  +{static} main() : void
 }
 
 App *-- Config
@@ -166,16 +292,59 @@ App *-- Api
 App *-- Controller
 App *-- View
 
+FrameworkView <|-- View
+FrameworkController <|-- Controller
+FrameworkModel <|-- Model
+FrameworkView <|-- TaskListView
+FrameworkController <|-- TaskListController
+FrameworkModel <|-- TaskListModel
+
 Config ..> Command : создаёт
-Config --> Command : commands 1..*
-
+Config ..> CommandsType
+Config ..> DestinationType
+Config ..> PositionType
 Controller *-- ProcessInput
-Controller ..> Command : ставит в очередь
-Controller ..> Command : исполняет
-
-Command --> Api : action.execute()
+Controller *-- CommandRegistry
+Controller ..> Command : ставит в очередь и исполняет
+Command --> CommandRegistry : handler lookup
+CommandRegistry ..> Api : хранит методы
 Api --> Model : изменяет текст
-View ..> Model : читает текст
+Api --> Viewport : прокрутка
+Api ..> History : push/pop
+Api ..> View : подсветка (sy)
+Controller ..> History : снимки команд
+Controller ..> Mode : маршрутизация режимов
+
 View *-- CursesAdapter
+View *-- Viewport
+View --> LineRenderer : renderer
+LineRenderer <|-- PlainRenderer
+LineRenderer <|-- SyntaxHighlightDecorator
+SyntaxHighlightDecorator o-- LineRenderer : inner
+
 Model *-- "lines" MyString
+CursesAdapter ..> curses : адаптирует
+
+note right of History
+  Доп. задание 4.3:
+  история команд + отмена (u)
+end note
+note right of SyntaxHighlightDecorator
+  Доп. задание 4.2:
+  подсветка синтаксиса (sy)
+end note
+note right of Command
+  Доп. задание 4.1:
+  все команды — объекты,
+  set num — нумерация строк
+end note
+note as N4 #F4F4E8
+  Доп. задание 4.4: MVC-фреймворк
+  (FrameworkModel/View/Controller,
+  Application) + «строитель» AppBuilder;
+  редактор и demo-приложение
+  построены на нём
+end note
+N4 .. AppBuilder
+
 @enduml

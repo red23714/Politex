@@ -82,7 +82,7 @@ std::string to_py_str(const MyString& self)
 
 } // namespace
 
-PYBIND11_MODULE(mystring, m)
+PYBIND11_MODULE(my_string, m)
 {
 	py::class_<MyString> cls(m, "MyString");
 
@@ -232,6 +232,17 @@ PYBIND11_MODULE(mystring, m)
 				if (from.is_none())
 					return self.find(std::string_view(tmp));
 				return self.find(std::string_view(tmp), from.cast<int>());
+			},
+			py::arg("value"), py::arg("from") = py::none())
+
+		.def(
+			"rfind",
+			[](const MyString& self, py::object value, py::object from)
+			{
+				std::string tmp = extract_string(value);
+				if (from.is_none())
+					return self.rfind(std::string_view(tmp));
+				return self.rfind(std::string_view(tmp), from.cast<int>());
 			},
 			py::arg("value"), py::arg("from") = py::none())
 

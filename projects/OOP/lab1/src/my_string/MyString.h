@@ -199,6 +199,8 @@ class MyString
 	// Finders
 	int find(std::string_view source_str) const;
 	int find(std::string_view source_str, int index) const;
+	int rfind(std::string_view source_str) const;
+	int rfind(std::string_view source_str, int index) const;
 
 	char at(int index);
 

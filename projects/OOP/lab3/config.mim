@@ -1,3 +1,9 @@
+# Ключевые привязки MyVim.
+# Формат строки:  KEYS = command tokens...
+# Заполнители:    @num@ — число, @text@ — текст до Enter.
+# Секции:         [normal] — основной режим, [command] — режим команд (":").
+
+[normal]
 RIGHT = go pos r 1
 LEFT = go pos l 1
 UP = go pos u 1
@@ -7,7 +13,7 @@ $ = go str end
 w = go word end
 b = go word st
 gg = go st
-G = go end 
+G = go end
 @num@G = go line @num@
 PG_UP = go scr u
 PG_DOWN = go scr d
@@ -17,6 +23,8 @@ dd = del line
 yy = cpy line
 yw = cpy word
 p = pst
+u = undo
+U = undo line
 
 /@text@ = search @text@ st
 ?@text@ = search @text@ end
@@ -27,14 +35,20 @@ i = insert bf
 I = go str st insert
 A = go str end insert
 S = del line insert
-r = del insert
+r = replace
 
+[command]
 o @text@ = open @text@
 x = write exit
 w = write
 w @text@ = write @text@
 q = exit
-q! = exit
+q! = exit force
 wq! = save exit
+e! = revert
 @num@ = go line @num@
+set num = numbering toggle
+sy = highlight toggle
+hist = history show
+hist clear = history clear
 h = help
