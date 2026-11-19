@@ -28,3 +28,13 @@ I = go str st insert
 A = go str end insert
 S = del line insert
 r = del insert
+
+o @text@ = open @text@
+x = write exit
+w = write
+w @text@ = write @text@
+q = exit
+q! = exit
+wq! = save exit
+@num@ = go line @num@
+h = help
