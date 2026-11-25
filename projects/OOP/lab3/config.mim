@@ -19,6 +19,7 @@ PG_UP = go scr u
 PG_DOWN = go scr d
 x = del
 diw = del word space
+ciw = del word space insert
 dd = del line
 yy = cpy line
 yw = cpy word

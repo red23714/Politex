@@ -9,7 +9,10 @@ scroll print text beta def import delta search
 cursor gamma beta line buffer gamma line delta search text def scroll
 scroll scroll cursor text gamma
 value = "vim" import line vim def search text import line window beta line beta
-search text gamma cursor while window cursor class
+search text gamma cursor while window cursor class lkjashdfkjahsdklfjhasdlf
+search text gamma cursor while window cursor class lkjashdfkjahsdklfjhasdlf
+search text gamma cursor while window cursor class lkjashdfkjahsdklfjhasdlf
+search text gamma cursor while window cursor class lkjashdfkjahsdklfjhasdlf
 def editor text editor line import import text while
 while search scroll line editor return class gamma beta
 # komentar k stroke 14 editor vim replace print

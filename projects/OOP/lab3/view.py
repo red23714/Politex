@@ -67,19 +67,7 @@ class View(FrameworkView):
                 prefix = f"{row_index + 1:>{gutter}} "
                 self.adapter.draw_text(y, 0, prefix)
                 x = len(prefix)
-            self.renderer.draw(self.adapter, y, x,
-                               self.decode_line(text))
-
-    @staticmethod
-    def decode_line(text: str) -> str:
-        """Файл хранится в модели побайтово (latin-1, 1 байт = 1 символ).
-        Кириллица в UTF-8 занимает 2 байта, поэтому перед отрисовкой
-        строка файла декодируется в настоящий Unicode. Строки, введённые
-        пользователем с клавиатуры, уже Unicode — их не трогаем."""
-        try:
-            return text.encode("latin-1").decode("utf-8")
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            return text
+            self.renderer.draw(self.adapter, y, x, text)
 
     def draw_overlay(self) -> None:
         lines = self.api.overlay_lines
